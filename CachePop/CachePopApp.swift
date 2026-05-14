@@ -25,8 +25,10 @@ struct CachePopApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            DashboardView()
         }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1180, height: 760)
         .modelContainer(sharedModelContainer)
     }
 }
