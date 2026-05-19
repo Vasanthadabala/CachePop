@@ -1,5 +1,5 @@
 //
-//  ApplicationsView.swift
+//  AppManagerView.swift
 //  CachePop
 //
 //  Created by Vasanth on 14/05/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct ApplicationsView: View {
+struct AppManagerView: View {
     var onStartOver: () -> Void = {}
 
     var body: some View {
@@ -29,7 +29,17 @@ struct ApplicationsView: View {
                     .frame(height: 42)
                     .background {
                         RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .fill(.white.opacity(0.16))
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(hex: 0x8EA8FF),
+                                        Color(hex: 0x8EA8FF),
+                                        Color(hex: 0x5E70DF)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                             .overlay {
                                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                                     .stroke(.white.opacity(0.16), lineWidth: 1)
@@ -72,7 +82,7 @@ private struct ApplicationsTopBar: View {
         .padding(.top, 26)
         .padding(.horizontal, 34)
         .overlay(alignment: .bottom) {
-            Text("Applications")
+            Text("App Manager")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.68))
         }
@@ -285,12 +295,22 @@ private struct ApplicationsActionButton: View {
     var body: some View {
         Button(title) {}
             .font(.system(size: 15, weight: .bold, design: .rounded))
-            .foregroundStyle(style == .primary ? .black : .white)
+            .foregroundStyle(.white)
             .buttonStyle(.plain)
             .frame(width: style == .primary ? 82 : 74, height: 35)
             .background {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(style == .primary ? .white.opacity(0.92) : .white.opacity(0.12))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: 0x8EA8FF).opacity(style == .primary ? 1 : 0.9),
+                                Color(hex: 0x8EA8FF).opacity(0.88),
+                                Color(hex: 0x5E70DF).opacity(0.94)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
                             .stroke(style == .primary ? .clear : .white.opacity(0.12), lineWidth: 1)
@@ -447,7 +467,6 @@ private struct ApplicationsSidebar: View {
     private let items: [ApplicationsSidebarItem] = [
         .smartCare,
         .cleanup,
-        .protection,
         .performance,
         .applications,
         .myClutter
@@ -522,7 +541,6 @@ private struct ApplicationsSidebarIcon: View {
 private enum ApplicationsSidebarItem: String, Identifiable {
     case smartCare
     case cleanup
-    case protection
     case performance
     case applications
     case myClutter
@@ -535,8 +553,6 @@ private enum ApplicationsSidebarItem: String, Identifiable {
             "desktopcomputer"
         case .cleanup:
             "face.smiling.inverse"
-        case .protection:
-            "hand.raised.fill"
         case .performance:
             "bolt.fill"
         case .applications:
@@ -606,6 +622,6 @@ private extension Color {
 }
 
 #Preview {
-    ApplicationsView()
+    AppManagerView()
         .frame(width: 1180, height: 760)
 }
