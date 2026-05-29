@@ -1,5 +1,5 @@
 //
-//  AssistanceView.swift
+//  AssistantView.swift
 //  CachePop
 //
 //  Created by Vasanth on 14/05/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct AssistanceView: View {
+struct AssistantView: View {
     var body: some View {
         VStack(spacing: 0) {
             Text("Assistant")
@@ -19,7 +19,7 @@ struct AssistanceView: View {
                 MacHealthPanel()
                     .frame(maxWidth: .infinity)
 
-                AssistanceTipsPane()
+                AssistantTipsPane()
                     .frame(width: 405)
             }
             .padding(.top, 24)
@@ -206,18 +206,18 @@ private struct LaptopIllustration: View {
     }
 }
 
-private struct AssistanceTipsPane: View {
-    private let tips = AssistanceTip.samples
+private struct AssistantTipsPane: View {
+    private let tips = AssistantTip.samples
 
     var body: some View {
         ZStack(alignment: .trailing) {
             VStack(spacing: 16) {
                 ForEach(tips) { tip in
-                    AssistanceTipCard(tip: tip)
+                    AssistantTipCard(tip: tip)
                         .frame(height: 197)
                 }
 
-                AssistanceTipCard(tip: .extra)
+                AssistantTipCard(tip: .extra)
                     .frame(height: 152)
                     .opacity(0.42)
             }
@@ -238,8 +238,8 @@ private struct AssistanceTipsPane: View {
     }
 }
 
-private struct AssistanceTipCard: View {
-    let tip: AssistanceTip
+private struct AssistantTipCard: View {
+    let tip: AssistantTip
 
     var body: some View {
         RoundedRectangle(cornerRadius: 17, style: .continuous)
@@ -407,11 +407,10 @@ private struct MiniMenuBlock: View {
     }
 }
 
-private struct AssistanceSidebar: View {
-    private let items: [AssistanceSidebarItem] = [
+private struct AssistantSidebar: View {
+    private let items: [AssistantSidebarItem] = [
         .smartCare,
         .cleanup,
-        .protection,
         .performance,
         .applications,
         .myClutter
@@ -423,12 +422,12 @@ private struct AssistanceSidebar: View {
                 .frame(height: 140)
 
             ForEach(items) { item in
-                AssistanceSidebarRow(item: item, isSelected: false)
+                AssistantSidebarRow(item: item, isSelected: false)
             }
 
             Spacer()
 
-            AssistanceSidebarRow(item: .assistant, isSelected: true)
+            AssistantSidebarRow(item: .assistant, isSelected: true)
                 .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
@@ -445,8 +444,8 @@ private struct AssistanceSidebar: View {
     }
 }
 
-private struct AssistanceSidebarRow: View {
-    let item: AssistanceSidebarItem
+private struct AssistantSidebarRow: View {
+    let item: AssistantSidebarItem
     let isSelected: Bool
 
     var body: some View {
@@ -486,7 +485,7 @@ private struct AssistanceSidebarRow: View {
     }
 }
 
-private struct AssistanceTip: Identifiable {
+private struct AssistantTip: Identifiable {
     let id = UUID()
     let icon: TipIcon.Kind
     let title: String
@@ -494,19 +493,19 @@ private struct AssistanceTip: Identifiable {
     let buttonTitle: String?
 
     static let samples = [
-        AssistanceTip(
+        AssistantTip(
             icon: .battery,
             title: "Critical battery health",
             body: "Your Mac's battery capacity has degraded severely. Consider a battery change.",
             buttonTitle: "Learn More..."
         ),
-        AssistanceTip(
+        AssistantTip(
             icon: .menu,
             title: "Get an overview of your Mac",
             body: "Use CachePop Menu as a powerful satellite app that helps you keep an eye on your main system readings.",
             buttonTitle: "Open CachePop Menu"
         ),
-        AssistanceTip(
+        AssistantTip(
             icon: .restart,
             title: "Restart your Mac once in a while",
             body: "It's been 19 days since your last restart. Some researchers recommend restarting regularly.",
@@ -514,7 +513,7 @@ private struct AssistanceTip: Identifiable {
         )
     ]
 
-    static let extra = AssistanceTip(
+    static let extra = AssistantTip(
         icon: .cleanup,
         title: "Run quick maintenance",
         body: "Clear temporary files and refresh common services to keep your Mac feeling snappy.",
@@ -522,10 +521,9 @@ private struct AssistanceTip: Identifiable {
     )
 }
 
-private enum AssistanceSidebarItem: String, Identifiable {
+private enum AssistantSidebarItem: String, Identifiable {
     case smartCare
     case cleanup
-    case protection
     case performance
     case applications
     case myClutter
@@ -536,17 +534,15 @@ private enum AssistanceSidebarItem: String, Identifiable {
     var title: String {
         switch self {
         case .smartCare:
-            "Smart Care"
+            "Care"
         case .cleanup:
-            "Cleanup"
-        case .protection:
-            "Protection"
+            "Junk Cleaner"
         case .performance:
-            "Performance"
+            "Boost"
         case .applications:
-            "Applications"
+            "App Manager"
         case .myClutter:
-            "My Clutter"
+            "Clutter"
         case .assistant:
             "Assistant"
         }
@@ -558,8 +554,6 @@ private enum AssistanceSidebarItem: String, Identifiable {
             "desktopcomputer"
         case .cleanup:
             "face.smiling.inverse"
-        case .protection:
-            "hand.raised.fill"
         case .performance:
             "bolt.fill"
         case .applications:
@@ -584,14 +578,14 @@ private enum AssistanceSidebarItem: String, Identifiable {
     }
 }
 
-private struct AssistanceBackground: View {
+private struct AssistantBackground: View {
     var body: some View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(hex: 0x7A14B7),
-                    Color(hex: 0x3A0A87),
-                    Color(hex: 0x08003A)
+                    .black,
+                    Color(hex: 0x060B22),
+                    .black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -599,8 +593,8 @@ private struct AssistanceBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0xB026D0).opacity(0.52),
-                    Color(hex: 0x5B169D).opacity(0.22),
+                    Color(hex: 0x8EA8FF).opacity(0.22),
+                    Color(hex: 0x5E70DF).opacity(0.08),
                     .clear
                 ],
                 center: UnitPoint(x: 0.22, y: 0.26),
@@ -610,7 +604,7 @@ private struct AssistanceBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8228DA).opacity(0.42),
+                    Color(hex: 0x5E70DF).opacity(0.10),
                     .clear
                 ],
                 center: UnitPoint(x: 0.22, y: 0.78),
@@ -643,6 +637,6 @@ private extension Color {
 }
 
 #Preview {
-    AssistanceView()
+    AssistantView()
         .frame(width: 1180, height: 760)
 }
