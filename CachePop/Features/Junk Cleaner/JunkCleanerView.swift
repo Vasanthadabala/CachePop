@@ -914,9 +914,9 @@ private struct CleanupBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(hex: 0x053E13),
-                    Color(hex: 0x0B842E),
-                    Color(hex: 0x03280E)
+                    .black,
+                    Color(hex: 0x060B22),
+                    .black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -924,8 +924,8 @@ private struct CleanupBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x00CC42).opacity(0.66),
-                    Color(hex: 0x095B22).opacity(0.18),
+                    Color(hex: 0x8EA8FF).opacity(0.22),
+                    Color(hex: 0x5E70DF).opacity(0.08),
                     .clear
                 ],
                 center: UnitPoint(x: 0.2, y: 0.72),
@@ -935,7 +935,7 @@ private struct CleanupBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0xA1D866).opacity(0.42),
+                    Color(hex: 0x5E70DF).opacity(0.10),
                     .clear
                 ],
                 center: UnitPoint(x: 0.67, y: 0.05),

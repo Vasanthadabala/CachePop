@@ -568,9 +568,9 @@ private struct ApplicationsBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(hex: 0x1552B4),
-                    Color(hex: 0x07326F),
-                    Color(hex: 0x27137A)
+                    .black,
+                    Color(hex: 0x060B22),
+                    .black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -578,8 +578,8 @@ private struct ApplicationsBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x2C74F2).opacity(0.55),
-                    Color(hex: 0x173C97).opacity(0.26),
+                    Color(hex: 0x8EA8FF).opacity(0.22),
+                    Color(hex: 0x5E70DF).opacity(0.08),
                     .clear
                 ],
                 center: UnitPoint(x: 0.16, y: 0.18),
@@ -589,7 +589,7 @@ private struct ApplicationsBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x6534D3).opacity(0.58),
+                    Color(hex: 0x5E70DF).opacity(0.10),
                     .clear
                 ],
                 center: UnitPoint(x: 0.16, y: 0.86),

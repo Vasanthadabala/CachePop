@@ -192,7 +192,7 @@ struct PerformanceManagerContent: View {
 
             PerformanceManagerBottomBar(selectedCount: selectedItemIDs.count)
         }
-        .background(Color.white)
+        .background(Color.black)
     }
 }
 
@@ -239,10 +239,10 @@ private struct PerformanceManagerTopBar: View {
                 HStack(spacing: 10) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color(hex: 0xC13ABF))
+                        .foregroundStyle(Color(hex: 0x8EA8FF))
                     Text("Back")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.92))
+                        .foregroundStyle(.white.opacity(0.92))
                 }
             }
             .buttonStyle(.plain)
@@ -251,33 +251,33 @@ private struct PerformanceManagerTopBar: View {
 
             Text("Performance Manager")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.black.opacity(0.92))
+                .foregroundStyle(.white.opacity(0.92))
 
             Spacer()
 
             HStack(spacing: 28) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(hex: 0xC13ABF))
+                    .foregroundStyle(Color(hex: 0x8EA8FF))
 
                 HStack(spacing: 6) {
                     Text("Sort by:")
-                        .foregroundStyle(.black.opacity(0.9))
+                        .foregroundStyle(.white.opacity(0.9))
                     Text("Name")
-                        .foregroundStyle(Color(hex: 0xC13ABF))
+                        .foregroundStyle(Color(hex: 0x8EA8FF))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color(hex: 0xC13ABF))
+                        .foregroundStyle(Color(hex: 0x8EA8FF))
                 }
                 .font(.system(size: 16, weight: .bold, design: .rounded))
             }
         }
         .frame(height: 56)
         .padding(.horizontal, 28)
-        .background(Color.white)
+        .background(Color.black)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(.black.opacity(0.07))
+                .fill(.white.opacity(0.08))
                 .frame(height: 1)
         }
     }
@@ -299,16 +299,16 @@ private struct PerformanceSectionList: View {
                         Text(section.title)
                         Spacer()
                         Text("\(count(for: section))")
-                            .foregroundStyle(.black.opacity(0.42))
+                            .foregroundStyle(.white.opacity(0.42))
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(selectedSection == section ? .black.opacity(0.92) : .black.opacity(0.56))
+                    .foregroundStyle(selectedSection == section ? .white.opacity(0.94) : .white.opacity(0.56))
                     .padding(.horizontal, 13)
                     .frame(height: 38)
                     .background {
                         if selectedSection == section {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color(hex: 0xE0C9F3))
+                                .fill(Color(hex: 0x1C2A68))
                         }
                     }
                 }
@@ -319,7 +319,7 @@ private struct PerformanceSectionList: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 42)
-        .background(Color.white)
+        .background(Color.black)
     }
 
     private func count(for section: PerformanceSection) -> Int {
@@ -341,12 +341,12 @@ private struct PerformanceItemList: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(section.title)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
                 .padding(.bottom, 12)
 
             Text(section.description)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundStyle(.black.opacity(0.5))
+                .foregroundStyle(.white.opacity(0.56))
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 620, alignment: .leading)
@@ -354,12 +354,12 @@ private struct PerformanceItemList: View {
 
             HStack(spacing: 6) {
                 Text("Select:")
-                    .foregroundStyle(.black.opacity(0.9))
+                    .foregroundStyle(.white.opacity(0.9))
                 Text(selectedItemIDs.isEmpty ? "None" : "\(selectedItemIDs.count)")
-                    .foregroundStyle(Color(hex: 0xC13ABF))
+                    .foregroundStyle(Color(hex: 0x8EA8FF))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(hex: 0xC13ABF))
+                    .foregroundStyle(Color(hex: 0x8EA8FF))
             }
             .font(.system(size: 16, weight: .bold, design: .rounded))
             .padding(.bottom, 34)
@@ -367,7 +367,7 @@ private struct PerformanceItemList: View {
             if items.isEmpty {
                 Text(section.emptyMessage)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.5))
+                    .foregroundStyle(.white.opacity(0.56))
                     .padding(.top, 12)
             } else {
                 ScrollView {
@@ -412,7 +412,7 @@ private struct PerformanceItemRow: View {
 
                 Text(item.title)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.92))
+                    .foregroundStyle(.white.opacity(0.92))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -420,9 +420,9 @@ private struct PerformanceItemRow: View {
 
                 Image(systemName: "sparkles")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(hex: 0xC13ABF))
+                    .foregroundStyle(Color(hex: 0x8EA8FF))
                     .padding(8)
-                    .background(Color(hex: 0xFAECFA), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .frame(height: 54)
         }
@@ -435,11 +435,11 @@ private struct PerformanceCheckbox: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(isSelected ? Color(hex: 0xC13ABF) : .clear)
+            .fill(isSelected ? Color(hex: 0x8EA8FF) : .clear)
             .frame(width: 18, height: 18)
             .overlay {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .stroke(Color(hex: 0xC13ABF), lineWidth: 1.4)
+                    .stroke(Color(hex: 0x8EA8FF), lineWidth: 1.4)
             }
             .overlay {
                 if isSelected {
@@ -462,7 +462,7 @@ private struct PerformanceItemIcon: View {
         } else {
             Image(systemName: item.kind == "Login Item" ? "app.fill" : "doc.text.fill")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(Color(hex: 0xC13ABF))
+                .foregroundStyle(Color(hex: 0x8EA8FF))
         }
     }
 
@@ -482,7 +482,7 @@ private struct PerformanceManagerBottomBar: View {
 
             Text(selectedCount == 0 ? "No Items Selected" : "\(selectedCount) Items Selected")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.black)
+                .foregroundStyle(.white)
 
             Spacer()
 
@@ -493,13 +493,13 @@ private struct PerformanceManagerBottomBar: View {
                 .frame(width: 100, height: 44)
                 .background {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(hex: 0xEAA8E5).opacity(selectedCount == 0 ? 0.8 : 1))
+                        .fill(Color(hex: 0x5366D6).opacity(selectedCount == 0 ? 0.55 : 1))
                 }
                 .disabled(selectedCount == 0)
         }
         .frame(height: 72)
         .padding(.horizontal, 18)
-        .background(Color(hex: 0xF7F4FA))
+        .background(Color.black)
     }
 }
 
@@ -575,7 +575,7 @@ private struct JunkCleanerManagerContent: View {
                 )
             }
         }
-        .background(Color.white)
+        .background(Color.black)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .padding(.top, 12)
         .padding(.trailing, 12)
@@ -589,8 +589,8 @@ private struct JunkCleanerManagerContent: View {
     }
 
     private var managerDivider: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.12))
+            Rectangle()
+            .fill(Color.white.opacity(0.10))
             .frame(width: 1)
     }
 
@@ -824,10 +824,10 @@ private struct JunkCleanerManagerTopBar: View {
         }
         .frame(height: 70)
         .padding(.horizontal, 34)
-        .background(Color.white)
+        .background(Color.black)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color.black.opacity(0.08))
+                .fill(Color.white.opacity(0.08))
                 .frame(height: 1)
         }
     }
@@ -873,7 +873,7 @@ private struct JunkCleanerSectionList: View {
         .padding(.horizontal, 14)
         .padding(.top, 42)
         .padding(.bottom, 88)
-        .background(Color.white)
+        .background(Color.black)
     }
 }
 
@@ -926,7 +926,7 @@ private struct JunkCleanerGroupList: View {
         .padding(.horizontal, 26)
         .padding(.top, 38)
         .padding(.bottom, 96)
-        .background(Color.white)
+        .background(Color.black)
     }
 }
 
@@ -1045,7 +1045,7 @@ private struct JunkCleanerFileList: View {
         .padding(.horizontal, 32)
         .padding(.top, 38)
         .padding(.bottom, 104)
-        .background(Color.white)
+        .background(Color.black)
     }
 
     private var allRowsSelected: Bool {
@@ -1196,7 +1196,7 @@ private struct JunkCleanerManagerBottomBar: View {
                     .foregroundStyle(JunkCleanerManagerPalette.text)
 
                 Rectangle()
-                    .fill(Color.black.opacity(0.16))
+                    .fill(Color.white.opacity(0.16))
                     .frame(width: 1, height: 27)
 
                 Text(formatBytes(sizeBytes))
@@ -1246,13 +1246,13 @@ private func formatBytes(_ bytes: Int64) -> String {
 }
 
 private enum JunkCleanerManagerPalette {
-    static let accent = Color(hex: 0xC33ABB)
-    static let text = Color(hex: 0x111111)
-    static let secondary = Color(hex: 0x747177)
+    static let accent = Color(hex: 0x8EA8FF)
+    static let text = Color.white
+    static let secondary = Color.white.opacity(0.58)
     static let icon = Color(hex: 0x6EB8E5)
-    static let panel = Color.white
-    static let selection = Color(hex: 0xECE8F4)
-    static let bottomBar = Color(hex: 0xF6F4FA)
+    static let panel = Color.white.opacity(0.06)
+    static let selection = Color(hex: 0x1C2A68)
+    static let bottomBar = Color.black
     static let blueGradient = LinearGradient(
         colors: [
             Color(hex: 0x8FA6FF),
@@ -1263,8 +1263,8 @@ private enum JunkCleanerManagerPalette {
     )
     static let actionGradient = LinearGradient(
         colors: [
-            Color(hex: 0xD646C5),
-            Color(hex: 0xB41AA4)
+            Color(hex: 0x8EA8FF),
+            Color(hex: 0x5366D6)
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing

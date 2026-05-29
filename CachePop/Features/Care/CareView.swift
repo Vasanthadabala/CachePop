@@ -7,6 +7,7 @@
 
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CareView: View {
     @State private var selectedItem: CareSidebarItem = .smartCare
@@ -562,6 +563,39 @@ enum CareSystemScanner {
             CacheRoot(url: home.appendingPathComponent("Downloads"), kind: "Large File", label: "Downloads")
         ]
 
+        return scanClutter(in: roots)
+    }
+
+    nonisolated static func scanClutter(in folder: URL) -> (largeFiles: Int, duplicateFiles: Int, details: [CareScanDetailItem], permissions: [String]) {
+        let standardizedFolder = folder.standardizedFileURL
+        let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+        if standardizedFolder.path == home.path {
+            return scanClutter(in: homeClutterRoots(home: home))
+        }
+
+        let label = folder.lastPathComponent.isEmpty ? folder.path : folder.lastPathComponent
+        return scanClutter(in: [
+            CacheRoot(url: folder, kind: "Large File", label: label)
+        ])
+    }
+
+    nonisolated private static func homeClutterRoots(home: URL) -> [CacheRoot] {
+        [
+            ("Desktop", "Desktop"),
+            ("Documents", "Documents"),
+            ("Downloads", "Downloads"),
+            ("Pictures", "Pictures"),
+            ("Movies", "Movies"),
+            ("Music", "Music"),
+            ("Public", "Public")
+        ]
+        .map { folderName, label in
+            CacheRoot(url: home.appendingPathComponent(folderName), kind: "Large File", label: label)
+        }
+        .filter { FileManager.default.fileExists(atPath: $0.url.path) }
+    }
+
+    nonisolated private static func scanClutter(in roots: [CacheRoot]) -> (largeFiles: Int, duplicateFiles: Int, details: [CareScanDetailItem], permissions: [String]) {
         var largeFiles = 0
         var details: [CareScanDetailItem] = []
         var filesBySize: [Int64: [FileSample]] = [:]
@@ -585,7 +619,7 @@ enum CareSystemScanner {
                     ))
                 }
 
-                if file.size > 0 {
+                if file.size > 0, isClutterDuplicateCandidate(file.url) {
                     filesBySize[file.size, default: []].append(file)
                 }
             }
@@ -651,6 +685,27 @@ enum CareSystemScanner {
         }) {}
 
         return "\(size)-\(hash)"
+    }
+
+    nonisolated private static func isClutterDuplicateCandidate(_ url: URL) -> Bool {
+        let fileExtension = url.pathExtension.lowercased()
+        if let type = UTType(filenameExtension: fileExtension),
+           type.conforms(to: .image) {
+            return true
+        }
+
+        let allowedExtensions: Set<String> = [
+            "pdf",
+            "doc", "docx", "rtf", "txt", "pages",
+            "xls", "xlsx", "csv", "numbers",
+            "ppt", "pptx", "key",
+            "zip", "rar", "7z", "tar", "gz",
+            "mp3", "m4a", "wav", "aac",
+            "mp4", "mov", "m4v",
+            "dmg", "pkg", "mpkg", "appinstaller", "installer", "msi", "exe"
+        ]
+
+        return allowedExtensions.contains(fileExtension)
     }
 
     nonisolated private static func directorySize(at root: CacheRoot, limit: Int) -> (bytes: Int64, items: Int, details: [CareScanDetailItem], permissions: [String]) {
@@ -829,8 +884,12 @@ enum CareSystemScanner {
             return ([], [])
         }
 
+        if shouldSkipClutterDirectory(root.url) {
+            return ([], [])
+        }
+
         var permissions: [String] = []
-        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey]
+        let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey, .fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey]
         guard let enumerator = FileManager.default.enumerator(
             at: root.url,
             includingPropertiesForKeys: keys,
@@ -846,8 +905,18 @@ enum CareSystemScanner {
         var files: [FileSample] = []
         for case let fileURL as URL in enumerator {
             guard files.count < limit else { break }
-            guard let values = try? fileURL.resourceValues(forKeys: Set(keys)),
-                  values.isRegularFile == true else {
+            guard let values = try? fileURL.resourceValues(forKeys: Set(keys)) else {
+                continue
+            }
+
+            if values.isDirectory == true {
+                if shouldSkipClutterDirectory(fileURL) {
+                    enumerator.skipDescendants()
+                }
+                continue
+            }
+
+            guard values.isRegularFile == true else {
                 continue
             }
 
@@ -859,6 +928,61 @@ enum CareSystemScanner {
         }
 
         return (files, uniquePermissions(permissions))
+    }
+
+    nonisolated private static func shouldSkipClutterDirectory(_ url: URL) -> Bool {
+        let name = url.lastPathComponent.lowercased()
+        let path = url.standardizedFileURL.path.lowercased()
+
+        let skippedDirectoryNames: Set<String> = [
+            ".build", ".dart_tool", ".gradle", ".idea", ".next", ".nuxt", ".svelte-kit",
+            ".swiftpm", ".venv", "build", "coverage", "deriveddata", "dist", "node_modules",
+            "pods", "target", "vendor", "venv"
+        ]
+
+        if skippedDirectoryNames.contains(name) {
+            return true
+        }
+
+        let projectContainerNames: Set<String> = [
+            "androidstudioprojects", "developer", "xcode"
+        ]
+
+        if projectContainerNames.contains(name) {
+            return true
+        }
+
+        if path.contains("/library/developer/xcode/deriveddata/")
+            || path.contains("/.gradle/")
+            || path.contains("/node_modules/")
+            || path.contains("/pods/") {
+            return true
+        }
+
+        return containsProjectMarker(in: url)
+    }
+
+    nonisolated private static func containsProjectMarker(in url: URL) -> Bool {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return false
+        }
+
+        let markerFiles: Set<String> = [
+            "Package.swift", "package.json", "pnpm-lock.yaml", "yarn.lock",
+            "Podfile", "Cartfile", "build.gradle", "settings.gradle",
+            "gradlew", "pubspec.yaml", "Cargo.toml", "go.mod"
+        ]
+
+        return contents.contains { item in
+            markerFiles.contains(item.lastPathComponent)
+                || item.pathExtension == "xcodeproj"
+                || item.pathExtension == "xcworkspace"
+                || item.pathExtension == "playground"
+        }
     }
 
     nonisolated private static func detailItem(
@@ -1169,9 +1293,9 @@ private struct CareBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    Color(hex: 0x240060),
-                    Color(hex: 0x8C16A9),
-                    Color(hex: 0x080039)
+                    .black,
+                    Color(hex: 0x060B22),
+                    .black
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1179,8 +1303,8 @@ private struct CareBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0xFF1BD8).opacity(0.48),
-                    Color(hex: 0x7C15A8).opacity(0.22),
+                    Color(hex: 0x8EA8FF).opacity(0.22),
+                    Color(hex: 0x5E70DF).opacity(0.08),
                     .clear
                 ],
                 center: UnitPoint(x: 0.64, y: 0.24),
@@ -1190,7 +1314,7 @@ private struct CareBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x7E2FFF).opacity(0.5),
+                    Color(hex: 0x5E70DF).opacity(0.10),
                     .clear
                 ],
                 center: UnitPoint(x: 0.18, y: 0.76),
