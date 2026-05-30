@@ -128,7 +128,7 @@ struct CareLogDetailContent: View {
                     cleaned: detail.cleaned
                 )
             }
-            .background(Color.black)
+            .background(AppTheme.Colors.appBackground)
             .onAppear {
                 selectedItemID = filteredItems.first?.id
             }
@@ -192,7 +192,7 @@ struct PerformanceManagerContent: View {
 
             PerformanceManagerBottomBar(selectedCount: selectedItemIDs.count)
         }
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 }
 
@@ -242,7 +242,7 @@ private struct PerformanceManagerTopBar: View {
                         .foregroundStyle(Color(hex: 0x8EA8FF))
                     Text("Back")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.92))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                 }
             }
             .buttonStyle(.plain)
@@ -251,7 +251,7 @@ private struct PerformanceManagerTopBar: View {
 
             Text("Performance Manager")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
 
             Spacer()
 
@@ -262,7 +262,7 @@ private struct PerformanceManagerTopBar: View {
 
                 HStack(spacing: 6) {
                     Text("Sort by:")
-                        .foregroundStyle(.white.opacity(0.9))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
                     Text("Name")
                         .foregroundStyle(Color(hex: 0x8EA8FF))
                     Image(systemName: "chevron.down")
@@ -274,7 +274,7 @@ private struct PerformanceManagerTopBar: View {
         }
         .frame(height: 56)
         .padding(.horizontal, 28)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(.white.opacity(0.08))
@@ -299,10 +299,10 @@ private struct PerformanceSectionList: View {
                         Text(section.title)
                         Spacer()
                         Text("\(count(for: section))")
-                            .foregroundStyle(.white.opacity(0.42))
+                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.42))
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(selectedSection == section ? .white.opacity(0.94) : .white.opacity(0.56))
+                    .foregroundStyle(selectedSection == section ? AppTheme.Colors.textPrimary.opacity(0.94) : AppTheme.Colors.textPrimary.opacity(0.56))
                     .padding(.horizontal, 13)
                     .frame(height: 38)
                     .background {
@@ -319,7 +319,7 @@ private struct PerformanceSectionList: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 42)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 
     private func count(for section: PerformanceSection) -> Int {
@@ -341,12 +341,12 @@ private struct PerformanceItemList: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(section.title)
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .padding(.bottom, 12)
 
             Text(section.description)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.56))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.56))
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 620, alignment: .leading)
@@ -354,7 +354,7 @@ private struct PerformanceItemList: View {
 
             HStack(spacing: 6) {
                 Text("Select:")
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
                 Text(selectedItemIDs.isEmpty ? "None" : "\(selectedItemIDs.count)")
                     .foregroundStyle(Color(hex: 0x8EA8FF))
                 Image(systemName: "chevron.down")
@@ -367,7 +367,7 @@ private struct PerformanceItemList: View {
             if items.isEmpty {
                 Text(section.emptyMessage)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.56))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.56))
                     .padding(.top, 12)
             } else {
                 ScrollView {
@@ -412,7 +412,7 @@ private struct PerformanceItemRow: View {
 
                 Text(item.title)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.92))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -422,7 +422,7 @@ private struct PerformanceItemRow: View {
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(Color(hex: 0x8EA8FF))
                     .padding(8)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .background(AppTheme.Colors.appBackground, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .frame(height: 54)
         }
@@ -445,7 +445,7 @@ private struct PerformanceCheckbox: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 10, weight: .black))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                 }
             }
     }
@@ -482,13 +482,13 @@ private struct PerformanceManagerBottomBar: View {
 
             Text(selectedCount == 0 ? "No Items Selected" : "\(selectedCount) Items Selected")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
 
             Spacer()
 
             Button("Remove") {}
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(selectedCount == 0 ? 0.38 : 1))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(selectedCount == 0 ? 0.38 : 1))
                 .buttonStyle(.plain)
                 .frame(width: 100, height: 44)
                 .background {
@@ -499,7 +499,7 @@ private struct PerformanceManagerBottomBar: View {
         }
         .frame(height: 72)
         .padding(.horizontal, 18)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 }
 
@@ -575,7 +575,7 @@ private struct JunkCleanerManagerContent: View {
                 )
             }
         }
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .padding(.top, 12)
         .padding(.trailing, 12)
@@ -590,7 +590,7 @@ private struct JunkCleanerManagerContent: View {
 
     private var managerDivider: some View {
             Rectangle()
-            .fill(Color.white.opacity(0.10))
+            .fill(AppTheme.Colors.border.opacity(0.7))
             .frame(width: 1)
     }
 
@@ -790,7 +790,7 @@ private struct JunkCleanerManagerTopBar: View {
                     Text("Back")
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(JunkCleanerManagerPalette.accent)
+                .foregroundStyle(AppTheme.JunkCleanerManager.accent)
             }
             .buttonStyle(.plain)
 
@@ -798,25 +798,25 @@ private struct JunkCleanerManagerTopBar: View {
 
             Text("Cleanup Manager")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(JunkCleanerManagerPalette.text)
+                .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
             Spacer()
 
             HStack(spacing: 26) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(JunkCleanerManagerPalette.accent)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.accent)
 
                 HStack(spacing: 7) {
                     Text("Sort by:")
-                        .foregroundStyle(JunkCleanerManagerPalette.text)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                     Text("Size")
-                        .foregroundStyle(JunkCleanerManagerPalette.accent)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.accent)
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(JunkCleanerManagerPalette.accent)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.accent)
                 }
                 .font(.system(size: 17, weight: .bold, design: .rounded))
             }
@@ -824,10 +824,10 @@ private struct JunkCleanerManagerTopBar: View {
         }
         .frame(height: 70)
         .padding(.horizontal, 34)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(Color.white.opacity(0.08))
+                .fill(AppTheme.Colors.border.opacity(0.7))
                 .frame(height: 1)
         }
     }
@@ -846,13 +846,13 @@ private struct JunkCleanerSectionList: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(section.title)
                             .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundStyle(selectedSectionID == section.id ? JunkCleanerManagerPalette.text : JunkCleanerManagerPalette.secondary)
+                            .foregroundStyle(selectedSectionID == section.id ? AppTheme.JunkCleanerManager.text : AppTheme.JunkCleanerManager.secondary)
                             .lineLimit(1)
 
                         if !section.items.isEmpty {
                             Text("\(section.items.count) items")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                .foregroundStyle(JunkCleanerManagerPalette.secondary.opacity(0.72))
+                                .foregroundStyle(AppTheme.JunkCleanerManager.secondary.opacity(0.72))
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -861,7 +861,7 @@ private struct JunkCleanerSectionList: View {
                     .background {
                         if selectedSectionID == section.id {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(JunkCleanerManagerPalette.selection)
+                                .fill(AppTheme.JunkCleanerManager.selection)
                         }
                     }
                 }
@@ -873,7 +873,7 @@ private struct JunkCleanerSectionList: View {
         .padding(.horizontal, 14)
         .padding(.top, 42)
         .padding(.bottom, 88)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 }
 
@@ -889,11 +889,11 @@ private struct JunkCleanerGroupList: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(section?.title ?? "Scan Results")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.text)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                 Text(section?.description ?? "Run Scan to populate this view with real junk files.")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                     .lineSpacing(4)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -926,7 +926,7 @@ private struct JunkCleanerGroupList: View {
         .padding(.horizontal, 26)
         .padding(.top, 38)
         .padding(.bottom, 96)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 }
 
@@ -940,24 +940,24 @@ private struct JunkCleanerGroupRow: View {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(JunkCleanerManagerPalette.blueGradient)
+                        .fill(AppTheme.JunkCleanerManager.blueGradient)
 
                     Image(systemName: group.symbolName)
                         .font(.system(size: 21, weight: .bold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                 }
                 .frame(width: 42, height: 42)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(group.title)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(JunkCleanerManagerPalette.text)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.text)
                         .lineLimit(1)
 
                     Text(group.subtitle)
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                         .lineLimit(1)
                 }
 
@@ -965,19 +965,19 @@ private struct JunkCleanerGroupRow: View {
 
                 Text(formatBytes(group.sizeBytes))
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .padding(.horizontal, 9)
                     .frame(height: 25)
                     .background {
                         Capsule(style: .continuous)
-                            .fill(JunkCleanerManagerPalette.accent)
+                            .fill(AppTheme.JunkCleanerManager.accent)
                     }
             }
             .padding(.horizontal, 14)
             .frame(height: 72)
             .background {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? JunkCleanerManagerPalette.selection : JunkCleanerManagerPalette.panel)
+                    .fill(isSelected ? AppTheme.JunkCleanerManager.selection : AppTheme.JunkCleanerManager.panel)
             }
         }
         .buttonStyle(.plain)
@@ -994,11 +994,11 @@ private struct JunkCleanerFileList: View {
             VStack(alignment: .leading, spacing: 12) {
                     Text(group?.title ?? "Files")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.text)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                     Text(group?.description ?? "Select a category to review scanned items.")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -1008,14 +1008,14 @@ private struct JunkCleanerFileList: View {
             } label: {
                 HStack(spacing: 8) {
                     Text("Select:")
-                        .foregroundStyle(JunkCleanerManagerPalette.text)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                     Text(allRowsSelected ? "None" : "All")
-                        .foregroundStyle(JunkCleanerManagerPalette.accent)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.accent)
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(JunkCleanerManagerPalette.accent)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.accent)
                 }
                 .font(.system(size: 14, weight: .bold, design: .rounded))
             }
@@ -1045,7 +1045,7 @@ private struct JunkCleanerFileList: View {
         .padding(.horizontal, 32)
         .padding(.top, 38)
         .padding(.bottom, 104)
-        .background(Color.black)
+        .background(AppTheme.Colors.appBackground)
     }
 
     private var allRowsSelected: Bool {
@@ -1079,18 +1079,18 @@ private struct JunkCleanerFileRow: View {
             HStack(spacing: 16) {
                 Image(systemName: isSelected ? "checkmark.square.fill" : "square")
                     .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(isSelected ? JunkCleanerManagerPalette.accent : JunkCleanerManagerPalette.secondary)
+                    .foregroundStyle(isSelected ? AppTheme.JunkCleanerManager.accent : AppTheme.JunkCleanerManager.secondary)
 
                 Image(systemName: iconName)
                     .font(.system(size: 24, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(JunkCleanerManagerPalette.icon)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.icon)
                     .frame(width: 44, height: 44)
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.title)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(JunkCleanerManagerPalette.text)
+                        .foregroundStyle(AppTheme.JunkCleanerManager.text)
                         .lineLimit(1)
                 }
 
@@ -1098,18 +1098,18 @@ private struct JunkCleanerFileRow: View {
 
                 Text(item.formattedSize)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                     .frame(width: 78, alignment: .trailing)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(JunkCleanerManagerPalette.accent)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.accent)
             }
             .padding(.horizontal, 14)
             .frame(height: 64)
             .background {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? JunkCleanerManagerPalette.selection.opacity(0.72) : JunkCleanerManagerPalette.panel)
+                    .fill(isSelected ? AppTheme.JunkCleanerManager.selection.opacity(0.72) : AppTheme.JunkCleanerManager.panel)
             }
         }
         .buttonStyle(.plain)
@@ -1143,18 +1143,18 @@ private struct JunkCleanerEmptyRowsView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(JunkCleanerManagerPalette.text)
+                .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
             Text(message)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                 .lineSpacing(4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(22)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(JunkCleanerManagerPalette.panel)
+                .fill(AppTheme.JunkCleanerManager.panel)
         }
     }
 }
@@ -1166,17 +1166,17 @@ private struct JunkCleanerPermissionNotice: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("More access may be needed")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(JunkCleanerManagerPalette.text)
+                .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
             Text(messages.prefix(2).joined(separator: " "))
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
                 .lineLimit(3)
         }
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(JunkCleanerManagerPalette.panel)
+                .fill(AppTheme.JunkCleanerManager.panel)
         }
     }
 }
@@ -1193,7 +1193,7 @@ private struct JunkCleanerManagerBottomBar: View {
             HStack(spacing: 14) {
                 Text("\(itemCount) Items Selected")
                     .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.text)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                 Rectangle()
                     .fill(Color.white.opacity(0.16))
@@ -1201,25 +1201,25 @@ private struct JunkCleanerManagerBottomBar: View {
 
                 Text(formatBytes(sizeBytes))
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(JunkCleanerManagerPalette.secondary)
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
             }
 
             Spacer()
 
             Button("Done", action: onDone)
                 .font(.system(size: 17, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 46)
                 .background {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(JunkCleanerManagerPalette.actionGradient)
+                        .fill(AppTheme.JunkCleanerManager.actionGradient)
                 }
         }
         .padding(.horizontal, 28)
         .frame(height: 74)
-        .background(JunkCleanerManagerPalette.bottomBar)
+        .background(AppTheme.JunkCleanerManager.bottomBar)
     }
 }
 
@@ -1245,31 +1245,6 @@ private func formatBytes(_ bytes: Int64) -> String {
     ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
 }
 
-private enum JunkCleanerManagerPalette {
-    static let accent = Color(hex: 0x8EA8FF)
-    static let text = Color.white
-    static let secondary = Color.white.opacity(0.58)
-    static let icon = Color(hex: 0x6EB8E5)
-    static let panel = Color.white.opacity(0.06)
-    static let selection = Color(hex: 0x1C2A68)
-    static let bottomBar = Color.black
-    static let blueGradient = LinearGradient(
-        colors: [
-            Color(hex: 0x8FA6FF),
-            Color(hex: 0x5366D6)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-    static let actionGradient = LinearGradient(
-        colors: [
-            Color(hex: 0x8EA8FF),
-            Color(hex: 0x5366D6)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-}
 private struct DetailTopBar: View {
     let title: String
     let onBack: () -> Void
@@ -1292,7 +1267,7 @@ private struct DetailTopBar: View {
 
             Text(title)
                 .font(.system(size: 23, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.heading)
+                .foregroundStyle(AppTheme.Care.heading)
 
             Spacer()
 
@@ -1303,7 +1278,7 @@ private struct DetailTopBar: View {
 
                 HStack(spacing: 8) {
                     Text("Sort by:")
-                        .foregroundStyle(CachePopPalette.heading)
+                        .foregroundStyle(AppTheme.Care.heading)
 
                     Text("Size")
                         .foregroundStyle(Color(hex: 0x7180FF))
@@ -1343,7 +1318,7 @@ private struct DetailSectionList: View {
                 } label: {
                     Text(section)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(selectedSection == index ? .white : .white.opacity(0.55))
+                        .foregroundStyle(selectedSection == index ? AppTheme.Colors.textPrimary : AppTheme.Colors.textPrimary.opacity(0.55))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 22)
                         .frame(height: 54)
@@ -1375,11 +1350,11 @@ private struct DetailItemList: View {
         VStack(alignment: .leading, spacing: 18) {
             Text(title)
                 .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.heading)
+                .foregroundStyle(AppTheme.Care.heading)
 
             Text(subtitle)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.55))
                 .lineSpacing(6)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -1428,12 +1403,12 @@ private struct DetailFileRow: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.title)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
 
                     Text(item.formattedSize)
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.55))
                         .lineLimit(1)
                 }
 
@@ -1456,7 +1431,7 @@ private struct DetailFallbackRow: View {
     var body: some View {
         Text(text)
             .font(.system(size: 14, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white.opacity(0.62))
+            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             .background {
@@ -1476,7 +1451,7 @@ private struct DetailPreviewPane: View {
         VStack(alignment: .leading, spacing: 22) {
             HStack(spacing: 8) {
                 Text("Select:")
-                    .foregroundStyle(CachePopPalette.heading)
+                    .foregroundStyle(AppTheme.Care.heading)
 
                 Text(cleaned ? "Cleaned" : "Smartly")
                     .foregroundStyle(Color(hex: 0x7180FF))
@@ -1509,7 +1484,7 @@ private struct DetailPreviewPane: View {
             VStack(alignment: .leading, spacing: 17) {
                 Text(item?.title ?? category.label)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(2)
 
                 DetailMetaRow(label: "Location:", value: item?.path ?? "No item selected")
@@ -1523,13 +1498,13 @@ private struct DetailPreviewPane: View {
                     openPrivacySettings()
                 }
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 20)
                 .frame(height: 42)
                 .background {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(CachePopPalette.actionGradient)
+                        .fill(AppTheme.Care.actionGradient)
                 }
             }
 
@@ -1558,7 +1533,7 @@ private struct DetailPreviewSymbol: View {
             Image(systemName: category.previewSymbol)
                 .font(.system(size: 72, weight: .bold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
         }
     }
 }
@@ -1571,12 +1546,12 @@ private struct DetailMetaRow: View {
         HStack(alignment: .top, spacing: 16) {
             Text(label)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.45))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.45))
                 .frame(width: 92, alignment: .leading)
 
             Text(value)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.72)
         }
@@ -1595,7 +1570,7 @@ private struct DetailBottomBar: View {
             HStack(spacing: 16) {
                 Text("\(itemCount) Items Selected")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
 
                 Rectangle()
                     .fill(.white.opacity(0.18))
@@ -1603,20 +1578,20 @@ private struct DetailBottomBar: View {
 
                 Text(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.48))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.48))
             }
 
             Spacer()
 
             Button(cleaned ? "Done" : "Remove") {}
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 25)
                 .frame(height: 54)
                 .background {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(CachePopPalette.actionGradient)
+                        .fill(AppTheme.Care.actionGradient)
                 }
                 .padding(.trailing, 32)
         }
@@ -1631,11 +1606,11 @@ private struct PermissionNotice: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("More access may be needed")
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
 
             Text(messages.prefix(2).joined(separator: " "))
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.62))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
                 .lineLimit(3)
         }
         .padding(12)
@@ -1656,13 +1631,13 @@ private struct DetailFileIcon: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(CachePopPalette.actionGradient)
+                .fill(AppTheme.Care.actionGradient)
                 .opacity(0.92)
 
             Image(systemName: symbolName)
                 .font(.system(size: 22, weight: .bold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
         }
     }
 
@@ -1759,17 +1734,5 @@ private extension CareLogCategory {
 private extension Array {
     subscript(safe index: Index) -> Element? {
         indices.contains(index) ? self[index] : nil
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }

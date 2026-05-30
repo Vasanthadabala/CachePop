@@ -24,12 +24,12 @@ struct CareScanningContent: View {
                     VStack(spacing: 7 * scale) {
                         Text(activeSection.headline)
                             .font(.system(size: 30 * scale, weight: .bold, design: .rounded))
-                            .foregroundStyle(CachePopPalette.heading)
+                            .foregroundStyle(AppTheme.Care.heading)
                             .contentTransition(.opacity)
 
                         Text(snapshot.currentDetail.isEmpty ? activeSection.detail(progress: scanProgress) : snapshot.currentDetail)
                             .font(.system(size: 15 * scale, weight: .medium, design: .rounded))
-                            .foregroundStyle(CachePopPalette.headingMuted)
+                            .foregroundStyle(AppTheme.Care.headingMuted)
                             .contentTransition(.opacity)
                     }
                     .frame(height: 66 * scale)
@@ -302,7 +302,7 @@ private struct ScanningTaskCard: View {
             VStack(alignment: .leading, spacing: isActive ? 14 : 8) {
                 Text(section.title)
                     .font(.system(size: isActive ? 20 : 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardText)
+                    .foregroundStyle(AppTheme.Care.cardText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
 
@@ -310,14 +310,14 @@ private struct ScanningTaskCard: View {
 
                 Text(value)
                     .font(.system(size: isActive ? 38 : 25, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardText)
+                    .foregroundStyle(AppTheme.Care.cardText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
                     .contentTransition(.numericText())
 
                 Text(section.status(progress: progress, isActive: isActive))
                     .font(.system(size: isActive ? 16 : 14, weight: .semibold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardSubtext)
+                    .foregroundStyle(AppTheme.Care.cardSubtext)
                     .lineLimit(1)
 
                 if isActive {
@@ -372,14 +372,14 @@ private struct ScanningTopBar: View {
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(CachePopPalette.actionGradient)
-                        .shadow(color: CachePopPalette.actionShadow, radius: 12, y: 5)
+                        .fill(AppTheme.Care.actionGradient)
+                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
                 }
         }
         .frame(height: 48)
@@ -388,7 +388,7 @@ private struct ScanningTopBar: View {
         .overlay(alignment: .bottom) {
             Text("Care")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.headingMuted)
+                .foregroundStyle(AppTheme.Care.headingMuted)
         }
     }
 }
@@ -421,8 +421,8 @@ private struct CurrentScanCard: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x7D92F2).opacity(0.22),
-                    Color(hex: 0x5E70DF).opacity(0.08),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.52, y: 0.48),
@@ -433,7 +433,7 @@ private struct CurrentScanCard: View {
             VStack(spacing: 0) {
                 Text(title)
                     .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardText)
+                    .foregroundStyle(AppTheme.Care.cardText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
                     .contentTransition(.opacity)
@@ -448,7 +448,7 @@ private struct CurrentScanCard: View {
 
                 Text(subtitle)
                     .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardSubtext)
+                    .foregroundStyle(AppTheme.Care.cardSubtext)
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
                     .contentTransition(.opacity)
@@ -495,7 +495,7 @@ private struct CurrentScanBadge: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 78, weight: .bold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.9), Color(hex: 0xECB8FF))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0xECB8FF))
                 .shadow(color: .black.opacity(0.28), radius: 6, y: 6)
         }
     }
@@ -548,20 +548,20 @@ private struct ScanningPreviewCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardSubtext)
+                    .foregroundStyle(AppTheme.Care.cardSubtext)
 
                 Spacer()
 
                 if !value.isEmpty {
                     Text(value)
                         .font(.system(size: 31, weight: .bold, design: .rounded))
-                        .foregroundStyle(CachePopPalette.cardText)
+                        .foregroundStyle(AppTheme.Care.cardText)
                         .lineSpacing(5)
                         .minimumScaleFactor(0.7)
 
                     Text(subtitle)
                         .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundStyle(CachePopPalette.cardSubtext)
+                        .foregroundStyle(AppTheme.Care.cardSubtext)
                 }
             }
             .padding(22)
@@ -614,7 +614,7 @@ private struct ScanningWidePreviewCard: View {
 
             Text(title)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.cardSubtext)
+                .foregroundStyle(AppTheme.Care.cardSubtext)
                 .padding(22)
         }
         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
@@ -631,13 +631,13 @@ private struct StopScanButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(CachePopPalette.actionGlow)
+                    .fill(AppTheme.Care.actionGlow)
                     .scaleEffect(pulse ? 1.22 : 0.94)
                     .blur(radius: 14)
 
                 Circle()
                     .fill(
-                        CachePopPalette.actionGradient
+                        AppTheme.Care.actionGradient
                     )
                     .overlay {
                         Circle()
@@ -653,23 +653,11 @@ private struct StopScanButton: View {
 
                 Text("Stop")
                     .font(.system(size: 19, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Stop scan")
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }

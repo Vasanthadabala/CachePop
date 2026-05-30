@@ -18,13 +18,13 @@ struct CareHomeContent: View {
                 VStack(spacing: 16) {
                     Text("Welcome to CachePop")
                         .font(.system(size: 42 * scale, weight: .light, design: .rounded))
-                        .foregroundStyle(CachePopPalette.heading)
+                        .foregroundStyle(AppTheme.Care.heading)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
 
                     Text(subtitle)
                         .font(.system(size: 17 * scale, weight: .medium, design: .rounded))
-                        .foregroundStyle(CachePopPalette.headingMuted)
+                        .foregroundStyle(AppTheme.Care.headingMuted)
                         .contentTransition(.numericText())
 
                     ScanButton(
@@ -42,9 +42,9 @@ struct CareHomeContent: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            Text("by CachePop")
+            Text("by Mayu Labs")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(CachePopPalette.headingMuted.opacity(0.72))
+                .foregroundStyle(AppTheme.Care.headingMuted.opacity(0.72))
                 .padding(.trailing, 30)
                 .padding(.bottom, 28)
         }
@@ -111,7 +111,7 @@ private struct ScanButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(.white.opacity(0.22))
+                    .fill(Color.clear)
                     .scaleEffect(pulse ? 1.28 : 0.96)
                     .opacity(scanPhase == .scanning ? 0.18 : (pulse ? 0.22 : 0.52))
 
@@ -119,8 +119,8 @@ private struct ScanButton: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: 0xDCE6FF),
-                                Color(hex: 0x6F8DFF),
+                                Color(hex: 0x6F83EA),
+                                Color(hex: 0x5366D6),
                                 Color(hex: 0x3720B0)
                             ],
                             startPoint: .topLeading,
@@ -152,7 +152,7 @@ private struct ScanButton: View {
                         .font(.system(size: scanPhase == .scanning ? 13 : 17, weight: .semibold, design: .rounded))
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .contentShape(Circle())
         }
@@ -167,17 +167,5 @@ private struct ScanButton: View {
 
     private var title: String {
         scanPhase == .scanning ? "\(Int(progress * 100))%" : "Scan"
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
