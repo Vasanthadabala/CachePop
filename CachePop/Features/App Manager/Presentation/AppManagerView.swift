@@ -17,13 +17,13 @@ struct AppManagerView: View {
             VStack(spacing: 22) {
                 Text("We've found 15 apps on your Mac.")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
                 Button("Manage My Applications") {}
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .buttonStyle(.plain)
                     .padding(.horizontal, 24)
                     .frame(height: 42)
@@ -72,7 +72,7 @@ private struct ApplicationsTopBar: View {
                     Text("Start Over")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .buttonStyle(.plain)
 
@@ -84,7 +84,7 @@ private struct ApplicationsTopBar: View {
         .overlay(alignment: .bottom) {
             Text("App Manager")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.68))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
         }
     }
 }
@@ -129,17 +129,17 @@ private struct ApplicationUpdateCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("3 Application Updates")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .padding(.bottom, 9)
 
                 Text("Available")
                     .font(.system(size: 21, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .padding(.bottom, 14)
 
                 Text("Update your software to keep up with the latest features and compatibility improvements.")
                     .font(.system(size: 17, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -187,13 +187,13 @@ private struct ApplicationWideCard: View {
                 VStack(alignment: .leading, spacing: 13) {
                     Text(title)
                         .font(.system(size: 23, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
 
                     Text(subtitle)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.68))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                         .lineLimit(2)
                         .minimumScaleFactor(0.78)
 
@@ -295,7 +295,7 @@ private struct ApplicationsActionButton: View {
     var body: some View {
         Button(title) {}
             .font(.system(size: 15, weight: .bold, design: .rounded))
-            .foregroundStyle(.white)
+            .foregroundStyle(AppTheme.Colors.textPrimary)
             .buttonStyle(.plain)
             .frame(width: style == .primary ? 82 : 74, height: 35)
             .background {
@@ -333,7 +333,7 @@ private struct AppMainUpdateBadge: View {
             Image(systemName: "person.crop.circle.fill")
                 .font(.system(size: 35, weight: .semibold))
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(Color(hex: 0x274CBB), .white)
+                .foregroundStyle(Color(hex: 0x274CBB), AppTheme.Colors.textPrimary)
 
             Rectangle()
                 .fill(Color(hex: 0xE83932))
@@ -424,13 +424,13 @@ private struct AppMiniBadge: View {
             Image(systemName: "desktopcomputer")
                 .font(.system(size: 28, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.9), Color(hex: 0xFF6AAE))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0xFF6AAE))
         case .leftovers:
             ZStack(alignment: .bottomTrailing) {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .font(.system(size: 27, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.9), Color(hex: 0x79E4FF))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0x79E4FF))
 
                 Circle()
                     .fill(Color(hex: 0x7EDBFF))
@@ -491,7 +491,7 @@ private struct ApplicationsSidebar: View {
                 Image(systemName: "circle.grid.cross.fill")
                     .font(.system(size: 19, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
             }
             .padding(.bottom, 42)
         }
@@ -524,7 +524,7 @@ private struct ApplicationsSidebarIcon: View {
             Image(systemName: item.symbolName)
                 .font(.system(size: 23, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.9), Color(hex: 0x88B9FF).opacity(item == .applications ? 0.95 : 0.46))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0x88B9FF).opacity(item == .applications ? 0.95 : 0.46))
                 .frame(width: 58, height: 58)
 
             if item == .applications {
@@ -568,9 +568,9 @@ private struct ApplicationsBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .black,
-                    Color(hex: 0x060B22),
-                    .black
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -578,8 +578,8 @@ private struct ApplicationsBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.22),
-                    Color(hex: 0x5E70DF).opacity(0.08),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.16, y: 0.18),
@@ -589,7 +589,7 @@ private struct ApplicationsBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.10),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.16, y: 0.86),
@@ -599,25 +599,13 @@ private struct ApplicationsBackground: View {
 
             LinearGradient(
                 colors: [
-                    .black.opacity(0.03),
-                    .black.opacity(0.32)
+                    .clear,
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
 

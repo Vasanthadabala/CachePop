@@ -20,7 +20,7 @@ struct ResultCardBadge: View {
             Image(systemName: result.symbolName)
                 .font(.system(size: 48, weight: .heavy))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.84))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.84))
         }
     }
 }
@@ -45,7 +45,7 @@ struct ScanResult: Identifiable {
             value: "40,9 GB of junk",
             status: "Cleaned",
             symbolName: "face.smiling.inverse",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0xA8BAFF),
                 Color(hex: 0x3D28BF)
@@ -59,7 +59,7 @@ struct ScanResult: Identifiable {
             value: "1 task",
             status: "Done",
             symbolName: "bolt.fill",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0xB9C8FF),
                 Color(hex: 0x4D31D8)
@@ -76,7 +76,7 @@ struct ScanResult: Identifiable {
             value: "6 vital updates",
             status: "Started",
             symbolName: "sparkles",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0x91ADFF),
                 Color(hex: 0x2D35B8)
@@ -90,7 +90,7 @@ struct ScanResult: Identifiable {
             value: "283 duplicate downloads",
             status: "Removed",
             symbolName: "folder.fill",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0x8EA8FF),
                 Color(hex: 0x2A26A8)
@@ -122,7 +122,7 @@ struct ScanReadyResult: Identifiable {
             value: "12.6 GB of junk",
             status: "to clean",
             symbolName: "face.smiling.inverse",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0xA8BAFF),
                 Color(hex: 0x3D28BF)
@@ -138,7 +138,7 @@ struct ScanReadyResult: Identifiable {
             value: "4 items",
             status: "to review",
             symbolName: "bolt.fill",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0xB9C8FF),
                 Color(hex: 0x4D31D8)
@@ -157,7 +157,7 @@ struct ScanReadyResult: Identifiable {
             value: "No vital updates",
             status: "to install",
             symbolName: "wand.and.stars.inverse",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0x91ADFF),
                 Color(hex: 0x2D35B8)
@@ -173,7 +173,7 @@ struct ScanReadyResult: Identifiable {
             value: "3 duplicate downloads",
             status: "to remove",
             symbolName: "folder.fill",
-            backgroundColors: CachePopPalette.cardGradient,
+            backgroundColors: AppTheme.Care.cardGradient,
             badgeColors: [
                 Color(hex: 0x8EA8FF),
                 Color(hex: 0x2A26A8)
@@ -360,40 +360,4 @@ struct CareLogDetail: Identifiable, Equatable {
     let category: CareLogCategory
     let snapshot: CareScanSnapshot
     let cleaned: Bool
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
-    }
-}
-
-enum CachePopPalette {
-    static let heading = Color.white
-    static let headingMuted = Color.white.opacity(0.68)
-    static let border = Color(hex: 0xDCE3F2)
-    static let cardText = Color.white
-    static let cardSubtext = Color.white.opacity(0.78)
-    static let actionGlow = Color(hex: 0x8EA8FF).opacity(0.3)
-    static let actionShadow = Color(hex: 0x6F7DFF).opacity(0.22)
-    static let actionGradient = LinearGradient(
-        colors: [
-            Color(hex: 0x8FA6FF),
-            Color(hex: 0x6F83EA),
-            Color(hex: 0x4E60D0)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
-    static let cardGradient = [
-        Color(hex: 0x7F98F4).opacity(0.92),
-        Color(hex: 0x647BE5).opacity(0.88),
-        Color(hex: 0x4052C7).opacity(0.95)
-    ]
 }

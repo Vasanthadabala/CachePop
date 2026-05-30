@@ -171,13 +171,13 @@ private struct PerformanceIntroContent: View {
                         VStack(alignment: .leading, spacing: 22 * scale) {
                             Text("Performance")
                                 .font(.system(size: 54 * scale, weight: .light, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.72)
 
                             Text("Keep your Mac in top shape with\nrecommended maintenance.")
                                 .font(.system(size: 22 * scale, weight: .medium, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                                 .lineSpacing(6)
                         }
                         .padding(.bottom, 18 * scale)
@@ -213,7 +213,7 @@ private struct PerformanceScanningContent: View {
             ZStack(alignment: .topTrailing) {
                 Text("Performance")
                     .font(.system(size: 16 * scale, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.72))
                     .frame(maxWidth: .infinity, alignment: .top)
                     .padding(.top, 28)
 
@@ -228,13 +228,13 @@ private struct PerformanceScanningContent: View {
 
                     Text("Examining your system...")
                         .font(.system(size: 42 * scale, weight: .light, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
 
                     Text(currentPath)
                         .font(.system(size: 18 * scale, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.62))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
                         .lineLimit(1)
                         .minimumScaleFactor(0.62)
                         .padding(.top, 18 * scale)
@@ -282,7 +282,7 @@ private struct PerformanceReadyContent: View {
                             Text("Start Over")
                                 .font(.system(size: 16 * scale, weight: .bold, design: .rounded))
                         }
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.72))
                     }
                     .buttonStyle(.plain)
 
@@ -290,7 +290,7 @@ private struct PerformanceReadyContent: View {
 
                     Text("Performance")
                         .font(.system(size: 16 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.72))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.72))
 
                     Spacer()
                         .frame(width: 118 * scale)
@@ -307,7 +307,7 @@ private struct PerformanceReadyContent: View {
 
                     Text("Apply curated recommendations\nor run performance tasks manually.")
                         .font(.system(size: 30 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(8 * scale)
                         .minimumScaleFactor(0.72)
@@ -315,7 +315,7 @@ private struct PerformanceReadyContent: View {
 
                     Button("View All Tasks", action: onViewAllTasks)
                         .font(.system(size: 15 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .buttonStyle(.plain)
                         .padding(.horizontal, 22 * scale)
                         .frame(height: 42 * scale)
@@ -403,7 +403,7 @@ private struct PerformanceResultCard: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 24, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
             }
             .frame(width: 54, height: 58)
             .padding(.top, 22)
@@ -412,14 +412,14 @@ private struct PerformanceResultCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(isWide ? 1 : 2)
                     .minimumScaleFactor(0.72)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.66))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.66))
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
                         .padding(.top, 14)
@@ -432,7 +432,7 @@ private struct PerformanceResultCard: View {
 
                     Button("Review", action: action)
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .buttonStyle(.plain)
                         .frame(width: 78, height: 36)
                         .background {
@@ -514,7 +514,7 @@ private struct PerformanceCircleButton: View {
 
                 Text(title)
                     .font(.system(size: 18 * scale, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .contentShape(Circle())
         }
@@ -547,12 +547,12 @@ private struct PerformanceFeatureRow: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 15 * scale, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
             }
 
             Text(title)
                 .font(.system(size: 19 * scale, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
         }
     }
 }
@@ -587,7 +587,7 @@ private struct PerformanceCompletePanel: View {
                 VStack(alignment: .leading, spacing: 28) {
                     Text("Removal complete!")
                         .font(.system(size: 42, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
 
@@ -598,13 +598,13 @@ private struct PerformanceCompletePanel: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Text("8 background items")
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
 
                             Text("successfully removed")
                                 .font(.system(size: 18, weight: .medium, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                         }
                     }
                 }
@@ -613,7 +613,7 @@ private struct PerformanceCompletePanel: View {
 
                 Button("View Log") {}
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .buttonStyle(.plain)
                     .padding(.leading, 38)
                     .padding(.bottom, 34)
@@ -622,7 +622,7 @@ private struct PerformanceCompletePanel: View {
                 HStack(spacing: 16) {
                     Button("Manage More Items") {}
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .buttonStyle(.plain)
                         .frame(width: 154, height: 40)
                         .background {
@@ -647,7 +647,7 @@ private struct PerformanceCompletePanel: View {
                     Button(action: onDone) {
                         Text("Done")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
                             .frame(width: 72, height: 40)
                             .background {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -688,7 +688,7 @@ private struct PerformanceBadge: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: 0xF2F5FF),
+                            Color(hex: 0x6F83EA),
                             Color(hex: 0x83A1FF),
                             Color(hex: 0x3922B2)
                         ],
@@ -726,7 +726,7 @@ private struct PerformanceBadge: View {
                     LinearGradient(
                         colors: [
                             .white.opacity(0.96),
-                            Color(hex: 0xDDE5FF).opacity(0.86)
+                            Color(hex: 0x6F83EA).opacity(0.86)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -778,7 +778,7 @@ private struct RocketBadge: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: 0xDCE6FF),
+                            Color(hex: 0x6F83EA),
                             Color(hex: 0x7EA0FF),
                             Color(hex: 0x3320A8)
                         ],
@@ -791,7 +791,7 @@ private struct RocketBadge: View {
             Image(systemName: "rocket.fill")
                 .font(.system(size: 25, weight: .bold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color(hex: 0xE8ECFF), Color(hex: 0xAFC2FF))
+                .foregroundStyle(Color(hex: 0x6F83EA), Color(hex: 0xAFC2FF))
         }
     }
 }
@@ -838,7 +838,7 @@ private struct PerformanceSidebar: View {
                 Image(systemName: "circle.grid.cross.fill")
                     .font(.system(size: 19, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
             }
             .padding(.bottom, 42)
         }
@@ -871,7 +871,7 @@ private struct PerformanceSidebarIcon: View {
             Image(systemName: item.symbolName)
                 .font(.system(size: 23, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.9), Color(hex: 0xFFB159).opacity(item == .performance ? 0.95 : 0.45))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0xFFB159).opacity(item == .performance ? 0.95 : 0.45))
                 .frame(width: 58, height: 58)
 
             if item == .performance {
@@ -915,9 +915,9 @@ private struct PerformanceBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .black,
-                    Color(hex: 0x060B22),
-                    .black
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -925,8 +925,8 @@ private struct PerformanceBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.34),
-                    Color(hex: 0x1A246D).opacity(0.18),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.42, y: 0.72),
@@ -936,7 +936,7 @@ private struct PerformanceBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.22),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.63, y: 0.08),
@@ -946,25 +946,13 @@ private struct PerformanceBackground: View {
 
             LinearGradient(
                 colors: [
-                    .black.opacity(0.06),
-                    .black.opacity(0.52)
+                    .clear,
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
 

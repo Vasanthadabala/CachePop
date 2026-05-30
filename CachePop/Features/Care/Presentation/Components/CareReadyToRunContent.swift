@@ -19,7 +19,7 @@ struct CareReadyToRunContent: View {
 
                 Text("Your tasks are ready to run. Look what we found:")
                     .font(.system(size: 36 * scale, weight: .light, design: .rounded))
-                    .foregroundStyle(CachePopPalette.heading)
+                    .foregroundStyle(AppTheme.Care.heading)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
                     .padding(.top, 58 * scale)
@@ -78,7 +78,7 @@ private struct ReadyTopBar: View {
                     Text("Start Over")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(CachePopPalette.headingMuted)
+                .foregroundStyle(AppTheme.Care.headingMuted)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Start over")
@@ -87,14 +87,14 @@ private struct ReadyTopBar: View {
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(CachePopPalette.actionGradient)
-                        .shadow(color: CachePopPalette.actionShadow, radius: 12, y: 5)
+                        .fill(AppTheme.Care.actionGradient)
+                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
                 }
         }
         .frame(height: 48)
@@ -103,7 +103,7 @@ private struct ReadyTopBar: View {
         .overlay(alignment: .bottom) {
             Text("Care")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.headingMuted)
+                .foregroundStyle(AppTheme.Care.headingMuted)
         }
     }
 }
@@ -152,7 +152,7 @@ private struct ReadyTaskCard: View {
                     if result.isSelected {
                         Image(systemName: "checkmark")
                             .font(.system(size: 18 * scale, weight: .black))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
                             .frame(width: 28 * scale, height: 28 * scale)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -166,7 +166,7 @@ private struct ReadyTaskCard: View {
 
                     Text(result.title)
                         .font(.system(size: 18 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(CachePopPalette.cardSubtext)
+                        .foregroundStyle(AppTheme.Care.cardSubtext)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                 }
@@ -175,13 +175,13 @@ private struct ReadyTaskCard: View {
 
                 Text(value)
                     .font(.system(size: 36 * scale, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardText)
+                    .foregroundStyle(AppTheme.Care.cardText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
 
                 Text(status)
                     .font(.system(size: 17 * scale, weight: .medium, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardSubtext)
+                    .foregroundStyle(AppTheme.Care.cardSubtext)
                     .padding(.top, 10 * scale)
 
                 if result.showsReview {
@@ -192,13 +192,13 @@ private struct ReadyTaskCard: View {
                             onReview(result.category)
                         }
                             .font(.system(size: 15 * scale, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
                             .buttonStyle(.plain)
                             .padding(.horizontal, 18 * scale)
                             .frame(height: 34 * scale)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(CachePopPalette.actionGradient)
+                                    .fill(AppTheme.Care.actionGradient)
                                     .overlay {
                                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                                             .stroke(.white.opacity(0.26), lineWidth: 1)
@@ -253,13 +253,13 @@ private struct ReadyRunButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(CachePopPalette.actionGlow)
+                    .fill(AppTheme.Care.actionGlow)
                     .scaleEffect(pulse ? 1.26 : 0.92)
                     .blur(radius: 16)
 
                 Circle()
                     .fill(
-                        CachePopPalette.actionGradient
+                        AppTheme.Care.actionGradient
                     )
                     .overlay {
                         Circle()
@@ -269,23 +269,11 @@ private struct ReadyRunButton: View {
 
                 Text("Run")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Run ready tasks")
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }

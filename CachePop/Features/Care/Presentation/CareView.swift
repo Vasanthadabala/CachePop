@@ -1081,10 +1081,10 @@ private struct CareSidebar: View {
         .frame(maxHeight: .infinity, alignment: .top)
         .background {
             Rectangle()
-                .fill(.black)
+                .fill(AppTheme.Colors.appBackground)
                 .overlay(alignment: .trailing) {
                     Rectangle()
-                        .fill(.white.opacity(0.08))
+                        .fill(AppTheme.Colors.border.opacity(0.7))
                         .frame(width: 1)
             }
         }
@@ -1099,27 +1099,23 @@ private struct SidebarButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 18) {
-                ZStack {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(CachePopPalette.actionGradient)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(.white.opacity(0.28), lineWidth: 1)
-                            }
-                            .frame(width: 54, height: 48)
-                    }
-
+                if isSelected {
                     Image(systemName: item.symbolName)
                         .font(.system(size: 22, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isSelected ? CareSidebarItem.selectedIconColor : item.iconColor)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .frame(width: 42, height: 42)
+                } else {
+                    Image(systemName: item.symbolName)
+                        .font(.system(size: 22, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(item.iconColor)
                         .frame(width: 42, height: 42)
                 }
 
                 Text(item.title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(isSelected ? .white : .white.opacity(0.78))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.textPrimary : AppTheme.Colors.textPrimary.opacity(0.78))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
@@ -1130,7 +1126,7 @@ private struct SidebarButton: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .fill(CachePopPalette.actionGradient)
+                        .fill(AppTheme.Care.actionGradient)
                         .overlay {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .stroke(.white.opacity(0.28), lineWidth: 1)
@@ -1208,7 +1204,7 @@ enum CareSidebarItem: String, CaseIterable, Identifiable {
     }
 
     static let selectedIconColor = LinearGradient(
-        colors: [.white, Color(hex: 0x8EA8FF)],
+        colors: [Color(hex: 0x6F83EA), Color(hex: 0x5366D6)],
         startPoint: .top,
         endPoint: .bottom
     )
@@ -1220,9 +1216,9 @@ private struct CareSectionBackground: View {
     var body: some View {
         SectionGradientBackground(
             colors: [
-                .black,
-                .black,
-                .black
+                AppTheme.Colors.appBackground,
+                AppTheme.Colors.appBackground,
+                AppTheme.Colors.appBackground
             ],
             glow: Color(hex: 0x86A6FF),
             glowCenter: selectedItem == .smartCare ? UnitPoint(x: 0.64, y: 0.24) : UnitPoint(x: 0.26, y: 0.22)
@@ -1245,8 +1241,8 @@ private struct SectionGradientBackground: View {
 
             RadialGradient(
                 colors: [
-                    glow.opacity(0.18),
-                    glow.opacity(0.04),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: glowCenter,
@@ -1256,8 +1252,8 @@ private struct SectionGradientBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.1),
-                    Color(hex: 0x5E70DF).opacity(0.04),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.18, y: 0.18),
@@ -1267,7 +1263,7 @@ private struct SectionGradientBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.1),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.3, y: 0.72),
@@ -1279,7 +1275,7 @@ private struct SectionGradientBackground: View {
                 colors: [
                     .clear,
                     .clear,
-                    .black.opacity(0.28)
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -1293,9 +1289,9 @@ private struct CareBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .black,
-                    Color(hex: 0x060B22),
-                    .black
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1303,8 +1299,8 @@ private struct CareBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.22),
-                    Color(hex: 0x5E70DF).opacity(0.08),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.64, y: 0.24),
@@ -1314,7 +1310,7 @@ private struct CareBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.10),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.18, y: 0.76),
@@ -1324,25 +1320,13 @@ private struct CareBackground: View {
 
             LinearGradient(
                 colors: [
-                    .black.opacity(0.1),
-                    .black.opacity(0.46)
+                    .clear,
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
 

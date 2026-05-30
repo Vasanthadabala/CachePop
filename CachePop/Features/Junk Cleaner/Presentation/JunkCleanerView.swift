@@ -177,13 +177,13 @@ private struct CleanupIntroContent: View {
                         VStack(alignment: .leading, spacing: 18 * scale) {
                             Text("Junk Cleaner")
                                 .font(.system(size: 54 * scale, weight: .light, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.74)
 
                             Text("Clean your system to achieve maximum\nperformance and reclaim more free space.")
                                 .font(.system(size: 22 * scale, weight: .medium, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                                 .lineSpacing(6)
                         }
                         .padding(.bottom, 16 * scale)
@@ -228,12 +228,12 @@ private struct CleanupFeatureRow: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 15 * scale, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.88))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.88))
             }
 
             Text(title)
                 .font(.system(size: 19 * scale, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
         }
     }
 }
@@ -259,13 +259,13 @@ private struct CleanupScanningContent: View {
 
                     Text("Looking for junk...")
                         .font(.system(size: 46 * scale, weight: .light, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
 
                     Text(currentPath)
                         .font(.system(size: 20 * scale, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.58))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.58))
                         .lineLimit(1)
                         .minimumScaleFactor(0.62)
                         .padding(.top, 18 * scale)
@@ -311,14 +311,14 @@ private struct CleanupFoundContent: View {
 
                     Text(hasFindings ? "There are \(snapshot.formattedCacheSize) of junk files on your Mac." : "No junk files found on your Mac.")
                         .font(.system(size: 28 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
                         .padding(.top, 78 * scale)
 
                     Button("Review All Junk") {}
                         .font(.system(size: 16 * scale, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .buttonStyle(.plain)
                         .padding(.horizontal, 24 * scale)
                         .frame(height: 44 * scale)
@@ -476,7 +476,7 @@ private struct CleanupJunkCard: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 29, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.95))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
             }
             .padding(.top, 22)
             .padding(.trailing, 22)
@@ -484,7 +484,7 @@ private struct CleanupJunkCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(isWide ? 1 : 2)
                     .minimumScaleFactor(0.72)
                     .padding(.bottom, subtitle == nil ? 0 : 14)
@@ -492,7 +492,7 @@ private struct CleanupJunkCard: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.68))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
                 }
@@ -504,7 +504,7 @@ private struct CleanupJunkCard: View {
 
                     Button("Review") {}
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .buttonStyle(.plain)
                         .frame(width: 78, height: 36)
                         .background {
@@ -552,7 +552,7 @@ private struct CleanupTopBar: View {
                         Text("Start Over")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                     }
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                 }
                 .buttonStyle(.plain)
             }
@@ -578,7 +578,7 @@ private struct CleanupTopBar: View {
             if !title.isEmpty {
                 Text(title)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.68))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -617,7 +617,7 @@ private struct CleanupCircleButton: View {
 
                 Text(title)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .contentShape(Circle())
         }
@@ -656,7 +656,7 @@ private struct CleanupCompletePanel: View {
                 VStack(alignment: .leading, spacing: 28) {
                     Text("Cleanup complete!")
                         .font(.system(size: 42, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.72)
 
@@ -678,19 +678,19 @@ private struct CleanupCompletePanel: View {
                             Image(systemName: "trash.fill")
                                 .font(.system(size: 21, weight: .bold))
                                 .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(.white.opacity(0.85))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.85))
                         }
 
                         VStack(alignment: .leading, spacing: 5) {
                             Text("\(cleanedSize) of Junk")
                                 .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppTheme.Colors.textPrimary)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
 
                             Text("successfully cleaned")
                                 .font(.system(size: 18, weight: .medium, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.68))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                         }
                     }
                 }
@@ -699,7 +699,7 @@ private struct CleanupCompletePanel: View {
 
                 Button("View Log") {}
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .buttonStyle(.plain)
                     .padding(.leading, 38)
                     .padding(.bottom, 34)
@@ -708,7 +708,7 @@ private struct CleanupCompletePanel: View {
                 Button(action: onDone) {
                         Text("Done")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
                             .frame(width: 72, height: 40)
                             .background {
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -837,7 +837,7 @@ private struct CleanupSidebar: View {
                 Image(systemName: "circle.grid.cross.fill")
                     .font(.system(size: 19, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.white.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.82), Color(hex: 0xDCE4FF).opacity(0.6))
             }
             .padding(.bottom, 42)
         }
@@ -870,7 +870,7 @@ private struct CleanupSidebarIcon: View {
             Image(systemName: item.symbolName)
                 .font(.system(size: 23, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.white.opacity(0.9), Color(hex: 0x83F07B).opacity(item == .cleanup ? 0.95 : 0.45))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0x83F07B).opacity(item == .cleanup ? 0.95 : 0.45))
                 .frame(width: 58, height: 58)
 
             if item == .cleanup {
@@ -914,9 +914,9 @@ private struct CleanupBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .black,
-                    Color(hex: 0x060B22),
-                    .black
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -924,8 +924,8 @@ private struct CleanupBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.22),
-                    Color(hex: 0x5E70DF).opacity(0.08),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.2, y: 0.72),
@@ -935,7 +935,7 @@ private struct CleanupBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.10),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.67, y: 0.05),
@@ -945,25 +945,13 @@ private struct CleanupBackground: View {
 
             LinearGradient(
                 colors: [
-                    .black.opacity(0.05),
-                    .black.opacity(0.4)
+                    .clear,
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
 

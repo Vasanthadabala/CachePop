@@ -26,6 +26,7 @@ struct CachePopApp: App {
     var body: some Scene {
         WindowGroup {
             CareView()
+                .tint(AppTheme.Colors.accent)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1180, height: 760)

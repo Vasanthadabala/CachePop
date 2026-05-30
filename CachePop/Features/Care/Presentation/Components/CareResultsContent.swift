@@ -15,11 +15,11 @@ struct CareCleaningContent: View {
             VStack(spacing: 18) {
                 Text("Cleaning selected tasks...")
                     .font(.system(size: 38, weight: .light, design: .rounded))
-                    .foregroundStyle(CachePopPalette.heading)
+                    .foregroundStyle(AppTheme.Care.heading)
 
                 Text(snapshot.currentDetail)
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundStyle(CachePopPalette.headingMuted)
+                    .foregroundStyle(AppTheme.Care.headingMuted)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .contentTransition(.opacity)
@@ -28,17 +28,17 @@ struct CareCleaningContent: View {
 
             ZStack {
                 Circle()
-                    .fill(CachePopPalette.actionGlow)
+                    .fill(AppTheme.Care.actionGlow)
                     .scaleEffect(pulse ? 1.24 : 0.96)
                     .blur(radius: 18)
 
                 Circle()
-                    .fill(CachePopPalette.actionGradient)
+                    .fill(AppTheme.Care.actionGradient)
                     .overlay {
                         Circle()
                             .stroke(.white.opacity(0.82), lineWidth: 2)
                     }
-                    .shadow(color: CachePopPalette.actionShadow, radius: 24, y: 10)
+                    .shadow(color: AppTheme.Care.actionShadow, radius: 24, y: 10)
 
                 Circle()
                     .trim(from: 0, to: progress)
@@ -54,7 +54,7 @@ struct CareCleaningContent: View {
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .frame(width: 150, height: 150)
 
@@ -82,13 +82,13 @@ private struct CleaningSummaryRow: View {
         HStack {
             Text(title)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.cardSubtext)
+                .foregroundStyle(AppTheme.Care.cardSubtext)
 
             Spacer()
 
             Text(value)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(CachePopPalette.heading)
+                .foregroundStyle(AppTheme.Care.heading)
         }
         .padding(.horizontal, 16)
         .frame(height: 42)
@@ -119,7 +119,7 @@ struct CareResultsContent: View {
 
             Text("Well done! Your Mac is in great shape!")
                 .font(.system(size: 38, weight: .light, design: .rounded))
-                .foregroundStyle(CachePopPalette.heading)
+                .foregroundStyle(AppTheme.Care.heading)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .padding(.bottom, 34)
@@ -148,13 +148,13 @@ struct CareResultsContent: View {
 
                 Button("View Log", action: onViewLog)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .buttonStyle(.plain)
                     .padding(.horizontal, 17)
                     .frame(height: 32)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(CachePopPalette.actionGradient)
+                            .fill(AppTheme.Care.actionGradient)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .stroke(.white.opacity(0.26), lineWidth: 1)
@@ -182,7 +182,7 @@ private struct ResultsTopBar: View {
                     Text("Start Over")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(CachePopPalette.headingMuted)
+                .foregroundStyle(AppTheme.Care.headingMuted)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Start over")
@@ -195,7 +195,7 @@ private struct ResultsTopBar: View {
         .overlay(alignment: .bottom) {
             Text("Care")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(CachePopPalette.headingMuted)
+                .foregroundStyle(AppTheme.Care.headingMuted)
         }
     }
 }
@@ -225,7 +225,7 @@ private struct CompactResultsSidebar: View {
                     if item == .smartCare || item == .applications {
                         Image(systemName: "checkmark")
                             .font(.system(size: 15, weight: .black))
-                            .foregroundStyle(.white.opacity(0.92))
+                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                             .offset(x: 7, y: -7)
                     }
                 }
@@ -284,7 +284,7 @@ private struct ScanResultCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(result.title)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardSubtext)
+                    .foregroundStyle(AppTheme.Care.cardSubtext)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
@@ -292,7 +292,7 @@ private struct ScanResultCard: View {
 
                 Text(value)
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(CachePopPalette.cardText)
+                    .foregroundStyle(AppTheme.Care.cardText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
@@ -303,7 +303,7 @@ private struct ScanResultCard: View {
                     Text(result.status)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                 }
-                .foregroundStyle(CachePopPalette.cardSubtext)
+                .foregroundStyle(AppTheme.Care.cardSubtext)
                 .padding(.top, 10)
             }
             .padding(22)

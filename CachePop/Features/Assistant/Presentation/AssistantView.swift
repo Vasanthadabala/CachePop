@@ -12,7 +12,7 @@ struct AssistantView: View {
         VStack(spacing: 0) {
             Text("Assistant")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(0.68))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
                 .padding(.top, 26)
 
             HStack(spacing: 16) {
@@ -63,7 +63,7 @@ private struct MacHealthPanel: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Mac Health:")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
 
                         HStack(spacing: 8) {
                             Text("Requires Attention")
@@ -72,13 +72,13 @@ private struct MacHealthPanel: View {
 
                             Image(systemName: "info.circle.fill")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(.white.opacity(0.45))
+                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.45))
                         }
                     }
 
                     Text("Your Mac is not doing well. Run some maintenance to bring it back into shape.")
                         .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.65))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.65))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -137,7 +137,7 @@ private struct MacHealthRing: View {
 
                 Text("Your Mac")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .offset(y: 16)
         }
@@ -267,13 +267,13 @@ private struct AssistantTipCard: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text(tip.title)
                             .font(.system(size: 19, weight: .bold, design: .rounded))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.76)
 
                         Text(tip.body)
                             .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.66))
+                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.66))
                             .lineSpacing(4)
                             .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
@@ -286,7 +286,7 @@ private struct AssistantTipCard: View {
 
                                 Button(buttonTitle) {}
                                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .foregroundStyle(.white.opacity(0.92))
+                                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                                     .buttonStyle(.plain)
                                     .padding(.horizontal, 20)
                                     .frame(height: 36)
@@ -355,7 +355,7 @@ private struct TipIcon: View {
                     Image(systemName: "desktopcomputer")
                         .font(.system(size: 19, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white, Color(hex: 0xFF57D1))
+                        .foregroundStyle(AppTheme.Colors.textPrimary, Color(hex: 0xFF57D1))
                         .offset(x: 14, y: 15)
                 }
             case .restart:
@@ -365,7 +365,7 @@ private struct TipIcon: View {
             case .cleanup:
                 Image(systemName: "sparkles")
                     .font(.system(size: 30, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.86))
+                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.86))
             }
         }
     }
@@ -464,7 +464,7 @@ private struct AssistantSidebarRow: View {
 
             Text(item.title)
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundStyle(.white.opacity(isSelected ? 0.98 : 0.86))
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(isSelected ? 0.98 : 0.86))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
 
@@ -568,7 +568,7 @@ private enum AssistantSidebarItem: String, Identifiable {
     var iconColor: LinearGradient {
         LinearGradient(
             colors: [
-                Color(hex: 0xFFFFFF).opacity(0.95),
+                AppTheme.Colors.appBackground.opacity(0.95),
                 Color(hex: 0xD4C4FF).opacity(0.82),
                 Color(hex: 0x75B3FF).opacity(self == .assistant ? 0.92 : 0.48)
             ],
@@ -583,9 +583,9 @@ private struct AssistantBackground: View {
         ZStack {
             LinearGradient(
                 colors: [
-                    .black,
-                    Color(hex: 0x060B22),
-                    .black
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground,
+                    AppTheme.Colors.appBackground
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -593,8 +593,8 @@ private struct AssistantBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x8EA8FF).opacity(0.22),
-                    Color(hex: 0x5E70DF).opacity(0.08),
+                    .clear,
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.22, y: 0.26),
@@ -604,7 +604,7 @@ private struct AssistantBackground: View {
 
             RadialGradient(
                 colors: [
-                    Color(hex: 0x5E70DF).opacity(0.10),
+                    .clear,
                     .clear
                 ],
                 center: UnitPoint(x: 0.22, y: 0.78),
@@ -614,25 +614,13 @@ private struct AssistantBackground: View {
 
             LinearGradient(
                 colors: [
-                    .black.opacity(0.04),
-                    .black.opacity(0.38)
+                    .clear,
+                    .clear
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
         }
-    }
-}
-
-private extension Color {
-    init(hex: UInt, alpha: Double = 1) {
-        self.init(
-            .sRGB,
-            red: Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8) & 0xFF) / 255,
-            blue: Double(hex & 0xFF) / 255,
-            opacity: alpha
-        )
     }
 }
 
