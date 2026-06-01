@@ -33,9 +33,9 @@ enum AppTheme {
             endPoint: .bottomTrailing
         )
         static let cardGradient = [
-            Color(hex: 0x7F98F4).opacity(0.92),
-            Color(hex: 0x647BE5).opacity(0.88),
-            Color(hex: 0x4052C7).opacity(0.95)
+            Color(hex: 0x6F83EA),
+            Color(hex: 0x5A6DDD),
+            Color(hex: 0x4E60D0)
         ]
     }
 
@@ -75,5 +75,87 @@ extension Color {
             blue: Double(hex & 0xFF) / 255,
             opacity: alpha
         )
+    }
+}
+
+private struct RaisedButtonChrome: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.black.opacity(0.18), lineWidth: 1.2)
+                    .blendMode(.multiply)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.36), lineWidth: 1)
+                    .padding(1.2)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.20),
+                                Color.white.opacity(0.06),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.screen)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: Color.black.opacity(0.16), radius: 12, x: 0, y: 7)
+    }
+}
+
+private struct RaisedCircleButtonChrome: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                Circle()
+                    .stroke(Color.black.opacity(0.18), lineWidth: 1.2)
+                    .blendMode(.multiply)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                Circle()
+                    .stroke(Color.white.opacity(0.38), lineWidth: 1)
+                    .padding(1.2)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.22),
+                                Color.white.opacity(0.07),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .blendMode(.screen)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: Color.black.opacity(0.18), radius: 14, x: 0, y: 8)
+    }
+}
+
+extension View {
+    func raisedButtonChrome(cornerRadius: CGFloat) -> some View {
+        modifier(RaisedButtonChrome(cornerRadius: cornerRadius))
+    }
+
+    func raisedCircleButtonChrome() -> some View {
+        modifier(RaisedCircleButtonChrome())
     }
 }

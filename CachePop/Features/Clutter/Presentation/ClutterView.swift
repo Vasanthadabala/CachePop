@@ -169,38 +169,39 @@ private struct ClutterWelcomeContent: View {
                 Button("Unlock Full Version") {}
                     .buttonStyle(.plain)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.92))
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .padding(.horizontal, 28)
                     .frame(height: 42)
                     .background {
                         Capsule(style: .continuous)
-                            .fill(Color(hex: 0xFFD34F))
-                            .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
+                            .fill(AppTheme.Care.actionGradient)
+                            .shadow(color: AppTheme.Care.actionShadow, radius: 16, x: 0, y: 8)
                     }
+                    .raisedButtonChrome(cornerRadius: 21)
                     .position(x: width - 120, y: 40)
 
                 HStack(alignment: .center, spacing: max(48, width * 0.08)) {
                     ClutterFolderHero()
-                        .frame(width: max(290, min(430, width * 0.42)), height: max(270, min(390, width * 0.38)))
+                        .frame(width: max(340, min(520, width * 0.48)), height: max(310, min(470, width * 0.43)))
                         .padding(.top, 18)
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text("Clutter")
-                            .font(.system(size: max(38, min(54, 54 * scale)), weight: .light, design: .rounded))
+                            .font(.system(size: max(32, min(48, 48 * scale)), weight: .light, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
-                            .padding(.bottom, 22)
+                            .padding(.bottom, 18)
 
                         Text("Sort through your files and reduce the mess in\njust a few clicks.")
-                            .font(.system(size: max(18, min(24, 24 * scale)), weight: .medium, design: .rounded))
+                            .font(.system(size: max(15, min(20, 20 * scale)), weight: .medium, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.66))
                             .lineSpacing(4)
-                            .padding(.bottom, 48)
+                            .padding(.bottom, 42)
 
-                        VStack(alignment: .leading, spacing: 26) {
+                        VStack(alignment: .leading, spacing: 22) {
                             ClutterWelcomeFeature(symbolName: "folder.fill", title: "Large Files")
                             ClutterWelcomeFeature(symbolName: "doc.on.doc.fill", title: "Duplicates")
                         }
-                        .padding(.bottom, 64)
+                        .padding(.bottom, 50)
 
                         ClutterFolderPicker(selectedFolder: $selectedFolder)
                     }
@@ -214,21 +215,12 @@ private struct ClutterWelcomeContent: View {
                 Button(action: onScan) {
                     Text("Scan")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.96))
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .frame(width: 106, height: 106)
                         .background {
                             Circle()
                                 .fill(
-                                    RadialGradient(
-                                        colors: [
-                                            Color(hex: 0x8EA8FF),
-                                            Color(hex: 0x6F7DFF),
-                                            Color(hex: 0x4E60D0)
-                                        ],
-                                        center: .top,
-                                        startRadius: 8,
-                                        endRadius: 74
-                                    )
+                                    AppTheme.Care.actionGradient
                                 )
                                 .overlay {
                                     Circle()
@@ -237,9 +229,10 @@ private struct ClutterWelcomeContent: View {
                                 .shadow(color: Color(hex: 0x86A6FF).opacity(0.55), radius: 38, x: 0, y: 0)
                                 .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 8)
                         }
+                        .raisedCircleButtonChrome()
                 }
                 .buttonStyle(.plain)
-                .position(x: width / 2, y: height - 62)
+                .position(x: width / 2, y: height - 92)
             }
         }
         .background(AppTheme.Colors.appBackground)
@@ -269,14 +262,15 @@ private struct ClutterScanningContent: View {
                 Button("Unlock Full Version") {}
                     .buttonStyle(.plain)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black.opacity(0.92))
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .padding(.horizontal, 28)
                     .frame(height: 42)
                     .background {
                         Capsule(style: .continuous)
-                            .fill(Color(hex: 0xFFD34F))
-                            .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
+                            .fill(AppTheme.Care.actionGradient)
+                            .shadow(color: AppTheme.Care.actionShadow, radius: 16, x: 0, y: 8)
                     }
+                    .raisedButtonChrome(cornerRadius: 21)
                     .position(x: width - 120, y: 40)
 
                 VStack(spacing: 0) {
@@ -303,22 +297,13 @@ private struct ClutterScanningContent: View {
                 Button(action: onStop) {
                     Text("Stop")
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.96))
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .frame(width: 106, height: 106)
                         .background {
                             ZStack {
                                 Circle()
                                     .fill(
-                                        RadialGradient(
-                                            colors: [
-                                                Color(hex: 0x8EA8FF),
-                                                Color(hex: 0x6F7DFF),
-                                                Color(hex: 0x4E60D0)
-                                            ],
-                                            center: .top,
-                                            startRadius: 8,
-                                            endRadius: 74
-                                        )
+                                        AppTheme.Care.actionGradient
                                     )
 
                                 Circle()
@@ -334,6 +319,7 @@ private struct ClutterScanningContent: View {
                             .shadow(color: Color(hex: 0x86A6FF).opacity(0.52), radius: 38, x: 0, y: 0)
                             .shadow(color: .black.opacity(0.28), radius: 16, x: 0, y: 8)
                         }
+                        .raisedCircleButtonChrome()
                 }
                 .buttonStyle(.plain)
                 .position(x: width / 2, y: height - 62)
@@ -391,14 +377,15 @@ private struct ClutterResultsSummaryContent: View {
                     Button("Unlock Full Version") {}
                         .buttonStyle(.plain)
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(.black.opacity(0.92))
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .padding(.horizontal, 28)
                         .frame(height: 42)
                         .background {
                             Capsule(style: .continuous)
-                                .fill(Color(hex: 0xFFD34F))
-                                .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
+                                .fill(AppTheme.Care.actionGradient)
+                                .shadow(color: AppTheme.Care.actionShadow, radius: 16, x: 0, y: 8)
                         }
+                        .raisedButtonChrome(cornerRadius: 21)
                 }
                 .padding(.horizontal, 32)
                 .padding(.top, 20)
@@ -409,7 +396,7 @@ private struct ClutterResultsSummaryContent: View {
                         Text("You have \(result.filesToSortCount) files to sort through.")
                         Text("Use quick recommendations or review them by hand.")
                     }
-                    .font(.system(size: max(25, min(33, width * 0.032)), weight: .bold, design: .rounded))
+                    .font(.system(size: max(21, min(28, width * 0.027)), weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
                     .multilineTextAlignment(.center)
 
@@ -417,17 +404,18 @@ private struct ClutterResultsSummaryContent: View {
                         onReview(.all)
                     }
                         .buttonStyle(.plain)
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .frame(width: 154, height: 48)
                         .background {
                             RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                .fill(.white.opacity(0.16))
+                                .fill(AppTheme.Care.actionGradient)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                                        .stroke(.white.opacity(0.22), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 13)
                 }
                 .padding(.top, 94)
                 .frame(maxHeight: .infinity, alignment: .top)
@@ -486,14 +474,14 @@ private struct ClutterSummaryTallCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
+                .font(.system(size: 21, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .lineLimit(2)
                 .minimumScaleFactor(0.78)
 
             Text(fileCount == 0 ? subtitle : "Remove \(sizeText) of duplicate files.")
-                .font(.system(size: 18, weight: .medium, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.72))
                 .lineSpacing(2)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -502,17 +490,17 @@ private struct ClutterSummaryTallCard: View {
             HStack(alignment: .bottom) {
                 Image(systemName: "doc.fill")
                     .font(.system(size: 52, weight: .regular))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.78))
                     .offset(y: -12)
 
                 Image(systemName: "doc.fill")
                     .font(.system(size: 94, weight: .regular))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.95))
                     .shadow(color: .black.opacity(0.25), radius: 8, x: 0, y: 7)
 
                 Image(systemName: "shippingbox.fill")
                     .font(.system(size: 48, weight: .regular))
-                    .foregroundStyle(Color(hex: 0x8EA8FF))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.84))
                     .offset(y: -8)
             }
             .frame(maxWidth: .infinity)
@@ -541,14 +529,14 @@ private struct ClutterSummaryWideCard: View {
         HStack(alignment: .top, spacing: 18) {
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .lineLimit(2)
                     .minimumScaleFactor(0.76)
 
                 Text(subtitle)
-                    .font(.system(size: 18, weight: .medium, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.72))
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -581,7 +569,7 @@ private struct ClutterSummaryPreviewStrip: View {
             if items.isEmpty {
                 Image(systemName: symbolName)
                     .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.72))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.72))
                     .frame(width: 52, height: 52)
             } else {
                 ForEach(Array(items.prefix(3).enumerated()), id: \.element.id) { index, item in
@@ -619,26 +607,27 @@ private struct ClutterSummaryReviewButton: View {
     var body: some View {
         Button("Review", action: onReview)
             .buttonStyle(.plain)
-            .font(.system(size: 17, weight: .bold, design: .rounded))
-            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
+            .font(.system(size: 15, weight: .bold, design: .rounded))
+            .foregroundStyle(AppTheme.Colors.inverseText)
             .frame(width: 84, height: 40)
             .background {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(.white.opacity(0.13))
+                    .fill(AppTheme.Care.actionGradient)
                     .overlay {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(.white.opacity(0.16), lineWidth: 1)
+                            .stroke(.white.opacity(0.22), lineWidth: 1)
                     }
             }
+            .raisedButtonChrome(cornerRadius: 10)
     }
 }
 
 private var summaryCardBackground: some View {
     RoundedRectangle(cornerRadius: 18, style: .continuous)
-        .fill(AppTheme.Colors.appBackground)
+        .fill(AppTheme.Care.actionGradient)
         .overlay {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(AppTheme.Colors.border.opacity(0.7), lineWidth: 1)
+                .stroke(.white.opacity(0.16), lineWidth: 1)
         }
 }
 
@@ -655,12 +644,19 @@ private struct ClutterFolderHero: View {
             let size = min(proxy.size.width, proxy.size.height)
 
             ZStack {
+                Ellipse()
+                    .fill(Color(hex: 0x3F50C4).opacity(0.18))
+                    .frame(width: size * 0.82, height: size * 0.16)
+                    .blur(radius: 18)
+                    .offset(y: size * 0.32)
+
                 RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color(hex: 0x8EA8FF).opacity(0.18),
-                                Color(hex: 0x312994).opacity(0.12)
+                                Color(hex: 0xAFC0FF).opacity(0.54),
+                                Color(hex: 0x6F83EA).opacity(0.40),
+                                Color(hex: 0x3F50C4).opacity(0.28)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -670,15 +666,14 @@ private struct ClutterFolderHero: View {
                         RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
                             .stroke(.white.opacity(0.12), lineWidth: 1.5)
                     }
-                    .frame(width: size * 0.74, height: size * 0.54)
-                    .shadow(color: Color(hex: 0x6F7DFF).opacity(0.22), radius: 28, x: 0, y: 12)
+                    .frame(width: size * 0.88, height: size * 0.66)
+                    .shadow(color: Color(hex: 0x6F7DFF).opacity(0.34), radius: 36, x: 0, y: 14)
+                    .shadow(color: .black.opacity(0.16), radius: 26, x: 14, y: 24)
 
-                Image(systemName: "folder.fill")
-                    .font(.system(size: size * 0.46, weight: .regular))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color(hex: 0x8EA8FF), Color(hex: 0xDCE4FF))
-                    .shadow(color: Color(hex: 0x6F7DFF).opacity(0.32), radius: 22, x: 0, y: 10)
-                    .shadow(color: .black.opacity(0.28), radius: 16, x: 8, y: 16)
+                FolderGlyph()
+                    .frame(width: size * 0.70, height: size * 0.52)
+                    .shadow(color: Color(hex: 0x6F7DFF).opacity(0.46), radius: 24, x: 0, y: 10)
+                    .shadow(color: .black.opacity(0.26), radius: 18, x: 10, y: 18)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -708,9 +703,9 @@ private struct FolderGlyph: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color(hex: 0xEEF2FF),
-                            Color(hex: 0x8EA8FF),
-                            Color(hex: 0x5366D6)
+                            Color(hex: 0xAFC0FF),
+                            Color(hex: 0x6F83EA),
+                            Color(hex: 0x3F50C4)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -718,7 +713,7 @@ private struct FolderGlyph: View {
                 )
 
                 Capsule(style: .continuous)
-                    .fill(Color(hex: 0x1C2A68).opacity(0.7))
+                    .fill(Color(hex: 0xDCE4FF).opacity(0.48))
                     .frame(width: w * 0.26, height: h * 0.1)
                     .offset(x: -w * 0.13, y: -h * 0.17)
             }
@@ -772,13 +767,13 @@ private struct ClutterWelcomeFeature: View {
     var body: some View {
         HStack(spacing: 20) {
             Image(systemName: symbolName)
-                .font(.system(size: 23, weight: .bold))
+                .font(.system(size: 24, weight: .bold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color(hex: 0x8EA8FF), Color(hex: 0xDCE4FF))
+                .foregroundStyle(Color(hex: 0x6F83EA), Color(hex: 0x4E60D0))
                 .frame(width: 34, height: 34)
 
             Text(title)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.94))
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
@@ -798,17 +793,17 @@ private struct ClutterFolderPicker: View {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(Color(hex: 0x6F7DFF))
+                        .fill(.white.opacity(0.16))
                         .frame(width: 32, height: 25)
 
                     Image(systemName: "folder.fill")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color(hex: 0xDCE4FF))
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                 }
 
                 Text(displayName)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.86))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -816,7 +811,7 @@ private struct ClutterFolderPicker: View {
 
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.72))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.9))
             }
         }
         .buttonStyle(.plain)
@@ -824,12 +819,13 @@ private struct ClutterFolderPicker: View {
         .frame(width: 305, height: 54)
         .background {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.white.opacity(0.16))
+                .fill(AppTheme.Care.actionGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(.white.opacity(0.18), lineWidth: 1)
+                        .stroke(.white.opacity(0.22), lineWidth: 1)
                 }
         }
+        .raisedButtonChrome(cornerRadius: 14)
     }
 
     private func chooseFolder() {
@@ -1010,11 +1006,11 @@ private struct MyClutterToolbar: View {
             Button(action: onBack) {
                 HStack(spacing: 10) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(Color(hex: 0x6F7DFF))
 
                     Text("Back")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
                         .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
                 }
             }
@@ -1023,7 +1019,7 @@ private struct MyClutterToolbar: View {
             Spacer()
 
             Text("Clutter Manager")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
 
             Spacer()
@@ -1047,7 +1043,7 @@ private struct MyClutterToolbar: View {
                 .font(.system(size: 14, weight: .bold, design: .rounded))
             }
         }
-        .frame(height: 58)
+        .frame(height: 66)
         .padding(.horizontal, 22)
         .background(AppTheme.Colors.appBackground)
         .overlay(alignment: .bottom) {
@@ -1081,21 +1077,28 @@ private struct MyClutterCategories: View {
 
                         Spacer()
 
+                        if selectedSection == section {
+                            Rectangle()
+                                .fill(AppTheme.Colors.inverseText.opacity(0.34))
+                                .frame(width: 1, height: 18)
+                                .padding(.trailing, 8)
+                        }
+
                         Text("\(result.items(for: section).count)")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
-                            .foregroundStyle(selectedSection == section ? AppTheme.Colors.textPrimary : AppTheme.Colors.textPrimary.opacity(0.46))
+                            .foregroundStyle(selectedSection == section ? AppTheme.Colors.inverseText : AppTheme.Colors.textPrimary.opacity(0.46))
                     }
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(selectedSection == section ? AppTheme.Colors.textPrimary.opacity(0.96) : AppTheme.Colors.textPrimary.opacity(0.6))
+                    .foregroundStyle(selectedSection == section ? AppTheme.Colors.inverseText : AppTheme.Colors.textPrimary.opacity(0.6))
                     .padding(.horizontal, 15)
                     .frame(height: 38)
                     .background {
                         if selectedSection == section {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(.white.opacity(0.14))
+                                .fill(AppTheme.Care.actionGradient)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .stroke(.white.opacity(0.16), lineWidth: 1)
+                                        .stroke(.white.opacity(0.22), lineWidth: 1)
                                 }
                         }
                     }
@@ -1247,7 +1250,7 @@ private struct ClutterFileRow: View {
 
             if let duplicateTotal {
                 Text("\(duplicateTotal)")
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .frame(minWidth: 42, minHeight: 28)
                     .background(Color(hex: 0x5366D6))
                 .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -1265,11 +1268,15 @@ private struct ClutterFileRow: View {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [.white.opacity(0.15), Color(hex: 0x8EA8FF).opacity(0.14)],
+                            colors: [Color(hex: 0xDCE4FF).opacity(0.56), Color(hex: 0x8EA8FF).opacity(0.28)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color(hex: 0x8EA8FF).opacity(0.22), lineWidth: 1)
+                    }
             }
         }
     }
@@ -1365,7 +1372,7 @@ private struct ClutterPreviewPane: View {
                         ) { focusedDuplicateID = $0.id
                         }
                         .frame(maxWidth: 470)
-                        .frame(height: 290)
+                        .frame(height: 250)
                     } else {
                         ClutterLargePreview(item: item, section: section)
                             .frame(width: 270, height: 270)
@@ -1373,12 +1380,12 @@ private struct ClutterPreviewPane: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text(displayedItem?.title ?? item.title)
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                             .lineLimit(2)
 
                         Text(displayedItem?.path ?? item.path)
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.42))
                             .lineLimit(3)
 
@@ -1426,11 +1433,11 @@ private struct DuplicateRelatedGrid: View {
     @Binding var selectedIDs: Set<String>
     let onSelect: (CareScanDetailItem) -> Void
 
-    private let tileWidth: CGFloat = 166
-    private let tileHeight: CGFloat = 146
+    private let tileWidth: CGFloat = 148
+    private let tileHeight: CGFloat = 128
     private let columns = [
-        GridItem(.fixed(166), spacing: 16),
-        GridItem(.fixed(166), spacing: 16)
+        GridItem(.fixed(148), spacing: 14),
+        GridItem(.fixed(148), spacing: 14)
     ]
 
     var body: some View {
@@ -1468,7 +1475,7 @@ private struct DuplicateSelectablePreview: View {
         ZStack(alignment: .topTrailing) {
             Button(action: onSelect) {
                 duplicatePreview
-                    .frame(width: 166, height: 146)
+                    .frame(width: 148, height: 128)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -1488,7 +1495,7 @@ private struct DuplicateSelectablePreview: View {
             .contentShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
             .padding(8)
         }
-        .frame(width: 166, height: 146)
+        .frame(width: 148, height: 128)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
@@ -1514,7 +1521,7 @@ private struct DuplicateCheckbox: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 7, style: .continuous)
-            .fill(isChecked ? Color(hex: 0x8EA8FF) : .black.opacity(0.48))
+            .fill(isChecked ? AppTheme.Care.actionGradient : LinearGradient(colors: [.black.opacity(0.48), .black.opacity(0.42)], startPoint: .topLeading, endPoint: .bottomTrailing))
             .frame(width: 30, height: 30)
             .overlay {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
@@ -1524,7 +1531,7 @@ private struct DuplicateCheckbox: View {
                 if isChecked {
                     Image(systemName: "checkmark")
                         .font(.system(size: 17, weight: .black))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                 }
             }
             .shadow(color: .black.opacity(isChecked ? 0.18 : 0.1), radius: 4, x: 0, y: 2)
@@ -1623,19 +1630,25 @@ private struct MyClutterBottomBar: View {
 
             Button("Remove") {}
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .frame(width: 92, height: 44)
                 .background {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: 0x8EA8FF), Color(hex: 0x5366D6)],
+                                colors: [Color(hex: 0x6F83EA), Color(hex: 0x5366D6), Color(hex: 0x3F50C4)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color(hex: 0xDCE4FF).opacity(0.24), lineWidth: 1.5)
+                        }
+                        .shadow(color: Color(hex: 0x5366D6).opacity(0.28), radius: 12, x: 0, y: 5)
                 }
+                .raisedButtonChrome(cornerRadius: 12)
         }
         .frame(height: 72)
         .padding(.horizontal, 16)

@@ -13,7 +13,7 @@ struct CareHomeContent: View {
                 Spacer(minLength: 70)
 
                 ComputerScanHero()
-                .frame(width: 520 * scale, height: 360 * scale)
+                .frame(width: 600 * scale, height: 400 * scale)
 
                 VStack(spacing: 16) {
                     Text("Welcome to CachePop")
@@ -41,6 +41,22 @@ struct CareHomeContent: View {
                 Spacer(minLength: 74)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Button("Unlock Full Version") {}
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
+                .buttonStyle(.plain)
+                .padding(.horizontal, 22)
+                .frame(height: 42)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(AppTheme.Care.actionGradient)
+                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
+                }
+                .raisedButtonChrome(cornerRadius: 21)
+                .padding(.top, 28)
+                .padding(.trailing, 28)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
             Text("by Mayu Labs")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -117,15 +133,7 @@ private struct ScanButton: View {
 
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0x6F83EA),
-                                Color(hex: 0x5366D6),
-                                Color(hex: 0x3720B0)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        AppTheme.Care.actionGradient
                     )
                     .overlay {
                         Circle()
@@ -152,9 +160,10 @@ private struct ScanButton: View {
                         .font(.system(size: scanPhase == .scanning ? 13 : 17, weight: .semibold, design: .rounded))
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .contentShape(Circle())
+            .raisedCircleButtonChrome()
         }
         .buttonStyle(.plain)
         .disabled(scanPhase == .scanning)

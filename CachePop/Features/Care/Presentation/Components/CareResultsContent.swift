@@ -54,15 +54,17 @@ struct CareCleaningContent: View {
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .frame(width: 150, height: 150)
+            .raisedCircleButtonChrome()
 
             VStack(spacing: 12) {
-                CleaningSummaryRow(title: "Junk Cleaner", value: snapshot.formattedCacheSize)
-                CleaningSummaryRow(title: "Boost", value: snapshot.startupSummary)
-                CleaningSummaryRow(title: "App Manager", value: snapshot.appSummary)
-                CleaningSummaryRow(title: "Clutter", value: snapshot.clutterSummary)
+                CleaningSummaryRow(title: "Cleanup", value: snapshot.formattedCacheSize)
+                CleaningSummaryRow(title: "Protection", value: snapshot.protectionSummary)
+                CleaningSummaryRow(title: "Performance", value: snapshot.startupSummary)
+                CleaningSummaryRow(title: "Applications", value: snapshot.appSummary)
+                CleaningSummaryRow(title: "My Clutter", value: snapshot.clutterSummary)
             }
             .padding(.top, 44)
             .frame(width: 420)
@@ -82,13 +84,13 @@ private struct CleaningSummaryRow: View {
         HStack {
             Text(title)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Care.cardSubtext)
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.78))
 
             Spacer()
 
             Text(value)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(AppTheme.Care.heading)
+                .foregroundStyle(AppTheme.Colors.textPrimary)
         }
         .padding(.horizontal, 16)
         .frame(height: 42)
@@ -148,7 +150,7 @@ struct CareResultsContent: View {
 
                 Button("View Log", action: onViewLog)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .buttonStyle(.plain)
                     .padding(.horizontal, 17)
                     .frame(height: 32)
@@ -160,6 +162,7 @@ struct CareResultsContent: View {
                                     .stroke(.white.opacity(0.26), lineWidth: 1)
                             }
                     }
+                    .raisedButtonChrome(cornerRadius: 8)
                     .accessibilityLabel("View scan log")
             }
             .padding(.horizontal, 34)
@@ -314,13 +317,15 @@ private struct ScanResultCard: View {
 
     private var value: String {
         switch result.category {
-        case .junkCleaner:
+        case .cleanup:
             snapshot.formattedCacheSize
-        case .boost:
+        case .protection:
+            snapshot.protectionSummary
+        case .performance:
             snapshot.startupItems == 1 ? "1 task" : "\(snapshot.startupItems) tasks"
-        case .appManager:
+        case .applications:
             "\(snapshot.appsChecked) apps checked"
-        case .clutter:
+        case .myClutter:
             snapshot.clutterSummary
         case .all:
             result.value
