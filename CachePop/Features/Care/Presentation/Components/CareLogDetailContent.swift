@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct CareLogDetailContent: View {
     let detail: CareLogDetail
@@ -37,14 +38,20 @@ struct CareLogDetailContent: View {
                 item.kind == "Developer Cache" || item.kind == "Package Cache"
             case "Permissions":
                 false
+            case "Privacy Traces":
+                item.kind == "Privacy Trace"
+            case "Downloaded Installers":
+                item.kind == "Installer Leftover"
+            case "Protection Review":
+                item.kind == "Privacy Trace" || item.kind == "Installer Leftover"
             case "Login Items":
-                item.kind == "Startup Item"
+                item.kind == "Login Item"
             case "Launch Agents":
-                item.kind == "Launch Agent"
+                item.kind == "Background Item"
             case "Launch Daemons":
-                item.kind == "Launch Daemon"
+                item.kind == "Background Item"
             case "Background Helpers":
-                item.kind == "Startup Item" || item.kind == "Launch Agent" || item.kind == "Launch Daemon"
+                item.kind == "Login Item" || item.kind == "Background Item"
             case "Applications", "Update Candidates", "Recently Modified", "Inventory":
                 item.kind == "Application"
             case "Large & Old Files":
@@ -53,7 +60,7 @@ struct CareLogDetailContent: View {
                 item.kind == "Duplicate Candidate"
             case "Downloads":
                 item.path.localizedCaseInsensitiveContains("/Downloads/")
-            case "Junk Cleaner":
+            case "Cleanup":
                 item.kind == "Browser Cache"
                     || item.kind == "App Cache"
                     || item.kind == "System Cache"
@@ -61,11 +68,11 @@ struct CareLogDetailContent: View {
                     || item.kind == "Temporary File"
                     || item.kind == "Developer Cache"
                     || item.kind == "Package Cache"
-            case "Boost":
-                item.kind == "Startup Item" || item.kind == "Launch Agent" || item.kind == "Launch Daemon"
-            case "App Manager":
-                item.kind == "Application"
-            case "Clutter":
+            case "Protection":
+                item.kind == "Privacy Trace" || item.kind == "Installer Leftover"
+            case "Performance":
+                item.kind == "Login Item" || item.kind == "Background Item"
+            case "My Clutter":
                 item.kind == "Large File" || item.kind == "Duplicate Candidate"
             default:
                 true
@@ -80,13 +87,13 @@ struct CareLogDetailContent: View {
     }
 
     var body: some View {
-        if detail.category == .junkCleaner {
+        if detail.category == .cleanup {
             JunkCleanerManagerContent(detail: detail, onBack: onBack)
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
-        } else if detail.category == .boost {
+        } else if detail.category == .performance {
             PerformanceManagerContent(detail: detail, onBack: onBack)
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
-        } else if detail.category == .clutter {
+        } else if detail.category == .myClutter {
             ClutterManagerContent(onBack: onBack, snapshot: detail.snapshot)
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
         } else {
@@ -495,6 +502,7 @@ private struct PerformanceManagerBottomBar: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .fill(Color(hex: 0x5366D6).opacity(selectedCount == 0 ? 0.55 : 1))
                 }
+                .raisedButtonChrome(cornerRadius: 12)
                 .disabled(selectedCount == 0)
         }
         .frame(height: 72)
@@ -1081,11 +1089,12 @@ private struct JunkCleanerFileRow: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(isSelected ? AppTheme.JunkCleanerManager.accent : AppTheme.JunkCleanerManager.secondary)
 
-                Image(systemName: iconName)
-                    .font(.system(size: 24, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.JunkCleanerManager.icon)
-                    .frame(width: 44, height: 44)
+                FileSystemIconView(
+                    item: item,
+                    fallbackSymbolName: iconName,
+                    fallbackColor: AppTheme.JunkCleanerManager.icon
+                )
+                .frame(width: 44, height: 44)
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.title)
@@ -1216,6 +1225,7 @@ private struct JunkCleanerManagerBottomBar: View {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
                         .fill(AppTheme.JunkCleanerManager.actionGradient)
                 }
+                .raisedButtonChrome(cornerRadius: 13)
         }
         .padding(.horizontal, 28)
         .frame(height: 74)
@@ -1254,10 +1264,10 @@ private struct DetailTopBar: View {
             Button(action: onBack) {
                 HStack(spacing: 12) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 22, weight: .bold))
 
                     Text("Back")
-                        .font(.system(size: 21, weight: .bold, design: .rounded))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                 }
                 .foregroundStyle(Color(hex: 0x7180FF))
             }
@@ -1266,14 +1276,14 @@ private struct DetailTopBar: View {
             Spacer()
 
             Text(title)
-                .font(.system(size: 23, weight: .bold, design: .rounded))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Care.heading)
 
             Spacer()
 
             HStack(spacing: 30) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 21, weight: .bold))
                     .foregroundStyle(Color(hex: 0x7180FF))
 
                 HStack(spacing: 8) {
@@ -1284,10 +1294,10 @@ private struct DetailTopBar: View {
                         .foregroundStyle(Color(hex: 0x7180FF))
 
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color(hex: 0x7180FF))
                 }
-                .font(.system(size: 19, weight: .bold, design: .rounded))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
             }
             .frame(width: 250, alignment: .trailing)
         }
@@ -1317,15 +1327,15 @@ private struct DetailSectionList: View {
                     }
                 } label: {
                     Text(section)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(selectedSection == index ? AppTheme.Colors.textPrimary : AppTheme.Colors.textPrimary.opacity(0.55))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(selectedSection == index ? AppTheme.Colors.inverseText : AppTheme.Colors.textPrimary.opacity(0.55))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 22)
                         .frame(height: 54)
                         .background {
                             if selectedSection == index {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color(hex: 0x1C2A68))
+                                    .fill(AppTheme.Care.actionGradient)
                             }
                         }
                 }
@@ -1349,11 +1359,11 @@ private struct DetailItemList: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text(title)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .font(.system(size: 21, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Care.heading)
 
             Text(subtitle)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.55))
                 .lineSpacing(6)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1397,18 +1407,18 @@ private struct DetailFileRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 14) {
-                DetailFileIcon(kind: item.kind)
+                DetailFileIcon(item: item)
                     .frame(width: 50, height: 50)
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(item.title)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(isSelected ? AppTheme.Colors.inverseText : AppTheme.Colors.textPrimary)
                         .lineLimit(1)
 
                     Text(item.formattedSize)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.55))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(isSelected ? AppTheme.Colors.inverseText.opacity(0.74) : AppTheme.Colors.textPrimary.opacity(0.55))
                         .lineLimit(1)
                 }
 
@@ -1417,8 +1427,10 @@ private struct DetailFileRow: View {
             .padding(14)
             .frame(maxWidth: .infinity)
             .background {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(isSelected ? Color(hex: 0x1C2A68) : .clear)
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(AppTheme.Care.actionGradient)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -1430,7 +1442,7 @@ private struct DetailFallbackRow: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
             .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.62))
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
@@ -1456,11 +1468,11 @@ private struct DetailPreviewPane: View {
                 Text(cleaned ? "Cleaned" : "Smartly")
                     .foregroundStyle(Color(hex: 0x7180FF))
 
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .bold))
+                    Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(Color(hex: 0x7180FF))
             }
-            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .font(.system(size: 16, weight: .bold, design: .rounded))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -1476,14 +1488,14 @@ private struct DetailPreviewPane: View {
                         )
                     )
 
-                DetailPreviewSymbol(category: category)
+                DetailPreviewSymbol(item: item, category: category)
             }
             .frame(maxWidth: 420)
             .aspectRatio(1.08, contentMode: .fit)
 
             VStack(alignment: .leading, spacing: 17) {
-                Text(item?.title ?? category.label)
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    Text(item?.title ?? category.label)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(2)
 
@@ -1497,8 +1509,8 @@ private struct DetailPreviewPane: View {
                 Button("Grant Access") {
                     openPrivacySettings()
                 }
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 20)
                 .frame(height: 42)
@@ -1506,6 +1518,7 @@ private struct DetailPreviewPane: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(AppTheme.Care.actionGradient)
                 }
+                .raisedButtonChrome(cornerRadius: 10)
             }
 
             Spacer()
@@ -1522,19 +1535,22 @@ private struct DetailPreviewPane: View {
 }
 
 private struct DetailPreviewSymbol: View {
+    let item: CareScanDetailItem?
     let category: CareLogCategory
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 44, style: .continuous)
-                .stroke(.white.opacity(0.86), lineWidth: 8)
-                .frame(width: 210, height: 160)
+        FileSystemIconView(
+            item: item,
+            fallbackSymbolName: symbolName,
+            fallbackColor: AppTheme.Colors.inverseText.opacity(0.92),
+            backgroundOpacity: 0,
+            cornerRadius: 20
+        )
+        .padding(54)
+    }
 
-            Image(systemName: category.previewSymbol)
-                .font(.system(size: 72, weight: .bold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
-        }
+    private var symbolName: String {
+        item.map { DetailFileIcon.symbolName(for: $0.kind) } ?? category.previewSymbol
     }
 }
 
@@ -1545,12 +1561,12 @@ private struct DetailMetaRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Text(label)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.45))
                 .frame(width: 92, alignment: .leading)
 
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary)
                 .lineLimit(2)
                 .minimumScaleFactor(0.72)
@@ -1569,7 +1585,7 @@ private struct DetailBottomBar: View {
 
             HStack(spacing: 16) {
                 Text("\(itemCount) Items Selected")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.Colors.textPrimary)
 
                 Rectangle()
@@ -1577,15 +1593,15 @@ private struct DetailBottomBar: View {
                     .frame(width: 1, height: 28)
 
                 Text(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.48))
             }
 
             Spacer()
 
             Button(cleaned ? "Done" : "Remove") {}
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 25)
                 .frame(height: 54)
@@ -1593,6 +1609,7 @@ private struct DetailBottomBar: View {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(AppTheme.Care.actionGradient)
                 }
+                .raisedButtonChrome(cornerRadius: 14)
                 .padding(.trailing, 32)
         }
         .frame(height: 86)
@@ -1626,22 +1643,21 @@ private struct PermissionNotice: View {
 }
 
 private struct DetailFileIcon: View {
-    let kind: String
+    let item: CareScanDetailItem
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(AppTheme.Care.actionGradient)
-                .opacity(0.92)
-
-            Image(systemName: symbolName)
-                .font(.system(size: 22, weight: .bold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(AppTheme.Colors.textPrimary)
-        }
+        FileSystemIconView(
+            item: item,
+            fallbackSymbolName: symbolName,
+            fallbackColor: AppTheme.Colors.inverseText
+        )
     }
 
     private var symbolName: String {
+        Self.symbolName(for: item.kind)
+    }
+
+    static func symbolName(for kind: String) -> String {
         switch kind {
         case "Browser Cache":
             "globe"
@@ -1655,10 +1671,14 @@ private struct DetailFileIcon: View {
             "clock.badge.exclamationmark"
         case "Developer Cache", "Package Cache":
             "hammer.fill"
-        case "Launch Agent", "Launch Daemon", "Startup Item":
+        case "Launch Agent", "Launch Daemon", "Startup Item", "Login Item", "Background Item":
             "bolt.fill"
         case "Application":
             "sparkles"
+        case "Privacy Trace":
+            "hand.raised.fill"
+        case "Installer Leftover":
+            "shield.lefthalf.filled"
         case "Duplicate Candidate":
             "doc.on.doc.fill"
         case "Large File":
@@ -1669,17 +1689,90 @@ private struct DetailFileIcon: View {
     }
 }
 
+private struct FileSystemIconView: View {
+    let item: CareScanDetailItem?
+    let fallbackSymbolName: String
+    let fallbackColor: AnyShapeStyle
+    var backgroundOpacity: Double = 0.92
+    var cornerRadius: CGFloat = 7
+
+    init<S: ShapeStyle>(
+        item: CareScanDetailItem?,
+        fallbackSymbolName: String,
+        fallbackColor: S,
+        backgroundOpacity: Double = 0.92,
+        cornerRadius: CGFloat = 7
+    ) {
+        self.item = item
+        self.fallbackSymbolName = fallbackSymbolName
+        self.fallbackColor = AnyShapeStyle(fallbackColor)
+        self.backgroundOpacity = backgroundOpacity
+        self.cornerRadius = cornerRadius
+    }
+
+    var body: some View {
+        ZStack {
+            if backgroundOpacity > 0 {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(AppTheme.Care.actionGradient)
+                    .opacity(backgroundOpacity)
+            }
+
+            if let icon {
+                Image(nsImage: icon)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(backgroundOpacity > 0 ? 7 : 0)
+            } else {
+                Image(systemName: fallbackSymbolName)
+                    .font(.system(size: backgroundOpacity > 0 ? 22 : 62, weight: .bold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(fallbackColor)
+            }
+        }
+    }
+
+    private var icon: NSImage? {
+        guard let item else { return nil }
+        return FileIconResolver.icon(for: item)
+    }
+}
+
+private enum FileIconResolver {
+    static func icon(for item: CareScanDetailItem) -> NSImage? {
+        if item.path.hasPrefix("/") {
+            if FileManager.default.fileExists(atPath: item.path) {
+                return NSWorkspace.shared.icon(forFile: item.path)
+            }
+
+            let fileExtension = URL(fileURLWithPath: item.path).pathExtension
+            if let contentType = UTType(filenameExtension: fileExtension) {
+                return NSWorkspace.shared.icon(for: contentType)
+            }
+        }
+
+        if item.kind == "Application",
+           let bundleURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: item.path) {
+            return NSWorkspace.shared.icon(forFile: bundleURL.path)
+        }
+
+        return nil
+    }
+}
+
 private extension CareLogCategory {
     var detailTitle: String {
         switch self {
-        case .junkCleaner:
-            "Junk Cleaner"
-        case .boost:
-            "Boost Manager"
-        case .appManager:
-            "App Manager"
-        case .clutter:
-            "Clutter Manager"
+        case .cleanup:
+            "Cleanup"
+        case .protection:
+            "Protection"
+        case .performance:
+            "Performance Manager"
+        case .applications:
+            "Applications"
+        case .myClutter:
+            "My Clutter Manager"
         case .all:
             "After Cleaning Result Logs"
         }
@@ -1687,13 +1780,15 @@ private extension CareLogCategory {
 
     var detailSubtitle: String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             "Browser junk, app caches, logs, temporary files, and developer cache files found on this Mac."
-        case .boost:
+        case .protection:
+            "Privacy traces and downloaded installer leftovers ready for review."
+        case .performance:
             "Startup helpers that can affect login and background performance."
-        case .appManager:
+        case .applications:
             "Installed apps scanned for inventory and update review."
-        case .clutter:
+        case .myClutter:
             "Large files, downloads, and duplicate candidates found during scan."
         case .all:
             "Complete scan and cleaning results grouped by component."
@@ -1702,28 +1797,32 @@ private extension CareLogCategory {
 
     var detailSections: [String] {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             ["Browser Caches", "Application Caches", "System Caches", "Logs", "Temporary Files", "Developer Junk", "Permissions"]
-        case .boost:
+        case .protection:
+            ["Privacy Traces", "Downloaded Installers", "Protection Review"]
+        case .performance:
             ["Login Items", "Launch Agents", "Launch Daemons", "Background Helpers"]
-        case .appManager:
+        case .applications:
             ["Applications", "Update Candidates", "Recently Modified", "Inventory"]
-        case .clutter:
+        case .myClutter:
             ["Large & Old Files", "Duplicates", "Downloads", "Similar Names"]
         case .all:
-            ["Junk Cleaner", "Boost", "App Manager", "Clutter"]
+            ["Cleanup", "Protection", "Performance", "Applications", "My Clutter"]
         }
     }
 
     var previewSymbol: String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             "face.smiling.inverse"
-        case .boost:
+        case .protection:
+            "shield.lefthalf.filled"
+        case .performance:
             "bolt.fill"
-        case .appManager:
-            "sparkles"
-        case .clutter:
+        case .applications:
+            "shippingbox.fill"
+        case .myClutter:
             "folder.fill"
         case .all:
             "checkmark.circle.fill"

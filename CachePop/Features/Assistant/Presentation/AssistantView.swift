@@ -298,6 +298,7 @@ private struct AssistantTipCard: View {
                                                     .stroke(.white.opacity(0.1), lineWidth: 1)
                                             }
                                     }
+                                    .raisedButtonChrome(cornerRadius: 8)
                             }
                         }
                     }

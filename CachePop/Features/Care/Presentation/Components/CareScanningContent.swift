@@ -14,7 +14,7 @@ struct CareScanningContent: View {
             let activeSection = ActiveScanSection(progress: scanProgress)
             let topActive = ActiveScanSection.topSections.contains(activeSection)
             let bottomActive = ActiveScanSection.bottomSections.contains(activeSection)
-            let topRowHeight = (topActive ? 268 : 172) * scale
+            let topRowHeight = (topActive ? 252 : 156) * scale
             let bottomRowHeight = (bottomActive ? 268 : 172) * scale
 
             VStack(spacing: 0) {
@@ -73,8 +73,9 @@ struct CareScanningContent: View {
     ) -> some View {
         let hasActiveSection = sections.contains(activeSection)
         let compactWidth = min(236 * scale, contentWidth * 0.32)
-        let activeWidth = contentWidth - compactWidth - 16
-        let regularWidth = (contentWidth - 16) / 2
+        let totalSpacing = CGFloat(max(sections.count - 1, 0)) * 16
+        let activeWidth = max(contentWidth * 0.42, contentWidth - (compactWidth * CGFloat(max(sections.count - 1, 0))) - totalSpacing)
+        let regularWidth = (contentWidth - totalSpacing) / CGFloat(max(sections.count, 1))
 
         return HStack(spacing: 16) {
             ForEach(sections) { section in
@@ -96,92 +97,105 @@ struct CareScanningContent: View {
 }
 
 private enum ActiveScanSection: String, CaseIterable, Identifiable {
-    case junkCleaner
-    case boost
-    case appManager
-    case clutter
+    case cleanup
+    case protection
+    case performance
+    case applications
+    case myClutter
 
     var id: String { rawValue }
 
-    static let topSections: [ActiveScanSection] = [.junkCleaner, .boost]
-    static let bottomSections: [ActiveScanSection] = [.appManager, .clutter]
+    static let topSections: [ActiveScanSection] = [.cleanup, .protection, .performance]
+    static let bottomSections: [ActiveScanSection] = [.applications, .myClutter]
 
     init(progress: Double) {
         switch progress {
         case 0..<0.42:
-            self = .junkCleaner
-        case 0.42..<0.60:
-            self = .boost
-        case 0.60..<0.78:
-            self = .appManager
+            self = .cleanup
+        case 0.42..<0.58:
+            self = .protection
+        case 0.58..<0.73:
+            self = .performance
+        case 0.73..<0.87:
+            self = .applications
         default:
-            self = .clutter
+            self = .myClutter
         }
     }
 
     var title: String {
         switch self {
-        case .junkCleaner:
-            "Junk Cleaner"
-        case .boost:
-            "Boost"
-        case .appManager:
-            "App Manager"
-        case .clutter:
-            "Clutter"
+        case .cleanup:
+            "Cleanup"
+        case .protection:
+            "Protection"
+        case .performance:
+            "Performance"
+        case .applications:
+            "Applications"
+        case .myClutter:
+            "My Clutter"
         }
     }
 
     var symbolName: String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             "face.smiling.inverse"
-        case .boost:
+        case .protection:
+            "shield.lefthalf.filled"
+        case .performance:
             "bolt.fill"
-        case .appManager:
-            "sparkles"
-        case .clutter:
+        case .applications:
+            "shippingbox.fill"
+        case .myClutter:
             "folder.fill"
         }
     }
 
     var logCategory: CareLogCategory {
         switch self {
-        case .junkCleaner:
-            .junkCleaner
-        case .boost:
-            .boost
-        case .appManager:
-            .appManager
-        case .clutter:
-            .clutter
+        case .cleanup:
+            .cleanup
+        case .protection:
+            .protection
+        case .performance:
+            .performance
+        case .applications:
+            .applications
+        case .myClutter:
+            .myClutter
         }
     }
 
     var headline: String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             "Scanning junk"
-        case .boost:
-            "Scanning startups"
-        case .appManager:
-            "Checking app updates"
-        case .clutter:
+        case .protection:
+            "Checking protection"
+        case .performance:
+            "Scanning performance"
+        case .applications:
+            "Checking applications"
+        case .myClutter:
             "Scanning large files & duplicates"
         }
     }
 
     func detail(progress: Double) -> String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             sectionProgress(overallProgress: progress) < 0.5
                 ? "Scanning browser junk caches."
                 : "Scanning app, log, temp, developer, and package junk."
-        case .boost:
+        case .protection:
+            "Checking privacy traces and downloaded installer leftovers."
+        case .performance:
             "Scanning login items, launch agents, and background helpers."
-        case .appManager:
-            "Checking installed apps for update candidates."
-        case .clutter:
+        case .applications:
+            "Checking installed applications."
+        case .myClutter:
             "Scanning large files and duplicate candidates."
         }
     }
@@ -190,13 +204,15 @@ private enum ActiveScanSection: String, CaseIterable, Identifiable {
         let progress = max(0, min(progress, 1))
 
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             return progress < 1 ? "Scanning..." : "Junk scan"
-        case .boost:
+        case .protection:
+            return progress < 1 ? "Checking..." : "Review"
+        case .performance:
             return progress < 1 ? "Scanning..." : "Startups"
-        case .appManager:
+        case .applications:
             return progress < 1 ? "Checking..." : "Apps"
-        case .clutter:
+        case .myClutter:
             return progress < 1 ? "Scanning..." : "Files"
         }
     }
@@ -207,26 +223,30 @@ private enum ActiveScanSection: String, CaseIterable, Identifiable {
         }
 
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             return progress < 0.5 ? "Browser junk" : "Deep system junk"
-        case .boost:
+        case .protection:
+            return "Privacy & installers"
+        case .performance:
             return "Startup items"
-        case .appManager:
-            return "Application updates"
-        case .clutter:
+        case .applications:
+            return "Installed apps"
+        case .myClutter:
             return "Large files & duplicates"
         }
     }
 
     var passiveStatus: String {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             "Junk"
-        case .boost:
+        case .protection:
+            "Safety"
+        case .performance:
             "Startups"
-        case .appManager:
-            "App updates"
-        case .clutter:
+        case .applications:
+            "Apps"
+        case .myClutter:
             "Files & duplicates"
         }
     }
@@ -242,14 +262,16 @@ private enum ActiveScanSection: String, CaseIterable, Identifiable {
 
     private var progressRange: Range<Double> {
         switch self {
-        case .junkCleaner:
+        case .cleanup:
             0..<0.42
-        case .boost:
-            0.42..<0.60
-        case .appManager:
-            0.60..<0.78
-        case .clutter:
-            0.78..<1.01
+        case .protection:
+            0.42..<0.58
+        case .performance:
+            0.58..<0.73
+        case .applications:
+            0.73..<0.87
+        case .myClutter:
+            0.87..<1.01
         }
     }
 }
@@ -265,15 +287,7 @@ private struct ScanningTaskCard: View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: 0x8EA8FF).opacity(isActive ? 0.98 : 0.72),
-                            Color(hex: 0x92A7FF).opacity(isActive ? 0.92 : 0.62),
-                            Color(hex: 0x4C5FD4).opacity(isActive ? 0.96 : 0.76)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    AppTheme.Care.actionGradient
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -290,7 +304,7 @@ private struct ScanningTaskCard: View {
                     symbolName: section.symbolName,
                     backgroundColors: [],
                     badgeColors: [Color(hex: 0x9AB0FF), Color(hex: 0x3630B8)],
-                    badgeRotation: section == .boost || section == .clutter ? 8 : -8,
+                    badgeRotation: section == .performance || section == .myClutter ? 8 : -8,
                     isWide: true
                 )
             )
@@ -337,13 +351,15 @@ private struct ScanningTaskCard: View {
     private var value: String {
         if isActive {
             switch section {
-            case .junkCleaner:
+            case .cleanup:
                 return snapshot.cacheItems > 0 ? snapshot.formattedCacheSize : "Scanning..."
-            case .boost:
+            case .protection:
+                return snapshot.protectionItems > 0 ? snapshot.protectionSummary : "Checking..."
+            case .performance:
                 return snapshot.startupItems > 0 ? snapshot.startupSummary : "Scanning..."
-            case .appManager:
+            case .applications:
                 return snapshot.appsChecked > 0 ? snapshot.appSummary : "Checking..."
-            case .clutter:
+            case .myClutter:
                 return snapshot.largeFiles + snapshot.duplicateFiles > 0 ? snapshot.clutterSummary : "Scanning..."
             }
         }
@@ -353,13 +369,15 @@ private struct ScanningTaskCard: View {
         }
 
         switch section {
-        case .junkCleaner:
+        case .cleanup:
             return snapshot.formattedCacheSize
-        case .boost:
+        case .protection:
+            return snapshot.protectionSummary
+        case .performance:
             return snapshot.startupSummary
-        case .appManager:
+        case .applications:
             return snapshot.appSummary
-        case .clutter:
+        case .myClutter:
             return snapshot.clutterSummary
         }
     }
@@ -372,7 +390,7 @@ private struct ScanningTopBar: View {
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
@@ -381,6 +399,7 @@ private struct ScanningTopBar: View {
                         .fill(AppTheme.Care.actionGradient)
                         .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
                 }
+                .raisedButtonChrome(cornerRadius: 21)
         }
         .frame(height: 48)
         .padding(.top, 28)
@@ -513,15 +532,7 @@ private struct ScanningPreviewCard: View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: 0x8EA8FF).opacity(0.92),
-                            Color(hex: 0x9FB0FF).opacity(0.86),
-                            Color(hex: 0x5364D8).opacity(0.94)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    AppTheme.Care.actionGradient
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -580,15 +591,7 @@ private struct ScanningWidePreviewCard: View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: 0x8EA8FF).opacity(0.9),
-                            Color(hex: 0xA7B7FF).opacity(0.82),
-                            Color(hex: 0x586ADC).opacity(0.92)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                    AppTheme.Care.actionGradient
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
@@ -653,9 +656,10 @@ private struct StopScanButton: View {
 
                 Text("Stop")
                     .font(.system(size: 19, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .contentShape(Circle())
+            .raisedCircleButtonChrome()
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Stop scan")

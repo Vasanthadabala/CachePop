@@ -327,6 +327,7 @@ private struct PerformanceReadyContent: View {
                                         .stroke(.white.opacity(0.2), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 11)
                         .padding(.top, 26 * scale)
 
                     Spacer()
@@ -380,7 +381,7 @@ private struct PerformanceResultCard: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.white.opacity(0.11))
+                .fill(AppTheme.Care.actionGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(.white.opacity(0.12), lineWidth: 1.2)
@@ -403,7 +404,7 @@ private struct PerformanceResultCard: View {
                 Image(systemName: symbolName)
                     .font(.system(size: 24, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.9))
             }
             .frame(width: 54, height: 58)
             .padding(.top, 22)
@@ -412,14 +413,14 @@ private struct PerformanceResultCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .lineLimit(isWide ? 1 : 2)
                     .minimumScaleFactor(0.72)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.66))
+                        .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.72))
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
                         .padding(.top, 14)
@@ -432,7 +433,7 @@ private struct PerformanceResultCard: View {
 
                     Button("Review", action: action)
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .buttonStyle(.plain)
                         .frame(width: 78, height: 36)
                         .background {
@@ -443,6 +444,7 @@ private struct PerformanceResultCard: View {
                                         .stroke(.white.opacity(0.15), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 8)
                 }
             }
             .padding(24)
@@ -458,15 +460,16 @@ private struct PerformanceUnlockButton: View {
     var body: some View {
         Button("Unlock Full Version") {}
             .font(.system(size: 15 * scale, weight: .bold, design: .rounded))
-            .foregroundStyle(.black.opacity(0.9))
+            .foregroundStyle(AppTheme.Colors.inverseText)
             .buttonStyle(.plain)
             .padding(.horizontal, 22 * scale)
             .frame(height: 42 * scale)
             .background {
                 Capsule(style: .continuous)
-                    .fill(Color(hex: 0xFFE16A))
-                    .shadow(color: Color(hex: 0xFFE16A).opacity(0.18), radius: 12, y: 5)
+                    .fill(AppTheme.Care.actionGradient)
+                    .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
             }
+            .raisedButtonChrome(cornerRadius: 21 * scale)
             .padding(.top, 28)
             .padding(.trailing, 28)
     }
@@ -482,21 +485,13 @@ private struct PerformanceCircleButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: 0x8EA8FF).opacity(0.2))
+                    .fill(Color.clear)
                     .blur(radius: 18)
                     .scaleEffect(1.18)
 
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0x8EA8FF),
-                                Color(hex: 0x5E70DF),
-                                Color(hex: 0x3420A8)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        AppTheme.Care.actionGradient
                     )
                     .overlay {
                         Circle()
@@ -514,9 +509,10 @@ private struct PerformanceCircleButton: View {
 
                 Text(title)
                     .font(.system(size: 18 * scale, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .contentShape(Circle())
+            .raisedCircleButtonChrome()
         }
         .buttonStyle(.plain)
     }
@@ -643,6 +639,7 @@ private struct PerformanceCompletePanel: View {
                                         .stroke(.white.opacity(0.13), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 12)
 
                     Button(action: onDone) {
                         Text("Done")
@@ -665,6 +662,7 @@ private struct PerformanceCompletePanel: View {
                             }
                     }
                     .buttonStyle(.plain)
+                    .raisedButtonChrome(cornerRadius: 12)
                 }
                 .padding(.trailing, 22)
                 .padding(.bottom, 28)

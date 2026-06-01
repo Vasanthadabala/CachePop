@@ -36,7 +36,7 @@ struct CareReadyToRunContent: View {
                             )
                         }
                     }
-                    .frame(height: 220 * scale)
+                    .frame(height: 210 * scale)
 
                     HStack(spacing: 16 * scale) {
                         ForEach(bottomResults) { result in
@@ -57,7 +57,7 @@ struct CareReadyToRunContent: View {
             .overlay(alignment: .bottom) {
                 ReadyRunButton(pulse: pulse, action: onRun)
                     .frame(width: 108 * scale, height: 108 * scale)
-                    .padding(.bottom, 0)
+                    .padding(.bottom, 28 * scale)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -87,7 +87,7 @@ private struct ReadyTopBar: View {
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
@@ -96,6 +96,7 @@ private struct ReadyTopBar: View {
                         .fill(AppTheme.Care.actionGradient)
                         .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
                 }
+                .raisedButtonChrome(cornerRadius: 21)
         }
         .frame(height: 48)
         .padding(.top, 28)
@@ -152,7 +153,7 @@ private struct ReadyTaskCard: View {
                     if result.isSelected {
                         Image(systemName: "checkmark")
                             .font(.system(size: 18 * scale, weight: .black))
-                            .foregroundStyle(AppTheme.Colors.textPrimary)
+                            .foregroundStyle(AppTheme.Colors.inverseText)
                             .frame(width: 28 * scale, height: 28 * scale)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -192,7 +193,7 @@ private struct ReadyTaskCard: View {
                             onReview(result.category)
                         }
                             .font(.system(size: 15 * scale, weight: .bold, design: .rounded))
-                            .foregroundStyle(AppTheme.Colors.textPrimary)
+                            .foregroundStyle(AppTheme.Colors.inverseText)
                             .buttonStyle(.plain)
                             .padding(.horizontal, 18 * scale)
                             .frame(height: 34 * scale)
@@ -204,6 +205,7 @@ private struct ReadyTaskCard: View {
                                             .stroke(.white.opacity(0.26), lineWidth: 1)
                                     }
                             }
+                            .raisedButtonChrome(cornerRadius: 8)
                     }
                     .padding(.top, -26 * scale)
                 }
@@ -216,13 +218,15 @@ private struct ReadyTaskCard: View {
 
     private var value: String {
         switch result.category {
-        case .junkCleaner:
+        case .cleanup:
             snapshot.formattedCacheSize
-        case .boost:
+        case .protection:
+            snapshot.protectionSummary
+        case .performance:
             snapshot.startupSummary
-        case .appManager:
+        case .applications:
             snapshot.appSummary
-        case .clutter:
+        case .myClutter:
             snapshot.clutterSummary
         case .all:
             result.value
@@ -231,13 +235,15 @@ private struct ReadyTaskCard: View {
 
     private var status: String {
         switch result.category {
-        case .junkCleaner:
+        case .cleanup:
             "to clean"
-        case .boost:
+        case .protection:
             "to review"
-        case .appManager:
+        case .performance:
+            "to review"
+        case .applications:
             "checked"
-        case .clutter:
+        case .myClutter:
             "to remove"
         case .all:
             result.status
@@ -269,9 +275,10 @@ private struct ReadyRunButton: View {
 
                 Text("Run")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .contentShape(Circle())
+            .raisedCircleButtonChrome()
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Run ready tasks")

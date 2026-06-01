@@ -184,10 +184,22 @@ struct CareView: View {
             snapshot.cacheDetails.append(contentsOf: trashResult.details)
             snapshot.permissionMessages.append(contentsOf: trashResult.permissions)
             updateScan(progress: 0.38, snapshot: snapshot.withDetail("Finished browser and app junk scan."))
-            try? await Task.sleep(for: .milliseconds(420))
+            try? await Task.sleep(for: .milliseconds(260))
             if Task.isCancelled { return }
 
-            updateScan(progress: 0.46, snapshot: snapshot.withDetail("Scanning startup items and background helpers."))
+            updateScan(progress: 0.44, snapshot: snapshot.withDetail("Checking privacy traces and downloaded installer leftovers."))
+            let protectionResult = await Task.detached(priority: .userInitiated) {
+                CareSystemScanner.scanProtectionItems()
+            }.value
+            if Task.isCancelled { return }
+            snapshot.protectionItems = protectionResult.count
+            snapshot.protectionDetails = protectionResult.details
+            snapshot.permissionMessages.append(contentsOf: protectionResult.permissions)
+            updateScan(progress: 0.55, snapshot: snapshot.withDetail("Finished protection checks."))
+            try? await Task.sleep(for: .milliseconds(160))
+            if Task.isCancelled { return }
+
+            updateScan(progress: 0.61, snapshot: snapshot.withDetail("Scanning startup items and background helpers."))
             let startupResult = await Task.detached(priority: .userInitiated) {
                 CareSystemScanner.scanStartupItems()
             }.value
@@ -195,11 +207,11 @@ struct CareView: View {
             snapshot.startupItems = startupResult.count
             snapshot.startupDetails = startupResult.details
             snapshot.permissionMessages.append(contentsOf: startupResult.permissions)
-            updateScan(progress: 0.57, snapshot: snapshot.withDetail("Finished startup scan."))
+            updateScan(progress: 0.70, snapshot: snapshot.withDetail("Finished performance scan."))
             try? await Task.sleep(for: .milliseconds(160))
             if Task.isCancelled { return }
 
-            updateScan(progress: 0.64, snapshot: snapshot.withDetail("Checking installed applications for updates."))
+            updateScan(progress: 0.76, snapshot: snapshot.withDetail("Checking installed applications."))
             let appResult = await Task.detached(priority: .userInitiated) {
                 CareSystemScanner.scanApplications()
             }.value
@@ -207,11 +219,11 @@ struct CareView: View {
             snapshot.appsChecked = appResult.count
             snapshot.appDetails = appResult.details
             snapshot.permissionMessages.append(contentsOf: appResult.permissions)
-            updateScan(progress: 0.75, snapshot: snapshot.withDetail("Finished app update scan."))
+            updateScan(progress: 0.84, snapshot: snapshot.withDetail("Finished applications scan."))
             try? await Task.sleep(for: .milliseconds(160))
             if Task.isCancelled { return }
 
-            updateScan(progress: 0.82, snapshot: snapshot.withDetail("Scanning large files and duplicate candidates."))
+            updateScan(progress: 0.89, snapshot: snapshot.withDetail("Scanning large files and duplicate candidates."))
             let clutterResult = await Task.detached(priority: .userInitiated) {
                 CareSystemScanner.scanClutter()
             }.value
@@ -241,10 +253,11 @@ struct CareView: View {
 
         scanTask = Task {
             let steps: [(Double, String)] = [
-                (0.18, "Cleaning browser and application cache selections..."),
-                (0.42, "Applying startup item review decisions..."),
-                (0.64, "Finalizing application update checks..."),
-                (0.86, "Processing large and duplicate file selections..."),
+                (0.16, "Cleaning browser and application cache selections..."),
+                (0.34, "Applying protection review selections..."),
+                (0.52, "Applying startup item review decisions..."),
+                (0.70, "Finalizing application inventory checks..."),
+                (0.88, "Processing large and duplicate file selections..."),
                 (1.0, "Writing after-cleaning result logs...")
             ]
 
@@ -372,6 +385,42 @@ enum CareSystemScanner {
         ]
 
         return scanCacheRoots(cacheRoots)
+    }
+
+    nonisolated static func scanProtectionItems() -> (count: Int, details: [CareScanDetailItem], permissions: [String]) {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let browserPrivacyRoots = [
+            CacheRoot(url: home.appendingPathComponent("Library/Safari"), kind: "Privacy Trace", label: "Safari Privacy"),
+            CacheRoot(url: home.appendingPathComponent("Library/Application Support/Google/Chrome"), kind: "Privacy Trace", label: "Chrome Privacy", limit: 3_500),
+            CacheRoot(url: home.appendingPathComponent("Library/Application Support/Microsoft Edge"), kind: "Privacy Trace", label: "Edge Privacy", limit: 3_500),
+            CacheRoot(url: home.appendingPathComponent("Library/Application Support/Firefox/Profiles"), kind: "Privacy Trace", label: "Firefox Privacy", limit: 3_500),
+            CacheRoot(url: home.appendingPathComponent("Library/Application Support/BraveSoftware/Brave-Browser"), kind: "Privacy Trace", label: "Brave Privacy", limit: 3_500),
+            CacheRoot(url: home.appendingPathComponent("Library/Application Support/Arc"), kind: "Privacy Trace", label: "Arc Privacy", limit: 3_500)
+        ]
+
+        var details: [CareScanDetailItem] = []
+        var permissions: [String] = []
+
+        for root in browserPrivacyRoots {
+            let partial = privacyTraceDetails(at: root)
+            details.append(contentsOf: partial.details)
+            permissions.append(contentsOf: partial.permissions)
+        }
+
+        let installers = downloadedInstallerDetails(in: home.appendingPathComponent("Downloads"))
+        details.append(contentsOf: installers.details)
+        permissions.append(contentsOf: installers.permissions)
+
+        let uniqueDetails = uniqueProtectionItems(details)
+            .sorted { $0.sizeBytes > $1.sizeBytes }
+            .prefix(120)
+            .map { $0 }
+
+        return (
+            count: uniqueDetails.count,
+            details: uniqueDetails,
+            permissions: uniquePermissions(permissions)
+        )
     }
 
     nonisolated static func scanTrashItems() -> (bytes: Int64, items: Int, details: [CareScanDetailItem], permissions: [String]) {
@@ -793,6 +842,101 @@ enum CareSystemScanner {
         return (details, [])
     }
 
+    nonisolated private static func privacyTraceDetails(at root: CacheRoot) -> (details: [CareScanDetailItem], permissions: [String]) {
+        guard FileManager.default.fileExists(atPath: root.url.path) else {
+            return ([], [])
+        }
+
+        let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey]
+        guard let enumerator = FileManager.default.enumerator(
+            at: root.url,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
+            errorHandler: { blockedURL, _ in
+                return !blockedURL.path.lowercased().contains("/library/")
+            }
+        ) else {
+            return (
+                [],
+                ["CachePop could not open \(abbreviatedPath(root.url.path)). Grant Full Disk Access to include privacy traces."]
+            )
+        }
+
+        var details: [CareScanDetailItem] = []
+        var scannedFiles = 0
+
+        for case let fileURL as URL in enumerator {
+            guard scannedFiles < root.limit, details.count < 80 else { break }
+            scannedFiles += 1
+
+            guard isPrivacyTraceFile(fileURL),
+                  let values = try? fileURL.resourceValues(forKeys: Set(keys)),
+                  values.isRegularFile == true else {
+                continue
+            }
+
+            details.append(detailItem(
+                title: fileURL.lastPathComponent,
+                subtitle: root.label,
+                path: fileURL.path,
+                size: Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0),
+                kind: root.kind,
+                modified: values.contentModificationDate
+            ))
+        }
+
+        return (details, [])
+    }
+
+    nonisolated private static func downloadedInstallerDetails(in downloadsURL: URL) -> (details: [CareScanDetailItem], permissions: [String]) {
+        guard FileManager.default.fileExists(atPath: downloadsURL.path) else {
+            return ([], [])
+        }
+
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: downloadsURL,
+            includingPropertiesForKeys: [.isRegularFileKey, .fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return (
+                [],
+                ["CachePop could not read \(abbreviatedPath(downloadsURL.path)). Grant Full Disk Access to include downloaded installers."]
+            )
+        }
+
+        let installerExtensions: Set<String> = ["dmg", "pkg", "mpkg", "appinstaller", "installer"]
+        let details = contents
+            .filter { installerExtensions.contains($0.pathExtension.lowercased()) }
+            .prefix(80)
+            .compactMap { url -> CareScanDetailItem? in
+                let values = try? url.resourceValues(forKeys: [.fileSizeKey, .totalFileAllocatedSizeKey, .contentModificationDateKey])
+                return detailItem(
+                    title: url.lastPathComponent,
+                    subtitle: "Downloaded Installers",
+                    path: url.path,
+                    size: Int64(values?.totalFileAllocatedSize ?? values?.fileSize ?? 0),
+                    kind: "Installer Leftover",
+                    modified: values?.contentModificationDate
+                )
+            }
+
+        return (details, [])
+    }
+
+    nonisolated private static func isPrivacyTraceFile(_ url: URL) -> Bool {
+        let name = url.lastPathComponent.lowercased()
+        let privacyNames: Set<String> = [
+            "history", "history.db", "history.sqlite", "cookies", "cookies.binarycookies",
+            "cookies.sqlite", "web data", "favicons", "top sites", "last session",
+            "current session", "places.sqlite", "formhistory.sqlite", "downloads.sqlite"
+        ]
+
+        return privacyNames.contains(name)
+            || name.hasSuffix("history.db")
+            || name.hasSuffix("cookies.sqlite")
+            || name.contains("session")
+    }
+
     nonisolated private static func runningThirdPartyBackgroundItems() -> [CareScanDetailItem] {
         let workspace = NSWorkspace.shared
         return workspace.runningApplications
@@ -847,6 +991,13 @@ enum CareSystemScanner {
         return items.filter { item in
             let key = "\(item.kind)-\(item.title.lowercased())-\(item.path.lowercased())"
             return seen.insert(key).inserted
+        }
+    }
+
+    nonisolated private static func uniqueProtectionItems(_ items: [CareScanDetailItem]) -> [CareScanDetailItem] {
+        var seen = Set<String>()
+        return items.filter { item in
+            seen.insert(item.path.lowercased()).inserted
         }
     }
 
@@ -1103,7 +1254,7 @@ private struct SidebarButton: View {
                     Image(systemName: item.symbolName)
                         .font(.system(size: 22, weight: .semibold))
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .frame(width: 42, height: 42)
                 } else {
                     Image(systemName: item.symbolName)
@@ -1115,7 +1266,7 @@ private struct SidebarButton: View {
 
                 Text(item.title)
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .foregroundStyle(isSelected ? AppTheme.Colors.textPrimary : AppTheme.Colors.textPrimary.opacity(0.78))
+                    .foregroundStyle(isSelected ? AppTheme.Colors.inverseText : AppTheme.Colors.textPrimary.opacity(0.78))
                     .lineLimit(1)
                     .minimumScaleFactor(0.82)
 
@@ -1162,13 +1313,13 @@ enum CareSidebarItem: String, CaseIterable, Identifiable {
         case .smartCare:
             "Care"
         case .cleanup:
-            "Junk Cleaner"
+            "Cleanup"
         case .performance:
-            "Boost"
+            "Performance"
         case .applications:
-            "App Manager"
+            "Applications"
         case .myClutter:
-            "Clutter"
+            "My Clutter"
         case .assistant:
             "Assistant"
         }

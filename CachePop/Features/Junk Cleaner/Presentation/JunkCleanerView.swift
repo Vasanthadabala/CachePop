@@ -330,6 +330,7 @@ private struct CleanupFoundContent: View {
                                         .stroke(.white.opacity(0.18), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 11)
                         .padding(.top, 26 * scale)
                         .opacity(hasFindings ? 1 : 0.55)
                         .disabled(!hasFindings)
@@ -456,7 +457,7 @@ private struct CleanupJunkCard: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(hex: 0x6E8B55).opacity(0.72))
+                .fill(AppTheme.Care.actionGradient)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(.white.opacity(0.12), lineWidth: 1.2)
@@ -465,18 +466,14 @@ private struct CleanupJunkCard: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(
-                        LinearGradient(
-                            colors: [Color(hex: 0x98E868), Color(hex: 0x2D8B31)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        AppTheme.Care.actionGradient
                     )
                     .frame(width: 52, height: 52)
 
                 Image(systemName: symbolName)
                     .font(.system(size: 29, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
+                    .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.95))
             }
             .padding(.top, 22)
             .padding(.trailing, 22)
@@ -484,7 +481,7 @@ private struct CleanupJunkCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
                     .lineLimit(isWide ? 1 : 2)
                     .minimumScaleFactor(0.72)
                     .padding(.bottom, subtitle == nil ? 0 : 14)
@@ -492,7 +489,7 @@ private struct CleanupJunkCard: View {
                 if let subtitle {
                     Text(subtitle)
                         .font(.system(size: 17, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
+                        .foregroundStyle(AppTheme.Colors.inverseText.opacity(0.72))
                         .lineLimit(2)
                         .minimumScaleFactor(0.75)
                 }
@@ -504,7 +501,7 @@ private struct CleanupJunkCard: View {
 
                     Button("Review") {}
                         .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .foregroundStyle(AppTheme.Colors.inverseText)
                         .buttonStyle(.plain)
                         .frame(width: 78, height: 36)
                         .background {
@@ -515,17 +512,19 @@ private struct CleanupJunkCard: View {
                                         .stroke(.white.opacity(0.15), lineWidth: 1)
                                 }
                         }
+                        .raisedButtonChrome(cornerRadius: 8)
 
                     if let onClean {
                         Button("Clean", action: onClean)
                             .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color(hex: 0x143214))
+                            .foregroundStyle(AppTheme.Colors.inverseText)
                             .buttonStyle(.plain)
                             .frame(width: 74, height: 36)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(.white.opacity(0.92))
+                                    .fill(.white.opacity(0.16))
                             }
+                            .raisedButtonChrome(cornerRadius: 8)
                     }
                 }
             }
@@ -561,15 +560,16 @@ private struct CleanupTopBar: View {
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.black.opacity(0.9))
+                .foregroundStyle(AppTheme.Colors.inverseText)
                 .buttonStyle(.plain)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(Color(hex: 0xFFE16A))
-                        .shadow(color: Color(hex: 0xFFE16A).opacity(0.18), radius: 12, y: 5)
+                        .fill(AppTheme.Care.actionGradient)
+                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
                 }
+                .raisedButtonChrome(cornerRadius: 21)
         }
         .frame(height: 48)
         .padding(.top, 28)
@@ -593,33 +593,26 @@ private struct CleanupCircleButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(Color(hex: 0x8FD66F).opacity(0.24))
+                    .fill(Color.clear)
                     .blur(radius: 18)
                     .scaleEffect(1.2)
 
                 Circle()
                     .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0x7EBD63),
-                                Color(hex: 0x4F7C3B),
-                                Color(hex: 0x315F2D)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        AppTheme.Care.actionGradient
                     )
                     .overlay {
                         Circle()
                             .stroke(.white.opacity(0.78), lineWidth: 2)
                     }
-                    .shadow(color: Color(hex: 0x8FD66F).opacity(0.28), radius: 24, y: 9)
+                    .shadow(color: Color(hex: 0x7180FF).opacity(0.32), radius: 24, y: 9)
 
                 Text(title)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(AppTheme.Colors.inverseText)
             }
             .contentShape(Circle())
+            .raisedCircleButtonChrome()
         }
         .buttonStyle(.plain)
     }
@@ -725,7 +718,8 @@ private struct CleanupCompletePanel: View {
                                     )
                             }
                     }
-                .buttonStyle(.plain)
+                    .buttonStyle(.plain)
+                    .raisedButtonChrome(cornerRadius: 12)
                 .padding(.trailing, 22)
                 .padding(.bottom, 28)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)

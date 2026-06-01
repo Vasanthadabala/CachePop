@@ -45,6 +45,7 @@ struct AppManagerView: View {
                                     .stroke(.white.opacity(0.16), lineWidth: 1)
                             }
                     }
+                    .raisedButtonChrome(cornerRadius: 13)
             }
             .padding(.top, 88)
 
@@ -316,6 +317,7 @@ private struct ApplicationsActionButton: View {
                             .stroke(style == .primary ? .clear : .white.opacity(0.12), lineWidth: 1)
                     }
             }
+            .raisedButtonChrome(cornerRadius: 9)
     }
 }
 
