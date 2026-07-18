@@ -1,180 +1,191 @@
 import SwiftUI
 
 struct CareHomeContent: View {
-    let scanPhase: ScanPhase
-    let scanProgress: Double
-    let pulse: Bool
+    let snapshot: CareScanSnapshot
     let scale: CGFloat
     let onScan: () -> Void
+    let onSelectFeature: (CareSidebarItem) -> Void
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            VStack(spacing: 0) {
-                Spacer(minLength: 70)
+        ZStack(alignment: .topLeading) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 30) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(greeting)
+                            .font(.system(size: 30, weight: .light, design: .rounded))
+                            .foregroundStyle(AppTheme.Colors.textPrimary)
 
-                ComputerScanHero()
-                .frame(width: 600 * scale, height: 400 * scale)
+                        Text("Here's how your Mac is doing today.")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(AppTheme.Colors.textSecondary)
+                    }
+                    .padding(.top, 8)
 
-                VStack(spacing: 16) {
-                    Text("Welcome to CachePop")
-                        .font(.system(size: 42 * scale, weight: .light, design: .rounded))
-                        .foregroundStyle(AppTheme.Care.heading)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                    heroCard
 
-                    Text(subtitle)
-                        .font(.system(size: 17 * scale, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppTheme.Care.headingMuted)
-                        .contentTransition(.numericText())
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionLabel(text: "This Mac")
 
-                    ScanButton(
-                        scanPhase: scanPhase,
-                        progress: scanProgress,
-                        pulse: pulse,
-                        action: onScan
-                    )
-                    .frame(width: 86 * scale, height: 86 * scale)
-                    .padding(.top, 8 * scale)
+                        HStack(spacing: 14) {
+                            StatTile(accent: .cleanup, symbolName: "trash.fill", value: snapshot.formattedCacheSize, label: "Junk found")
+                            StatTile(accent: .boost, symbolName: "bolt.fill", value: "\(snapshot.startupItems)", label: "Startup items")
+                            StatTile(accent: .appManager, symbolName: "square.grid.2x2.fill", value: "\(snapshot.appsChecked)", label: "Apps checked")
+                            StatTile(accent: .clutter, symbolName: "folder.fill", value: "\(snapshot.largeFiles + snapshot.duplicateFiles)", label: "Clutter files")
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionLabel(text: "Quick Actions")
+
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
+                            FeatureShortcutCard(
+                                accent: .cleanup,
+                                title: "Junk Cleaner",
+                                subtitle: "Free up disk space",
+                                action: { onSelectFeature(.cleanup) }
+                            )
+                            FeatureShortcutCard(
+                                accent: .boost,
+                                title: "Boost",
+                                subtitle: "Speed up your Mac",
+                                action: { onSelectFeature(.performance) }
+                            )
+                            FeatureShortcutCard(
+                                accent: .appManager,
+                                title: "App Manager",
+                                subtitle: "Manage applications",
+                                action: { onSelectFeature(.applications) }
+                            )
+                            FeatureShortcutCard(
+                                accent: .clutter,
+                                title: "Clutter",
+                                subtitle: "Sort large & duplicate files",
+                                action: { onSelectFeature(.myClutter) }
+                            )
+                        }
+                    }
+
+                    Spacer(minLength: 30)
                 }
-                .padding(.top, 12)
-
-                Spacer(minLength: 74)
+                .padding(.horizontal, 34)
+                .padding(.top, 30)
+                .padding(.bottom, 40)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.inverseText)
-                .buttonStyle(.plain)
+                .foregroundStyle(Color.white)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
-                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
+                        .fill(FeatureAccent.dashboard.gradient)
                 }
                 .raisedButtonChrome(cornerRadius: 21)
-                .padding(.top, 28)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 26)
                 .padding(.trailing, 28)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-
-            Text("by Mayu Labs")
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(AppTheme.Care.headingMuted.opacity(0.72))
-                .padding(.trailing, 30)
-                .padding(.bottom, 28)
         }
     }
 
-    private var subtitle: String {
-        switch scanPhase {
-        case .idle:
-            "Start with a quick and extensive scan of your Mac."
-        case .scanning:
-            "Scanning your Mac... \(Int(scanProgress * 100))% complete."
-        case .readyToRun:
-            "Your tasks are ready to run."
-        case .cleaning:
-            "Cleaning selected tasks..."
-        case .complete:
-            "Your Mac is in great shape."
-        }
-    }
-}
+    private var heroCard: some View {
+        HStack(spacing: 30) {
+            HealthScoreRing(progress: healthProgress, status: healthStatus, lineWidth: 12)
+                .frame(width: 148, height: 148)
 
-private struct ComputerScanHero: View {
-    var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
+            VStack(alignment: .leading, spacing: 12) {
+                Text(heroTitle)
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
 
-            ZStack {
-                Ellipse()
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                Color(hex: 0x86A6FF).opacity(0.42),
-                                Color(hex: 0x1B14A0).opacity(0.26),
-                                .clear
-                            ],
-                            center: .center,
-                            startRadius: 6,
-                            endRadius: width * 0.4
-                        )
-                    )
-                    .frame(width: width * 0.68, height: height * 0.11)
-                    .blur(radius: 8)
-                    .offset(y: height * 0.34)
+                Text(heroSubtitle)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                Image("CachePop")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: width * 0.72, height: height * 0.72)
-                    .shadow(color: Color(hex: 0x6F8DFF).opacity(0.32), radius: 28, y: 16)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
-
-private struct ScanButton: View {
-    let scanPhase: ScanPhase
-    let progress: Double
-    let pulse: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(Color.clear)
-                    .scaleEffect(pulse ? 1.28 : 0.96)
-                    .opacity(scanPhase == .scanning ? 0.18 : (pulse ? 0.22 : 0.52))
-
-                Circle()
-                    .fill(
-                        AppTheme.Care.actionGradient
-                    )
-                    .overlay {
-                        Circle()
-                            .stroke(.white.opacity(0.8), lineWidth: 2)
+                Button("Run Smart Scan", action: onScan)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.white)
+                    .buttonStyle(.appInteractive)
+                    .padding(.horizontal, 20)
+                    .frame(height: 40)
+                    .background {
+                        Capsule(style: .continuous)
+                            .fill(FeatureAccent.dashboard.gradient)
                     }
-                    .shadow(color: Color(hex: 0x6F8DFF).opacity(0.52), radius: 22, y: 10)
-
-                if scanPhase == .scanning {
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            .white,
-                            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .padding(5)
-                }
-
-                VStack(spacing: 5) {
-                    Image(systemName: iconName)
-                        .font(.system(size: scanPhase == .scanning ? 17 : 21, weight: .bold))
-
-                    Text(title)
-                        .font(.system(size: scanPhase == .scanning ? 13 : 17, weight: .semibold, design: .rounded))
-                        .contentTransition(.numericText())
-                }
-                .foregroundStyle(AppTheme.Colors.inverseText)
+                    .accentGlow(.dashboard, radius: 16, y: 6)
+                    .padding(.top, 4)
             }
-            .contentShape(Circle())
-            .raisedCircleButtonChrome()
+
+            Spacer(minLength: 0)
         }
-        .buttonStyle(.plain)
-        .disabled(scanPhase == .scanning)
-        .accessibilityLabel(scanPhase == .scanning ? "Scan in progress" : "Start scan")
+        .padding(26)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.05), radius: 14, y: 5)
+        }
     }
 
-    private var iconName: String {
-        scanPhase == .scanning ? "waveform.path.ecg.magnifyingglass" : "magnifyingglass"
+    private var greeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 0..<12:
+            return "Good morning"
+        case 12..<17:
+            return "Good afternoon"
+        default:
+            return "Good evening"
+        }
     }
 
-    private var title: String {
-        scanPhase == .scanning ? "\(Int(progress * 100))%" : "Scan"
+    private var hasScannedBefore: Bool {
+        snapshot != .empty
+    }
+
+    private var healthStatus: HealthStatus {
+        guard hasScannedBefore else { return .unknown }
+        return snapshot.hasFindings ? .attention : .good
+    }
+
+    private var healthProgress: Double {
+        switch healthStatus {
+        case .unknown:
+            0
+        case .attention:
+            0.55
+        case .good:
+            1.0
+        }
+    }
+
+    private var heroTitle: String {
+        switch healthStatus {
+        case .unknown:
+            "Let's check up on your Mac"
+        case .attention:
+            "Your Mac could use some care"
+        case .good:
+            "Your Mac is in great shape"
+        }
+    }
+
+    private var heroSubtitle: String {
+        switch healthStatus {
+        case .unknown:
+            "Run a Smart Scan to check junk, protection, performance, apps, and clutter in one pass."
+        case .attention:
+            "Your last scan found things worth cleaning up. Head to Smart Care to review and apply them."
+        case .good:
+            "Nothing urgent right now — nice work keeping things tidy."
+        }
     }
 }

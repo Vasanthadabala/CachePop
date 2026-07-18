@@ -28,17 +28,17 @@ struct CareCleaningContent: View {
 
             ZStack {
                 Circle()
-                    .fill(AppTheme.Care.actionGlow)
+                    .fill(FeatureAccent.dashboard.solid.opacity(0.16))
                     .scaleEffect(pulse ? 1.24 : 0.96)
                     .blur(radius: 18)
 
                 Circle()
-                    .fill(AppTheme.Care.actionGradient)
+                    .fill(FeatureAccent.dashboard.gradient)
                     .overlay {
                         Circle()
                             .stroke(.white.opacity(0.82), lineWidth: 2)
                     }
-                    .shadow(color: AppTheme.Care.actionShadow, radius: 24, y: 10)
+                    .accentGlow(.dashboard, radius: 24, y: 10)
 
                 Circle()
                     .trim(from: 0, to: progress)
@@ -60,11 +60,11 @@ struct CareCleaningContent: View {
             .raisedCircleButtonChrome()
 
             VStack(spacing: 12) {
-                CleaningSummaryRow(title: "Cleanup", value: snapshot.formattedCacheSize)
-                CleaningSummaryRow(title: "Protection", value: snapshot.protectionSummary)
-                CleaningSummaryRow(title: "Performance", value: snapshot.startupSummary)
-                CleaningSummaryRow(title: "Applications", value: snapshot.appSummary)
-                CleaningSummaryRow(title: "My Clutter", value: snapshot.clutterSummary)
+                CleaningSummaryRow(category: .cleanup, value: snapshot.formattedCacheSize)
+                CleaningSummaryRow(category: .protection, value: snapshot.protectionSummary)
+                CleaningSummaryRow(category: .performance, value: snapshot.startupSummary)
+                CleaningSummaryRow(category: .applications, value: snapshot.appSummary)
+                CleaningSummaryRow(category: .myClutter, value: snapshot.clutterSummary)
             }
             .padding(.top, 44)
             .frame(width: 420)
@@ -77,14 +77,20 @@ struct CareCleaningContent: View {
 }
 
 private struct CleaningSummaryRow: View {
-    let title: String
+    let category: CareLogCategory
     let value: String
 
+    private var accent: FeatureAccent { category.accent }
+
     var body: some View {
-        HStack {
-            Text(title)
+        HStack(spacing: 12) {
+            Circle()
+                .fill(accent.solid)
+                .frame(width: 7, height: 7)
+
+            Text(category.label)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.78))
+                .foregroundStyle(AppTheme.Colors.textSecondary)
 
             Spacer()
 
@@ -93,13 +99,13 @@ private struct CleaningSummaryRow: View {
                 .foregroundStyle(AppTheme.Colors.textPrimary)
         }
         .padding(.horizontal, 16)
-        .frame(height: 42)
+        .frame(height: 44)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.08))
+                .fill(accent.tint.opacity(0.5))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
                 }
         }
     }
@@ -151,17 +157,14 @@ struct CareResultsContent: View {
                 Button("View Log", action: onViewLog)
                     .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundStyle(AppTheme.Colors.inverseText)
-                    .buttonStyle(.plain)
+                    .buttonStyle(.appInteractive)
                     .padding(.horizontal, 17)
                     .frame(height: 32)
                     .background {
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(AppTheme.Care.actionGradient)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .stroke(.white.opacity(0.26), lineWidth: 1)
-                            }
+                            .fill(FeatureAccent.dashboard.gradient)
                     }
+                    .accentGlow(.dashboard, radius: 10, y: 4)
                     .raisedButtonChrome(cornerRadius: 8)
                     .accessibilityLabel("View scan log")
             }
@@ -187,7 +190,7 @@ private struct ResultsTopBar: View {
                 }
                 .foregroundStyle(AppTheme.Care.headingMuted)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
             .accessibilityLabel("Start over")
 
             Spacer()
@@ -265,20 +268,21 @@ private struct ScanResultCard: View {
     let result: ScanResult
     let snapshot: CareScanSnapshot
 
+    private var accent: FeatureAccent { result.category.accent }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: result.backgroundColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .fill(accent.tint.opacity(0.5))
                 }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
 
             ResultCardBadge(result: result)
                 .frame(width: result.isWide ? 150 : 136, height: result.isWide ? 150 : 136)
@@ -302,17 +306,19 @@ private struct ScanResultCard: View {
                 HStack(spacing: 9) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(accent.solid)
 
                     Text(result.status)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(AppTheme.Care.cardSubtext)
                 }
-                .foregroundStyle(AppTheme.Care.cardSubtext)
                 .padding(.top, 10)
             }
             .padding(22)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .cardHoverChrome()
     }
 
     private var value: String {

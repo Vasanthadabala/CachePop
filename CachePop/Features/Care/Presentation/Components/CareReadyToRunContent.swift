@@ -80,7 +80,7 @@ private struct ReadyTopBar: View {
                 }
                 .foregroundStyle(AppTheme.Care.headingMuted)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
             .accessibilityLabel("Start over")
 
             Spacer()
@@ -88,14 +88,14 @@ private struct ReadyTopBar: View {
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.inverseText)
-                .buttonStyle(.plain)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
-                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
+                        .fill(FeatureAccent.dashboard.gradient)
                 }
+                .accentGlow(.dashboard, radius: 12, y: 5)
                 .raisedButtonChrome(cornerRadius: 21)
         }
         .frame(height: 48)
@@ -118,18 +118,12 @@ private struct ReadyTaskCard: View {
     var body: some View {
         ZStack(alignment: .topTrailing) {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: result.backgroundColors,
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(.white.opacity(0.13), lineWidth: 1.1)
+                        .stroke(result.isSelected ? result.category.accent.solid.opacity(0.4) : AppTheme.Colors.border, lineWidth: result.isSelected ? 1.5 : 1)
                 }
-                .shadow(color: .black.opacity(0.12), radius: 12, y: 8)
+                .shadow(color: .black.opacity(0.05), radius: 8, y: 3)
 
             ResultCardBadge(
                 result: ScanResult(
@@ -152,16 +146,12 @@ private struct ReadyTaskCard: View {
                 HStack(spacing: 10) {
                     if result.isSelected {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 18 * scale, weight: .black))
-                            .foregroundStyle(AppTheme.Colors.inverseText)
-                            .frame(width: 28 * scale, height: 28 * scale)
+                            .font(.system(size: 16 * scale, weight: .bold))
+                            .foregroundStyle(result.category.accent.solid)
+                            .frame(width: 26 * scale, height: 26 * scale)
                             .background {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(.white.opacity(0.14))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                            .stroke(.white.opacity(0.16), lineWidth: 1)
-                                    }
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                    .fill(result.category.accent.tint)
                             }
                     }
 
@@ -192,18 +182,14 @@ private struct ReadyTaskCard: View {
                         Button("View") {
                             onReview(result.category)
                         }
-                            .font(.system(size: 15 * scale, weight: .bold, design: .rounded))
+                            .font(.system(size: 14 * scale, weight: .bold, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.inverseText)
-                            .buttonStyle(.plain)
-                            .padding(.horizontal, 18 * scale)
-                            .frame(height: 34 * scale)
+                            .buttonStyle(.appInteractive)
+                            .padding(.horizontal, 16 * scale)
+                            .frame(height: 32 * scale)
                             .background {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(AppTheme.Care.actionGradient)
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                            .stroke(.white.opacity(0.26), lineWidth: 1)
-                                    }
+                                    .fill(result.category.accent.solid)
                             }
                             .raisedButtonChrome(cornerRadius: 8)
                     }
@@ -214,6 +200,7 @@ private struct ReadyTaskCard: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .cardHoverChrome(scale: 1.012)
     }
 
     private var value: String {
@@ -259,28 +246,18 @@ private struct ReadyRunButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(AppTheme.Care.actionGlow)
-                    .scaleEffect(pulse ? 1.26 : 0.92)
-                    .blur(radius: 16)
-
-                Circle()
-                    .fill(
-                        AppTheme.Care.actionGradient
-                    )
-                    .overlay {
-                        Circle()
-                            .stroke(.white.opacity(0.82), lineWidth: 2)
-                    }
-                    .shadow(color: Color(hex: 0xE15CFF).opacity(0.48), radius: 24, y: 8)
+                    .fill(FeatureAccent.dashboard.gradient)
 
                 Text("Run")
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.inverseText)
+                    .foregroundStyle(Color.white)
             }
             .contentShape(Circle())
+            .accentGlow(.dashboard, radius: 22, y: 8)
             .raisedCircleButtonChrome()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.appInteractive)
         .accessibilityLabel("Run ready tasks")
     }
 }
+
