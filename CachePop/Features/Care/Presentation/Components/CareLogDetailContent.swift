@@ -101,13 +101,14 @@ struct CareLogDetailContent: View {
                 DetailTopBar(title: detail.category.detailTitle, onBack: onBack)
 
                 HStack(spacing: 0) {
-                    DetailSectionList(sections: sections, selectedSection: $selectedSection)
+                    DetailSectionList(category: detail.category, sections: sections, selectedSection: $selectedSection)
                         .frame(width: 270)
 
                     Divider()
-                        .overlay(.white.opacity(0.12))
+                        .overlay(AppTheme.Colors.border)
 
                     DetailItemList(
+                        category: detail.category,
                         title: sections[safe: selectedSection] ?? detail.category.label,
                         subtitle: detail.category.detailSubtitle,
                         items: filteredItems,
@@ -118,7 +119,7 @@ struct CareLogDetailContent: View {
                     .frame(width: 360)
 
                     Divider()
-                        .overlay(.white.opacity(0.12))
+                        .overlay(AppTheme.Colors.border)
 
                     DetailPreviewPane(
                         item: selectedItem,
@@ -130,6 +131,7 @@ struct CareLogDetailContent: View {
                 }
 
                 DetailBottomBar(
+                    category: detail.category,
                     itemCount: max(filteredItems.count, sourceItems.count),
                     sizeBytes: sourceItems.reduce(Int64(0)) { $0 + $1.sizeBytes },
                     cleaned: detail.cleaned
@@ -246,13 +248,13 @@ private struct PerformanceManagerTopBar: View {
                 HStack(spacing: 10) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color(hex: 0x8EA8FF))
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                     Text("Back")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
 
             Spacer()
 
@@ -265,16 +267,16 @@ private struct PerformanceManagerTopBar: View {
             HStack(spacing: 28) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x8EA8FF))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
 
                 HStack(spacing: 6) {
                     Text("Sort by:")
                         .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
                     Text("Name")
-                        .foregroundStyle(Color(hex: 0x8EA8FF))
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(Color(hex: 0x8EA8FF))
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                 }
                 .font(.system(size: 16, weight: .bold, design: .rounded))
             }
@@ -284,7 +286,7 @@ private struct PerformanceManagerTopBar: View {
         .background(AppTheme.Colors.appBackground)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(.white.opacity(0.08))
+                .fill(AppTheme.Colors.border)
                 .frame(height: 1)
         }
     }
@@ -315,7 +317,7 @@ private struct PerformanceSectionList: View {
                     .background {
                         if selectedSection == section {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color(hex: 0x1C2A68))
+                                .fill(FeatureAccent.boost.tint)
                         }
                     }
                 }
@@ -363,10 +365,10 @@ private struct PerformanceItemList: View {
                 Text("Select:")
                     .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
                 Text(selectedItemIDs.isEmpty ? "None" : "\(selectedItemIDs.count)")
-                    .foregroundStyle(Color(hex: 0x8EA8FF))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x8EA8FF))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
             }
             .font(.system(size: 16, weight: .bold, design: .rounded))
             .padding(.bottom, 34)
@@ -427,11 +429,12 @@ private struct PerformanceItemRow: View {
 
                 Image(systemName: "sparkles")
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x8EA8FF))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .padding(8)
                     .background(AppTheme.Colors.appBackground, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
             }
             .frame(height: 54)
+            .rowHoverHighlight(cornerRadius: 8)
         }
         .buttonStyle(.plain)
     }
@@ -442,11 +445,11 @@ private struct PerformanceCheckbox: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(isSelected ? Color(hex: 0x8EA8FF) : .clear)
+            .fill(isSelected ? AppTheme.Colors.textPrimary : .clear)
             .frame(width: 18, height: 18)
             .overlay {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .stroke(Color(hex: 0x8EA8FF), lineWidth: 1.4)
+                    .stroke(AppTheme.Colors.textPrimary, lineWidth: 1.4)
             }
             .overlay {
                 if isSelected {
@@ -469,7 +472,7 @@ private struct PerformanceItemIcon: View {
         } else {
             Image(systemName: item.kind == "Login Item" ? "app.fill" : "doc.text.fill")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundStyle(Color(hex: 0x8EA8FF))
+                .foregroundStyle(AppTheme.Colors.textPrimary)
         }
     }
 
@@ -495,12 +498,12 @@ private struct PerformanceManagerBottomBar: View {
 
             Button("Remove") {}
                 .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(selectedCount == 0 ? 0.38 : 1))
-                .buttonStyle(.plain)
+                .foregroundStyle(.white.opacity(selectedCount == 0 ? 0.6 : 1))
+                .buttonStyle(.appInteractive)
                 .frame(width: 100, height: 44)
                 .background {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(hex: 0x5366D6).opacity(selectedCount == 0 ? 0.55 : 1))
+                        .fill(FeatureAccent.boost.gradient.opacity(selectedCount == 0 ? 0.45 : 1))
                 }
                 .raisedButtonChrome(cornerRadius: 12)
                 .disabled(selectedCount == 0)
@@ -800,7 +803,7 @@ private struct JunkCleanerManagerTopBar: View {
                 }
                 .foregroundStyle(AppTheme.JunkCleanerManager.accent)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
 
             Spacer()
 
@@ -952,8 +955,7 @@ private struct JunkCleanerGroupRow: View {
 
                     Image(systemName: group.symbolName)
                         .font(.system(size: 21, weight: .bold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .foregroundStyle(.white)
                 }
                 .frame(width: 42, height: 42)
 
@@ -973,7 +975,7 @@ private struct JunkCleanerGroupRow: View {
 
                 Text(formatBytes(group.sizeBytes))
                     .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 9)
                     .frame(height: 25)
                     .background {
@@ -987,6 +989,7 @@ private struct JunkCleanerGroupRow: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(isSelected ? AppTheme.JunkCleanerManager.selection : AppTheme.JunkCleanerManager.panel)
             }
+            .rowHoverBorder()
         }
         .buttonStyle(.plain)
     }
@@ -1027,7 +1030,7 @@ private struct JunkCleanerFileList: View {
                 }
                 .font(.system(size: 14, weight: .bold, design: .rounded))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
 
             if rows.isEmpty {
                 JunkCleanerEmptyRowsView(
@@ -1149,21 +1152,39 @@ private struct JunkCleanerEmptyRowsView: View {
     let message: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.JunkCleanerManager.text)
+        VStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.JunkCleanerManager.panel)
+                    .frame(width: 50, height: 50)
 
-            Text(message)
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
-                .lineSpacing(4)
+                Image(systemName: "tray")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
+            }
+
+            VStack(spacing: 6) {
+                Text(title)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.JunkCleanerManager.text)
+
+                Text(message)
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(AppTheme.JunkCleanerManager.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(3)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(22)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 34)
+        .padding(.horizontal, 22)
         .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(AppTheme.JunkCleanerManager.panel)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(AppTheme.JunkCleanerManager.panel.opacity(0.5))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
+                }
         }
     }
 }
@@ -1205,7 +1226,7 @@ private struct JunkCleanerManagerBottomBar: View {
                     .foregroundStyle(AppTheme.JunkCleanerManager.text)
 
                 Rectangle()
-                    .fill(Color.white.opacity(0.16))
+                    .fill(AppTheme.Colors.border)
                     .frame(width: 1, height: 27)
 
                 Text(formatBytes(sizeBytes))
@@ -1217,14 +1238,15 @@ private struct JunkCleanerManagerBottomBar: View {
 
             Button("Done", action: onDone)
                 .font(.system(size: 17, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
-                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 22)
                 .frame(height: 46)
                 .background {
                     RoundedRectangle(cornerRadius: 13, style: .continuous)
                         .fill(AppTheme.JunkCleanerManager.actionGradient)
                 }
+                .accentGlow(.cleanup, radius: 10, y: 4)
                 .raisedButtonChrome(cornerRadius: 13)
         }
         .padding(.horizontal, 28)
@@ -1269,9 +1291,9 @@ private struct DetailTopBar: View {
                     Text("Back")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                 }
-                .foregroundStyle(Color(hex: 0x7180FF))
+                .foregroundStyle(AppTheme.Colors.textSecondary)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.appInteractive)
 
             Spacer()
 
@@ -1284,18 +1306,18 @@ private struct DetailTopBar: View {
             HStack(spacing: 30) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 21, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x7180FF))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
 
                 HStack(spacing: 8) {
                     Text("Sort by:")
                         .foregroundStyle(AppTheme.Care.heading)
 
                     Text("Size")
-                        .foregroundStyle(Color(hex: 0x7180FF))
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color(hex: 0x7180FF))
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
                 }
                 .font(.system(size: 16, weight: .bold, design: .rounded))
             }
@@ -1305,13 +1327,14 @@ private struct DetailTopBar: View {
         .padding(.horizontal, 28)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(.white.opacity(0.08))
+                .fill(AppTheme.Colors.border)
                 .frame(height: 1)
         }
     }
 }
 
 private struct DetailSectionList: View {
+    let category: CareLogCategory
     let sections: [String]
     @Binding var selectedSection: Int
 
@@ -1335,7 +1358,7 @@ private struct DetailSectionList: View {
                         .background {
                             if selectedSection == index {
                                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(AppTheme.Care.actionGradient)
+                                    .fill(category.accent.gradient)
                             }
                         }
                 }
@@ -1349,6 +1372,7 @@ private struct DetailSectionList: View {
 }
 
 private struct DetailItemList: View {
+    let category: CareLogCategory
     let title: String
     let subtitle: String
     let items: [CareScanDetailItem]
@@ -1384,7 +1408,7 @@ private struct DetailItemList: View {
                         }
                     } else {
                         ForEach(items.sorted { $0.sizeBytes > $1.sizeBytes }) { item in
-                            DetailFileRow(item: item, isSelected: selectedItemID == item.id) {
+                            DetailFileRow(category: category, item: item, isSelected: selectedItemID == item.id) {
                                 selectedItemID = item.id
                             }
                         }
@@ -1400,6 +1424,7 @@ private struct DetailItemList: View {
 }
 
 private struct DetailFileRow: View {
+    let category: CareLogCategory
     let item: CareScanDetailItem
     let isSelected: Bool
     let action: () -> Void
@@ -1429,7 +1454,7 @@ private struct DetailFileRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 9, style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
+                        .fill(category.accent.gradient)
                 }
             }
         }
@@ -1448,7 +1473,7 @@ private struct DetailFallbackRow: View {
             .padding(14)
             .background {
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(.white.opacity(0.05))
+                    .fill(AppTheme.Colors.glassBg)
             }
     }
 }
@@ -1466,27 +1491,17 @@ private struct DetailPreviewPane: View {
                     .foregroundStyle(AppTheme.Care.heading)
 
                 Text(cleaned ? "Cleaned" : "Smartly")
-                    .foregroundStyle(Color(hex: 0x7180FF))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
 
                     Image(systemName: "chevron.down")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Color(hex: 0x7180FF))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
             }
             .font(.system(size: 16, weight: .bold, design: .rounded))
 
             ZStack {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(hex: 0xA8B9FF),
-                                Color(hex: 0x6D82F0),
-                                Color(hex: 0x312994)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(category.accent.gradient)
 
                 DetailPreviewSymbol(item: item, category: category)
             }
@@ -1511,12 +1526,12 @@ private struct DetailPreviewPane: View {
                 }
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.inverseText)
-                .buttonStyle(.plain)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 20)
                 .frame(height: 42)
                 .background {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
+                        .fill(category.accent.gradient)
                 }
                 .raisedButtonChrome(cornerRadius: 10)
             }
@@ -1575,6 +1590,7 @@ private struct DetailMetaRow: View {
 }
 
 private struct DetailBottomBar: View {
+    let category: CareLogCategory
     let itemCount: Int
     let sizeBytes: Int64
     let cleaned: Bool
@@ -1589,7 +1605,7 @@ private struct DetailBottomBar: View {
                     .foregroundStyle(AppTheme.Colors.textPrimary)
 
                 Rectangle()
-                    .fill(.white.opacity(0.18))
+                    .fill(AppTheme.Colors.border)
                     .frame(width: 1, height: 28)
 
                 Text(ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file))
@@ -1602,13 +1618,14 @@ private struct DetailBottomBar: View {
             Button(cleaned ? "Done" : "Remove") {}
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.inverseText)
-                .buttonStyle(.plain)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 25)
                 .frame(height: 54)
                 .background {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
+                        .fill(category.accent.gradient)
                 }
+                .accentGlow(category.accent, radius: 12, y: 5)
                 .raisedButtonChrome(cornerRadius: 14)
                 .padding(.trailing, 32)
         }
@@ -1633,10 +1650,10 @@ private struct PermissionNotice: View {
         .padding(12)
         .background {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(.white.opacity(0.06))
+                .fill(AppTheme.Colors.glassBg)
                 .overlay {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
                 }
         }
     }

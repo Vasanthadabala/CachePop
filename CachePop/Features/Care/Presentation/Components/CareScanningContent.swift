@@ -55,7 +55,7 @@ struct CareScanningContent: View {
                 .padding(.bottom, 94)
                 .overlay(alignment: .bottom) {
                     StopScanButton(progress: scanProgress, pulse: pulse, action: onStop)
-                        .frame(width: 104 * scale, height: 104 * scale)
+                        .frame(width: 94 * scale, height: 94 * scale)
                         .offset(y: 22)
                 }
             }
@@ -283,17 +283,28 @@ private struct ScanningTaskCard: View {
     let progress: Double
     let pulse: Bool
 
+    private var accent: FeatureAccent { section.logCategory.accent }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    AppTheme.Care.actionGradient
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(.white.opacity(isActive ? 0.28 : 0.12), lineWidth: isActive ? 1.6 : 1)
+                        .fill(isActive ? accent.tint.opacity(0.4) : Color.clear)
                 }
-                .shadow(color: .black.opacity(isActive ? 0.26 : 0.14), radius: isActive ? 18 : 8, y: isActive ? 12 : 5)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(
+                            isActive ? accent.solid.opacity(0.4) : AppTheme.Colors.border,
+                            lineWidth: isActive ? 1.5 : 1
+                        )
+                }
+                .shadow(
+                    color: isActive ? Color.black.opacity(0.10) : Color.black.opacity(0.04),
+                    radius: isActive ? 14 : 6,
+                    y: isActive ? 6 : 3
+                )
 
             ResultCardBadge(
                 result: ScanResult(
@@ -303,7 +314,7 @@ private struct ScanningTaskCard: View {
                     status: "",
                     symbolName: section.symbolName,
                     backgroundColors: [],
-                    badgeColors: [Color(hex: 0x9AB0FF), Color(hex: 0x3630B8)],
+                    badgeColors: [AppTheme.Colors.textTertiary, AppTheme.Colors.accentStrong],
                     badgeRotation: section == .performance || section == .myClutter ? 8 : -8,
                     isWide: true
                 )
@@ -337,7 +348,7 @@ private struct ScanningTaskCard: View {
                 if isActive {
                     ProgressView(value: progress)
                         .progressViewStyle(.linear)
-                        .tint(.white)
+                        .tint(accent.solid)
                         .scaleEffect(x: 1, y: 0.7, anchor: .center)
                         .padding(.top, 2)
                 }
@@ -391,14 +402,14 @@ private struct ScanningTopBar: View {
             Button("Unlock Full Version") {}
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.inverseText)
-                .buttonStyle(.plain)
+                .buttonStyle(.appInteractive)
                 .padding(.horizontal, 22)
                 .frame(height: 42)
                 .background {
                     Capsule(style: .continuous)
-                        .fill(AppTheme.Care.actionGradient)
-                        .shadow(color: AppTheme.Care.actionShadow, radius: 12, y: 5)
+                        .fill(FeatureAccent.dashboard.gradient)
                 }
+                .accentGlow(.dashboard, radius: 12, y: 5)
                 .raisedButtonChrome(cornerRadius: 21)
         }
         .frame(height: 48)
@@ -421,38 +432,17 @@ private struct CurrentScanCard: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: 0x8EA8FF).opacity(0.96),
-                            Color(hex: 0x91A8FF).opacity(0.92),
-                            Color(hex: 0x4A5FD6).opacity(0.94)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(.white.opacity(0.18), lineWidth: 1.4)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
                 }
-                .shadow(color: .black.opacity(0.22), radius: 18, y: 12)
-
-            RadialGradient(
-                colors: [
-                    .clear,
-                    .clear,
-                    .clear
-                ],
-                center: UnitPoint(x: 0.52, y: 0.48),
-                startRadius: 10,
-                endRadius: 270
-            )
+                .shadow(color: .black.opacity(0.06), radius: 14, y: 6)
 
             VStack(spacing: 0) {
                 Text(title)
                     .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Care.cardText)
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
                     .contentTransition(.opacity)
@@ -467,7 +457,7 @@ private struct CurrentScanCard: View {
 
                 Text(subtitle)
                     .font(.system(size: 15, weight: .medium, design: .rounded))
-                    .foregroundStyle(AppTheme.Care.cardSubtext)
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
                     .contentTransition(.opacity)
@@ -486,36 +476,25 @@ private struct CurrentScanBadge: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 42, style: .continuous)
-                .fill(.white.opacity(0.14))
+                .fill(AppTheme.Colors.border.opacity(0.5))
                 .frame(width: 228, height: 142)
                 .blur(radius: pulse ? 3 : 7)
                 .scaleEffect(pulse ? 1.04 : 0.96)
 
             RoundedRectangle(cornerRadius: 42, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: 0x8EA8FF),
-                            Color(hex: 0x9FB2FF),
-                            Color(hex: 0x5667DD)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(AppTheme.Colors.glassStrong)
                 .frame(width: 218, height: 142)
                 .rotationEffect(.degrees(1.5))
-                .shadow(color: .black.opacity(0.36), radius: 10, y: 8)
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 4)
                 .overlay {
                     RoundedRectangle(cornerRadius: 42, style: .continuous)
-                        .stroke(.white.opacity(0.22), lineWidth: 2)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1.5)
                 }
 
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 78, weight: .bold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), Color(hex: 0xECB8FF))
-                .shadow(color: .black.opacity(0.28), radius: 6, y: 6)
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.7))
         }
     }
 }
@@ -531,48 +510,30 @@ private struct ScanningPreviewCard: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(
-                    AppTheme.Care.actionGradient
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
                 }
-
-            ResultCardBadge(
-                result: ScanResult(
-                    category: .all,
-                    title: title,
-                    value: value,
-                    status: subtitle,
-                    symbolName: symbolName,
-                    backgroundColors: [],
-                    badgeColors: [Color(hex: 0x9CB0FF), Color(hex: 0x3524A8)],
-                    badgeRotation: symbolName == "bolt.fill" ? 8 : -8,
-                    isWide: false
-                )
-            )
-            .frame(width: 170, height: 170)
-            .offset(badgeOffset)
-            .opacity(0.38)
+                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
 
             VStack(alignment: .leading, spacing: 12) {
                 Text(title)
                     .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Care.cardSubtext)
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
 
                 Spacer()
 
                 if !value.isEmpty {
                     Text(value)
                         .font(.system(size: 31, weight: .bold, design: .rounded))
-                        .foregroundStyle(AppTheme.Care.cardText)
+                        .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineSpacing(5)
                         .minimumScaleFactor(0.7)
 
                     Text(subtitle)
                         .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundStyle(AppTheme.Care.cardSubtext)
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
                 }
             }
             .padding(22)
@@ -590,34 +551,16 @@ private struct ScanningWidePreviewCard: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .fill(
-                    AppTheme.Care.actionGradient
-                )
+                .fill(Color.white)
                 .overlay {
                     RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                        .stroke(AppTheme.Colors.border, lineWidth: 1)
                 }
-
-            ResultCardBadge(
-                result: ScanResult(
-                    category: .all,
-                    title: title,
-                    value: "",
-                    status: "",
-                    symbolName: symbolName,
-                    backgroundColors: [],
-                    badgeColors: [Color(hex: 0x9AB0FF), Color(hex: 0x3630B8)],
-                    badgeRotation: symbolName == "folder.fill" ? 7 : -8,
-                    isWide: true
-                )
-            )
-            .frame(width: 260, height: 190)
-            .offset(badgeOffset)
-            .opacity(0.28)
+                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
 
             Text(title)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Care.cardSubtext)
+                .foregroundStyle(AppTheme.Colors.textSecondary)
                 .padding(22)
         }
         .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
@@ -629,39 +572,38 @@ private struct StopScanButton: View {
     let progress: Double
     let pulse: Bool
     let action: () -> Void
+    @State private var isAnimating = false
 
     var body: some View {
         Button(action: action) {
-            ZStack {
-                Circle()
-                    .fill(AppTheme.Care.actionGlow)
-                    .scaleEffect(pulse ? 1.22 : 0.94)
-                    .blur(radius: 14)
-
-                Circle()
-                    .fill(
-                        AppTheme.Care.actionGradient
-                    )
-                    .overlay {
+            Text("Stop")
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background {
+                    ZStack {
                         Circle()
-                            .stroke(.white.opacity(0.82), lineWidth: 2)
+                            .fill(FeatureAccent.dashboard.gradient)
+
+                        Circle()
+                            .trim(from: 0.08, to: 0.88)
+                            .stroke(AppTheme.Colors.border.opacity(0.92), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                            .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                            .padding(-6)
+                            .animation(.linear(duration: 1.25).repeatForever(autoreverses: false), value: isAnimating)
+
+                        Circle()
+                            .stroke(.white.opacity(0.52), lineWidth: 2)
                     }
-                    .shadow(color: Color(hex: 0xE15CFF).opacity(0.45), radius: 22, y: 8)
-
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(.white.opacity(0.86), style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .padding(5)
-
-                Text("Stop")
-                    .font(.system(size: 19, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.inverseText)
-            }
-            .contentShape(Circle())
-            .raisedCircleButtonChrome()
+                    .accentGlow(.dashboard, radius: 24, y: 8)
+                }
+                .contentShape(Circle())
+                .raisedCircleButtonChrome()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.appInteractive)
+        .onAppear {
+            isAnimating = true
+        }
         .accessibilityLabel("Stop scan")
     }
 }
