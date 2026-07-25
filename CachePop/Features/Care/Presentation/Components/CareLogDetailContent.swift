@@ -150,32 +150,35 @@ struct CareLogDetailContent: View {
 }
 
 struct PerformanceManagerContent: View {
-    let snapshot: CareScanSnapshot
     let onBack: () -> Void
     let initialSection: PerformanceSection
 
     @State private var selectedSection: PerformanceSection
     @State private var selectedItemIDs = Set<String>()
+    @State private var allItems: [CareScanDetailItem]
+    @State private var isRemoving = false
+    @State private var removalResult: StartupItemRemovalResult?
+    @State private var errorMessage: String?
 
     init(detail: CareLogDetail, onBack: @escaping () -> Void) {
         self.init(snapshot: detail.snapshot, initialSection: .loginItems, onBack: onBack)
     }
 
     init(snapshot: CareScanSnapshot, initialSection: PerformanceSection = .loginItems, onBack: @escaping () -> Void) {
-        self.snapshot = snapshot
         self.initialSection = initialSection
         self.onBack = onBack
         _selectedSection = State(initialValue: initialSection)
+        _allItems = State(initialValue: snapshot.startupDetails)
     }
 
     private var loginItems: [CareScanDetailItem] {
-        snapshot.startupDetails
+        allItems
             .filter { $0.kind == "Login Item" }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
 
     private var backgroundItems: [CareScanDetailItem] {
-        snapshot.startupDetails
+        allItems
             .filter { $0.kind == "Background Item" }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
     }
@@ -189,19 +192,95 @@ struct PerformanceManagerContent: View {
         }
     }
 
+    /// Only items CachePop can actually act on count toward the Remove button.
+    private var actionableSelection: [CareScanDetailItem] {
+        allItems.filter { selectedItemIDs.contains($0.id) && StartupItemService.canAct(on: $0) }
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            PerformanceManagerTopBar(onBack: onBack)
+        ZStack {
+            VStack(spacing: 0) {
+                PerformanceManagerTopBar(onBack: onBack)
 
-            PerformanceItemList(
-                section: selectedSection,
-                items: selectedRows,
-                selectedItemIDs: $selectedItemIDs
-            )
+                if let removalResult {
+                    StartupRemovalBanner(result: removalResult) {
+                        self.removalResult = nil
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 14)
+                }
 
-            PerformanceManagerBottomBar(selectedCount: selectedItemIDs.count)
+                if let errorMessage {
+                    InlineWarningBanner(message: errorMessage) {
+                        self.errorMessage = nil
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 14)
+                }
+
+                PerformanceSectionList(
+                    selectedSection: selectedSection,
+                    loginCount: loginItems.count,
+                    backgroundCount: backgroundItems.count
+                ) { section in
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        selectedSection = section
+                    }
+                }
+                .frame(height: 54)
+
+                PerformanceItemList(
+                    section: selectedSection,
+                    items: selectedRows,
+                    selectedItemIDs: $selectedItemIDs
+                )
+
+                PerformanceManagerBottomBar(
+                    selectedCount: actionableSelection.count,
+                    isRemoving: isRemoving,
+                    onRemove: performRemoval
+                )
+            }
+
+            if isRemoving {
+                UninstallProgressOverlay()
+            }
         }
         .background(AppTheme.Colors.appBackground)
+    }
+
+    private func performRemoval() {
+        let targets = actionableSelection
+        guard !targets.isEmpty else { return }
+
+        isRemoving = true
+        errorMessage = nil
+        removalResult = nil
+
+        Task {
+            let result = await StartupItemService.remove(items: targets)
+
+            // Drop everything that was successfully handled from the list.
+            let failed = Set(result.failedPaths)
+            let handledIDs = Set(
+                targets
+                    .filter { !failed.contains($0.path) }
+                    .map(\.id)
+            )
+
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    allItems.removeAll { handledIDs.contains($0.id) }
+                }
+                selectedItemIDs.subtract(handledIDs)
+                isRemoving = false
+                removalResult = result
+
+                if result.hasFailures {
+                    errorMessage = "\(result.failedPaths.count) item(s) could not be changed. Grant Full Disk Access, or handle them manually in System Settings."
+                }
+            }
+        }
     }
 }
 
@@ -299,35 +378,51 @@ private struct PerformanceSectionList: View {
     let onSelect: (PerformanceSection) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        HStack(spacing: 8) {
             ForEach(PerformanceSection.allCases) { section in
                 Button {
                     onSelect(section)
                 } label: {
-                    HStack {
+                    HStack(spacing: 8) {
                         Text(section.title)
-                        Spacer()
+                            .font(.system(size: 14, weight: .bold, design: .rounded))
+
                         Text("\(count(for: section))")
-                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.42))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(selectedSection == section ? .white : AppTheme.Colors.textTertiary)
+                            .padding(.horizontal, 7)
+                            .frame(height: 19)
+                            .background {
+                                Capsule(style: .continuous)
+                                    .fill(selectedSection == section
+                                          ? AnyShapeStyle(FeatureAccent.boost.solid)
+                                          : AnyShapeStyle(AppTheme.Colors.border))
+                            }
                     }
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundStyle(selectedSection == section ? AppTheme.Colors.textPrimary.opacity(0.94) : AppTheme.Colors.textPrimary.opacity(0.56))
-                    .padding(.horizontal, 13)
-                    .frame(height: 38)
+                    .foregroundStyle(selectedSection == section ? FeatureAccent.boost.solid : AppTheme.Colors.textSecondary)
+                    .padding(.horizontal, 14)
+                    .frame(height: 34)
                     .background {
-                        if selectedSection == section {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(FeatureAccent.boost.tint)
-                        }
+                        Capsule(style: .continuous)
+                            .fill(selectedSection == section ? FeatureAccent.boost.tint : AppTheme.Colors.glassBg)
+                            .overlay {
+                                Capsule(style: .continuous)
+                                    .stroke(
+                                        selectedSection == section
+                                            ? FeatureAccent.boost.solid.opacity(0.35)
+                                            : AppTheme.Colors.border,
+                                        lineWidth: 1
+                                    )
+                            }
                     }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.appInteractive)
             }
 
             Spacer()
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 42)
+        .padding(.horizontal, 30)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.Colors.appBackground)
     }
 
@@ -346,32 +441,49 @@ private struct PerformanceItemList: View {
     let items: [CareScanDetailItem]
     @Binding var selectedItemIDs: Set<String>
 
+    fileprivate var actionableItems: [CareScanDetailItem] {
+        items.filter { StartupItemService.canAct(on: $0) }
+    }
+
+    fileprivate var allActionableSelected: Bool {
+        !actionableItems.isEmpty && actionableItems.allSatisfy { selectedItemIDs.contains($0.id) }
+    }
+
+    fileprivate func toggleAll() {
+        if allActionableSelected {
+            actionableItems.forEach { selectedItemIDs.remove($0.id) }
+        } else {
+            actionableItems.forEach { selectedItemIDs.insert($0.id) }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(section.title)
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary)
-                .padding(.bottom, 12)
-
             Text(section.description)
-                .font(.system(size: 16, weight: .medium, design: .rounded))
+                .font(.system(size: 15, weight: .medium, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.56))
                 .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 620, alignment: .leading)
-                .padding(.bottom, 36)
+                .frame(maxWidth: 660, alignment: .leading)
+                .padding(.bottom, 20)
 
-            HStack(spacing: 6) {
-                Text("Select:")
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9))
-                Text(selectedItemIDs.isEmpty ? "None" : "\(selectedItemIDs.count)")
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
+            HStack(spacing: 10) {
+                Button(action: toggleAll) {
+                    Text(allActionableSelected ? "Deselect all" : "Select all removable")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(FeatureAccent.boost.solid)
+                }
+                .buttonStyle(.plain)
+                .disabled(actionableItems.isEmpty)
+
+                Text("·")
+                    .foregroundStyle(AppTheme.Colors.textTertiary)
+
+                Text("\(selectedItemIDs.count) selected")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
             }
-            .font(.system(size: 16, weight: .bold, design: .rounded))
-            .padding(.bottom, 34)
+            .padding(.bottom, 22)
 
             if items.isEmpty {
                 Text(section.emptyMessage)
@@ -380,7 +492,7 @@ private struct PerformanceItemList: View {
                     .padding(.top, 12)
             } else {
                 ScrollView {
-                    VStack(spacing: 30) {
+                    VStack(spacing: 8) {
                         ForEach(items) { item in
                             PerformanceItemRow(
                                 item: item,
@@ -411,53 +523,98 @@ private struct PerformanceItemRow: View {
     let isSelected: Bool
     let onToggle: () -> Void
 
+    private var removability: StartupItemRemovability {
+        StartupItemService.removability(for: item)
+    }
+
+    private var isLocked: Bool { removability == .requiresAdmin }
+
     var body: some View {
-        Button(action: onToggle) {
-            HStack(spacing: 28) {
-                PerformanceCheckbox(isSelected: isSelected)
+        Button(action: { if !isLocked { onToggle() } }) {
+            HStack(spacing: 18) {
+                PerformanceCheckbox(isSelected: isSelected, isDisabled: isLocked)
 
                 PerformanceItemIcon(item: item)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 38, height: 38)
 
-                Text(item.title)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(AppTheme.Colors.textPrimary.opacity(isLocked ? 0.5 : 0.92))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Text(removability.explanation)
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(AppTheme.Colors.textTertiary)
+                        .lineLimit(1)
+                }
 
                 Spacer()
 
-                Image(systemName: "sparkles")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
-                    .padding(8)
-                    .background(AppTheme.Colors.appBackground, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                switch removability {
+                case .removable:
+                    AccentPillBadge(accent: .boost, text: "Removable")
+                case .quittable:
+                    AccentPillBadge(accent: .cleanup, text: "Running")
+                case .requiresAdmin:
+                    HStack(spacing: 5) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 10, weight: .bold))
+                        Text("Locked")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                    }
+                    .foregroundStyle(AppTheme.Colors.textTertiary)
+                }
+
+                Button {
+                    StartupItemService.revealInFinder(item.path)
+                } label: {
+                    Image(systemName: "arrow.up.forward.square")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .help("Reveal in Finder")
             }
-            .frame(height: 54)
-            .rowHoverHighlight(cornerRadius: 8)
+            .padding(.horizontal, 12)
+            .frame(height: 58)
+            .background {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? FeatureAccent.boost.tint : AppTheme.Colors.glassBg)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
+        .opacity(isLocked ? 0.72 : 1)
+        .help(isLocked ? removability.explanation : "")
     }
 }
 
 private struct PerformanceCheckbox: View {
     let isSelected: Bool
+    var isDisabled = false
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 4, style: .continuous)
-            .fill(isSelected ? AppTheme.Colors.textPrimary : .clear)
-            .frame(width: 18, height: 18)
+        RoundedRectangle(cornerRadius: 5, style: .continuous)
+            .fill(isSelected ? FeatureAccent.boost.solid : Color.clear)
+            .frame(width: 19, height: 19)
             .overlay {
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .stroke(AppTheme.Colors.textPrimary, lineWidth: 1.4)
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .stroke(
+                        isDisabled ? AppTheme.Colors.border
+                            : (isSelected ? FeatureAccent.boost.solid : AppTheme.Colors.glassBorder),
+                        lineWidth: 1.5
+                    )
             }
             .overlay {
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundStyle(.white)
                 }
             }
+            .opacity(isDisabled ? 0.4 : 1)
     }
 }
 
@@ -485,32 +642,85 @@ private struct PerformanceItemIcon: View {
 
 private struct PerformanceManagerBottomBar: View {
     let selectedCount: Int
+    let isRemoving: Bool
+    let onRemove: () -> Void
 
     var body: some View {
         HStack {
             Spacer()
 
-            Text(selectedCount == 0 ? "No Items Selected" : "\(selectedCount) Items Selected")
+            Text(selectedCount == 0 ? "No Items Selected" : "\(selectedCount) Item\(selectedCount == 1 ? "" : "s") Selected")
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundStyle(AppTheme.Colors.textPrimary)
 
             Spacer()
 
-            Button("Remove") {}
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(selectedCount == 0 ? 0.6 : 1))
-                .buttonStyle(.appInteractive)
-                .frame(width: 100, height: 44)
-                .background {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(FeatureAccent.boost.gradient.opacity(selectedCount == 0 ? 0.45 : 1))
-                }
-                .raisedButtonChrome(cornerRadius: 12)
-                .disabled(selectedCount == 0)
+            Button(action: onRemove) {
+                Text(isRemoving ? "Removing…" : "Remove")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white.opacity(selectedCount == 0 ? 0.6 : 1))
+                    .frame(width: 116, height: 44)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(FeatureAccent.boost.gradient.opacity(selectedCount == 0 ? 0.45 : 1))
+                    }
+            }
+            .buttonStyle(.appInteractive)
+            .raisedButtonChrome(cornerRadius: 12)
+            .disabled(selectedCount == 0 || isRemoving)
         }
         .frame(height: 72)
         .padding(.horizontal, 18)
         .background(AppTheme.Colors.appBackground)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppTheme.Colors.border)
+                .frame(height: 1)
+        }
+    }
+}
+
+private struct StartupRemovalBanner: View {
+    let result: StartupItemRemovalResult
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: result.totalHandled > 0 ? "checkmark.circle.fill" : "info.circle.fill")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(result.totalHandled > 0 ? FeatureAccent.cleanup.solid : AppTheme.Colors.textTertiary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.summary)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(AppTheme.Colors.textPrimary)
+
+                if result.skippedAdminCount > 0 {
+                    Text("\(result.skippedAdminCount) system-level item(s) skipped — those need administrator rights.")
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(AppTheme.Colors.textTertiary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(FeatureAccent.cleanup.tint)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .stroke(FeatureAccent.cleanup.solid.opacity(0.3), lineWidth: 1)
+                }
+        }
     }
 }
 

@@ -86,7 +86,9 @@ struct CareView: View {
                                         viewModel.selectSidebarItem(.smartCare)
                                     }
                                 } else if viewModel.selectedItem == .assistant {
-                                    AssistantView()
+                                    AssistantView { destination in
+                                        viewModel.selectSidebarItem(destination)
+                                    }
                                 } else {
                                     CareHomeContent(
                                         snapshot: viewModel.scanSnapshot,
