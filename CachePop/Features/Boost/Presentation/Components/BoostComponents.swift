@@ -4,48 +4,35 @@ struct PerformanceIntroContent: View {
     let onScan: () -> Void
 
     var body: some View {
-        GeometryReader { proxy in
-            let scale = min(max(proxy.size.width / 1080, 0.78), 1.04)
+        ZStack(alignment: .topTrailing) {
+            FeatureIntroScreen(
+                symbolName: "bolt.fill",
+                title: "Boost",
+                subtitle: "Find the apps and helpers that start with your Mac and slow it down, then turn off the ones you don't need.",
+                points: [
+                    FeatureIntroPoint(
+                        symbolName: "power",
+                        title: "Login Items",
+                        subtitle: "Apps that open when you log in"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "gearshape.2.fill",
+                        title: "Launch Agents",
+                        subtitle: "Helpers installed by third-party apps"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "rectangle.stack.fill",
+                        title: "Background Apps",
+                        subtitle: "Processes running without a window"
+                    )
+                ],
+                actionTitle: "Scan Startup Items",
+                action: onScan
+            )
+            .padding(.top, 52)
 
-            ZStack(alignment: .topTrailing) {
-                PerformanceUnlockButton(scale: scale)
-
-                HStack(spacing: 74 * scale) {
-                    PerformanceBadge()
-                        .frame(width: 390 * scale, height: 360 * scale)
-                        .offset(y: 18 * scale)
-
-                    VStack(alignment: .leading, spacing: 34 * scale) {
-                        VStack(alignment: .leading, spacing: 22 * scale) {
-                            Text("Performance")
-                                .font(.system(size: 54 * scale, weight: .light, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.72)
-
-                            Text("Keep your Mac in top shape with\nrecommended maintenance.")
-                                .font(.system(size: 22 * scale, weight: .medium, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
-                                .lineSpacing(6)
-                        }
-                        .padding(.bottom, 18 * scale)
-
-                        PerformanceFeatureRow(symbolName: "wrench.and.screwdriver.fill", title: "Maintenance Tasks", scale: scale)
-                        PerformanceFeatureRow(symbolName: "power", title: "Login Items", scale: scale)
-                        PerformanceFeatureRow(symbolName: "rocket.fill", title: "Background Items", scale: scale)
-
-                        PerformanceCircleButton(title: "Scan", progress: nil, scale: scale, action: onScan)
-                            .frame(width: 104 * scale, height: 104 * scale)
-                            .padding(.top, 24 * scale)
-                            .padding(.leading, 32 * scale)
-                    }
-                    .frame(width: 430 * scale, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .offset(y: -24 * scale)
-            }
+            PerformanceUnlockButton(scale: 1)
         }
-        .transition(.opacity.combined(with: .scale(scale: 0.985)))
     }
 }
 
@@ -547,104 +534,6 @@ struct BoostBadgeShape: Shape {
         path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.24))
         path.closeSubpath()
         return path
-    }
-}
-
-struct PerformanceSidebar: View {
-    private let items: [PerformanceSidebarItem] = [
-        .smartCare,
-        .cleanup,
-        .performance,
-        .applications,
-        .myClutter
-    ]
-
-    var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
-                .frame(height: 118)
-
-            ForEach(items) { item in
-                PerformanceSidebarIcon(item: item)
-            }
-
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(AppTheme.Colors.glassBg)
-                    .frame(width: 34, height: 34)
-
-                Image(systemName: "circle.grid.cross.fill")
-                    .font(.system(size: 19, weight: .semibold))
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-            }
-            .padding(.bottom, 42)
-        }
-        .frame(maxHeight: .infinity)
-        .background {
-            AppTheme.Colors.sidebarBg
-                .overlay(alignment: .trailing) {
-                    Rectangle()
-                        .fill(AppTheme.Colors.border)
-                        .frame(width: 1)
-                }
-        }
-    }
-}
-
-struct PerformanceSidebarIcon: View {
-    let item: PerformanceSidebarItem
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(item == .performance ? Color(hex: 0x111111) : AppTheme.Colors.glassBg)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(AppTheme.Colors.border, lineWidth: 1)
-                }
-                .frame(width: 52, height: 52)
-
-            Image(systemName: item.symbolName)
-                .font(.system(size: 22, weight: .semibold))
-                .symbolRenderingMode(.monochrome)
-                .foregroundStyle(item == .performance ? Color.white : AppTheme.Colors.textSecondary)
-                .frame(width: 52, height: 52)
-
-            if item == .performance {
-                Circle()
-                    .fill(Color.white.opacity(0.8))
-                    .frame(width: 10, height: 10)
-                    .offset(x: 4, y: -4)
-            }
-        }
-    }
-}
-
-enum PerformanceSidebarItem: String, Identifiable {
-    case smartCare
-    case cleanup
-    case performance
-    case applications
-    case myClutter
-
-    var id: String { rawValue }
-
-    var symbolName: String {
-        switch self {
-        case .smartCare:
-            "desktopcomputer"
-        case .cleanup:
-            "face.smiling.inverse"
-        case .performance:
-            "bolt.fill"
-        case .applications:
-            "shippingbox.fill"
-        case .myClutter:
-            "folder.fill"
-        }
     }
 }
 

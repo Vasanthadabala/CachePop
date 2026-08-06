@@ -7,11 +7,21 @@ struct AssistantTip: Identifiable {
         case advisory
         case healthy
 
-        var accent: FeatureAccent {
+        /// Severity is one of the few places a non-blue hue is justified — it tells the
+        /// user how urgent the item is at a glance.
+        var color: Color {
             switch self {
-            case .critical:  .clutter
-            case .advisory:  .boost
-            case .healthy:   .cleanup
+            case .critical: AppTheme.Status.danger
+            case .advisory: AppTheme.Status.warning
+            case .healthy:  AppTheme.Status.success
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .critical: AppTheme.Status.dangerTint
+            case .advisory: AppTheme.Status.warningTint
+            case .healthy:  AppTheme.Status.successTint
             }
         }
     }

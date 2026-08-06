@@ -31,8 +31,8 @@ enum HealthStatus {
     var tint: Color {
         switch self {
         case .unknown:   AppTheme.Colors.textTertiary
-        case .attention: FeatureAccent.boost.solid
-        case .good:      FeatureAccent.cleanup.solid
+        case .attention: AppTheme.Status.warning
+        case .good:      AppTheme.Status.success
         }
     }
 }
@@ -184,14 +184,25 @@ struct AccentPillBadge: View {
     let text: String
 
     var body: some View {
+        StatusPillBadge(color: accent.solid, text: text)
+    }
+}
+
+/// Pill badge in an explicit colour — used with `AppTheme.Status` values where the hue
+/// carries meaning (healthy / warning / critical).
+struct StatusPillBadge: View {
+    let color: Color
+    let text: String
+
+    var body: some View {
         Text(text)
             .font(.system(size: 12, weight: .bold, design: .rounded))
-            .foregroundStyle(accent.solid)
+            .foregroundStyle(color)
             .padding(.horizontal, 10)
             .frame(height: 24)
             .background {
                 Capsule(style: .continuous)
-                    .fill(accent.tint)
+                    .fill(color.opacity(0.12))
             }
     }
 }

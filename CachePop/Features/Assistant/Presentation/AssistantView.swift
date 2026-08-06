@@ -221,12 +221,12 @@ struct AssistantTipCard: View {
         HStack(alignment: .top, spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(tip.severity.accent.tint)
+                    .fill(tip.severity.tint)
                     .frame(width: 44, height: 44)
 
                 Image(systemName: tip.symbolName)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(tip.severity.accent.solid)
+                    .foregroundStyle(tip.severity.color)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -250,7 +250,7 @@ struct AssistantTipCard: View {
                         .frame(height: 34)
                         .background {
                             Capsule(style: .continuous)
-                                .fill(tip.severity.accent.gradient)
+                                .fill(FeatureAccent.dashboard.gradient)
                         }
                         .padding(.top, 4)
                 }
