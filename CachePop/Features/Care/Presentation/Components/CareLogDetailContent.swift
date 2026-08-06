@@ -556,7 +556,7 @@ private struct PerformanceItemRow: View {
                 case .removable:
                     AccentPillBadge(accent: .boost, text: "Removable")
                 case .quittable:
-                    AccentPillBadge(accent: .cleanup, text: "Running")
+                    StatusPillBadge(color: AppTheme.Status.success, text: "Running")
                 case .requiresAdmin:
                     HStack(spacing: 5) {
                         Image(systemName: "lock.fill")
@@ -688,7 +688,7 @@ private struct StartupRemovalBanner: View {
         HStack(spacing: 12) {
             Image(systemName: result.totalHandled > 0 ? "checkmark.circle.fill" : "info.circle.fill")
                 .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(result.totalHandled > 0 ? FeatureAccent.cleanup.solid : AppTheme.Colors.textTertiary)
+                .foregroundStyle(result.totalHandled > 0 ? AppTheme.Status.success : AppTheme.Colors.textTertiary)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(result.summary)
@@ -715,10 +715,10 @@ private struct StartupRemovalBanner: View {
         .padding(.vertical, 11)
         .background {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(FeatureAccent.cleanup.tint)
+                .fill(AppTheme.Status.successTint)
                 .overlay {
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .stroke(FeatureAccent.cleanup.solid.opacity(0.3), lineWidth: 1)
+                        .stroke(AppTheme.Status.success.opacity(0.3), lineWidth: 1)
                 }
         }
     }

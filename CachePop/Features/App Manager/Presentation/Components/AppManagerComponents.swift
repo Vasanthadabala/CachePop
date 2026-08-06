@@ -106,7 +106,7 @@ struct AppListRow: View {
 
                     Text(app.isUnused ? "Unused · \(app.lastUsedText)" : app.lastUsedText)
                         .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(app.isUnused ? FeatureAccent.boost.solid : AppTheme.Colors.textTertiary)
+                        .foregroundStyle(app.isUnused ? AppTheme.Status.warning : AppTheme.Colors.textTertiary)
                         .lineLimit(1)
                 }
 
@@ -421,12 +421,12 @@ struct UninstallConfirmationDialog: View {
                 VStack(spacing: 16) {
                     ZStack {
                         Circle()
-                            .fill(FeatureAccent.clutter.tint)
+                            .fill(AppTheme.Status.dangerTint)
                             .frame(width: 58, height: 58)
 
                         Image(systemName: "trash.fill")
                             .font(.system(size: 24, weight: .bold))
-                            .foregroundStyle(FeatureAccent.clutter.solid)
+                            .foregroundStyle(AppTheme.Status.danger)
                     }
 
                     VStack(spacing: 7) {
@@ -447,7 +447,7 @@ struct UninstallConfirmationDialog: View {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(FeatureAccent.boost.solid)
+                                .foregroundStyle(AppTheme.Status.warning)
 
                             Text("\(app.name) is running and will be asked to quit first.")
                                 .font(.system(size: 12, weight: .semibold, design: .rounded))
@@ -457,7 +457,7 @@ struct UninstallConfirmationDialog: View {
                         .padding(.vertical, 9)
                         .background {
                             RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .fill(FeatureAccent.boost.tint)
+                                .fill(AppTheme.Status.warningTint)
                         }
                     }
                 }
@@ -489,7 +489,7 @@ struct UninstallConfirmationDialog: View {
                         .frame(height: 42)
                         .background {
                             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                                .fill(FeatureAccent.clutter.gradient)
+                                .fill(AppTheme.Status.danger)
                         }
                 }
                 .padding(18)
@@ -535,7 +535,7 @@ struct UninstallResultBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(FeatureAccent.cleanup.solid)
+                .foregroundStyle(AppTheme.Status.success)
 
             Text("\(result.app.name) removed — \(result.formattedBytesFreed) freed from \(result.filesRemoved) item(s).")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -554,10 +554,10 @@ struct UninstallResultBanner: View {
         .frame(height: 46)
         .background {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(FeatureAccent.cleanup.tint)
+                .fill(AppTheme.Status.successTint)
                 .overlay {
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .stroke(FeatureAccent.cleanup.solid.opacity(0.3), lineWidth: 1)
+                        .stroke(AppTheme.Status.success.opacity(0.3), lineWidth: 1)
                 }
         }
     }
@@ -571,7 +571,7 @@ struct InlineWarningBanner: View {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(FeatureAccent.boost.solid)
+                .foregroundStyle(AppTheme.Status.warning)
 
             Text(message)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
@@ -591,10 +591,10 @@ struct InlineWarningBanner: View {
         .padding(.vertical, 12)
         .background {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(FeatureAccent.boost.tint)
+                .fill(AppTheme.Status.warningTint)
                 .overlay {
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .stroke(FeatureAccent.boost.solid.opacity(0.3), lineWidth: 1)
+                        .stroke(AppTheme.Status.warning.opacity(0.3), lineWidth: 1)
                 }
         }
     }

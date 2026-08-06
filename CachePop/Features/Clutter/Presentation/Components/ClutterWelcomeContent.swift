@@ -6,83 +6,55 @@ struct ClutterWelcomeContent: View {
     let onScan: () -> Void
 
     var body: some View {
-        GeometryReader { proxy in
-            let width = proxy.size.width
-            let height = proxy.size.height
-            let scale = min(width / 930, height / 740)
+        ZStack(alignment: .topTrailing) {
+            AppTheme.Colors.appBackground
+                .ignoresSafeArea()
 
-            ZStack {
-                AppTheme.Colors.appBackground
-                    .ignoresSafeArea()
+            FeatureIntroScreen(
+                symbolName: "folder.fill",
+                title: "Clutter",
+                subtitle: "Sort through a folder to find the large files and duplicates quietly taking up your disk.",
+                points: [
+                    FeatureIntroPoint(
+                        symbolName: "doc.fill",
+                        title: "Large Files",
+                        subtitle: "Anything over 100 MB"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "doc.on.doc.fill",
+                        title: "Duplicates",
+                        subtitle: "Matched by content, not just by name"
+                    )
+                ],
+                actionTitle: "Scan Folder",
+                action: onScan
+            ) {
+                VStack(spacing: 10) {
+                    Text("FOLDER TO SCAN")
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .tracking(0.6)
+                        .foregroundStyle(AppTheme.Colors.textTertiary)
 
-                Button("Unlock Full Version") {}
-                    .buttonStyle(.appInteractive)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(AppTheme.Colors.inverseText)
-                    .padding(.horizontal, 28)
-                    .frame(height: 42)
-                    .background {
-                        Capsule(style: .continuous)
-                            .fill(FeatureAccent.clutter.gradient)
-                            .shadow(color: FeatureAccent.clutter.shadow, radius: 16, x: 0, y: 8)
-                    }
-                    .raisedButtonChrome(cornerRadius: 21)
-                    .position(x: width - 120, y: 40)
-
-                HStack(alignment: .center, spacing: max(48, width * 0.08)) {
-                    ClutterFolderHero()
-                        .frame(width: max(340, min(520, width * 0.48)), height: max(310, min(470, width * 0.43)))
-                        .padding(.top, 18)
-
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Clutter")
-                            .font(.system(size: max(32, min(48, 48 * scale)), weight: .light, design: .rounded))
-                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.95))
-                            .padding(.bottom, 18)
-
-                        Text("Sort through your files and reduce the mess in\njust a few clicks.")
-                            .font(.system(size: max(15, min(20, 20 * scale)), weight: .medium, design: .rounded))
-                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.66))
-                            .lineSpacing(4)
-                            .padding(.bottom, 42)
-
-                        VStack(alignment: .leading, spacing: 22) {
-                            ClutterWelcomeFeature(symbolName: "folder.fill", title: "Large Files")
-                            ClutterWelcomeFeature(symbolName: "doc.on.doc.fill", title: "Duplicates")
-                        }
-                        .padding(.bottom, 50)
-
-                        ClutterFolderPicker(selectedFolder: $selectedFolder)
-                    }
-                    .frame(width: min(410, width * 0.42), alignment: .leading)
+                    ClutterFolderPicker(selectedFolder: $selectedFolder)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, max(44, width * 0.08))
-                .padding(.top, 28)
-                .padding(.bottom, 92)
-
-                Button(action: onScan) {
-                    Text("Scan")
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AppTheme.Colors.inverseText)
-                        .frame(width: 95, height: 95)
-                        .background {
-                            Circle()
-                                .fill(
-                                    FeatureAccent.clutter.gradient
-                                )
-                                .overlay {
-                                    Circle()
-                                        .stroke(.white.opacity(0.72), lineWidth: 2)
-                                }
-                                .shadow(color: FeatureAccent.clutter.shadow, radius: 38, x: 0, y: 0)
-                                .shadow(color: .black.opacity(0.25), radius: 16, x: 0, y: 8)
-                        }
-                        .raisedCircleButtonChrome()
-                }
-                .buttonStyle(.appInteractive)
-                .position(x: width / 2, y: height - 92)
+                .padding(.bottom, 26)
             }
+            .padding(.top, 52)
+
+            Button("Unlock Full Version") {}
+                .buttonStyle(.appInteractive)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.Colors.inverseText)
+                .padding(.horizontal, 22)
+                .frame(height: 42)
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(FeatureAccent.dashboard.gradient)
+                }
+                .accentGlow(.dashboard, radius: 12, y: 5)
+                .raisedButtonChrome(cornerRadius: 21)
+                .padding(.top, 28)
+                .padding(.trailing, 28)
         }
         .background(AppTheme.Colors.appBackground)
     }

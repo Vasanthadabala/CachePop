@@ -19,9 +19,9 @@ enum AppTheme {
         static let border        = Color(hex: 0xE5E7EB)
         static let glassBorder   = Color(hex: 0xD1D5DB)
 
-        // Accents (black-based for minimal theme)
-        static let accent        = Color(hex: 0x111111)
-        static let accentStrong  = Color(hex: 0x374151)
+        // Accent — the single blue used across the app (see FeatureAccent).
+        static let accent        = Color(hex: 0x2F6BF0)
+        static let accentStrong  = Color(hex: 0x1E4FC4)
         static let accentDeep    = Color(hex: 0x6B7280)
 
         // Glows — disabled for minimal theme
@@ -42,14 +42,7 @@ enum AppTheme {
         static let cardSubtext   = Colors.textSecondary
         static let actionGlow    = Color.clear
         static let actionShadow  = Color.black.opacity(0.10)
-        static let actionGradient = LinearGradient(
-            colors: [
-                Color(hex: 0x111111),
-                Color(hex: 0x1F2937)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+        static let actionGradient = FeatureAccent.dashboard.gradient
         // White card gradient (used as card backgrounds)
         static let cardGradient: [Color] = [Color.white]
 
@@ -58,6 +51,19 @@ enum AppTheme {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    /// Meaning-carrying colours. Use these only where the hue tells the user something
+    /// (a healthy reading, a warning, a critical problem) — never as decoration.
+    enum Status {
+        static let success      = Color(hex: 0x14A06B)
+        static let successTint  = Color(hex: 0x14A06B).opacity(0.12)
+
+        static let warning      = Color(hex: 0xD98324)
+        static let warningTint  = Color(hex: 0xD98324).opacity(0.13)
+
+        static let danger       = Color(hex: 0xD64545)
+        static let dangerTint   = Color(hex: 0xD64545).opacity(0.12)
     }
 
     enum JunkCleanerManager {
@@ -74,8 +80,13 @@ enum AppTheme {
 }
 
 // MARK: - Feature Accent System
-// Each major feature gets its own identity color, used for its sidebar icon,
-// dashboard shortcut, and the CTAs/progress rings within that feature's own screens.
+//
+// The app is intentionally monochromatic: white and gray surfaces with a single blue accent.
+// Every feature shares that blue for buttons, progress, and selection so the product reads as
+// one cohesive tool rather than a set of differently-branded modules.
+//
+// Colour beyond the blue is reserved for `AppTheme.Status`, where a hue actually carries
+// meaning (healthy / warning / critical). Never use it for decoration.
 enum FeatureAccent: CaseIterable {
     case dashboard
     case cleanup
@@ -84,38 +95,23 @@ enum FeatureAccent: CaseIterable {
     case clutter
     case assistant
 
-    var solid: Color {
-        switch self {
-        case .dashboard:  Color(hex: 0x3D6BF0)
-        case .cleanup:    Color(hex: 0x0FB88A)
-        case .boost:      Color(hex: 0xFF9736)
-        case .appManager: Color(hex: 0x8B5CF6)
-        case .clutter:    Color(hex: 0xF3487E)
-        case .assistant:  Color(hex: 0x6366F1)
-        }
-    }
+    /// The single accent blue shared by the whole app.
+    static let primary = Color(hex: 0x2F6BF0)
+    static let primaryDeep = Color(hex: 0x1E4FC4)
 
-    var deep: Color {
-        switch self {
-        case .dashboard:  Color(hex: 0x2A4FC4)
-        case .cleanup:    Color(hex: 0x0A8F6C)
-        case .boost:      Color(hex: 0xDE7A1B)
-        case .appManager: Color(hex: 0x6D3FD1)
-        case .clutter:    Color(hex: 0xC92F63)
-        case .assistant:  Color(hex: 0x4740C6)
-        }
-    }
+    var solid: Color { Self.primary }
+    var deep: Color { Self.primaryDeep }
 
     /// Very light background wash for cards/badges on the white surface.
-    var tint: Color { solid.opacity(0.12) }
-    var tintStrong: Color { solid.opacity(0.2) }
+    var tint: Color { solid.opacity(0.10) }
+    var tintStrong: Color { solid.opacity(0.18) }
 
     /// Flat two-stop gradient for hero surfaces — kept close in value, no gloss highlight.
     var gradient: LinearGradient {
         LinearGradient(colors: [solid, deep], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
-    var shadow: Color { solid.opacity(0.32) }
+    var shadow: Color { solid.opacity(0.28) }
 
     var title: String {
         switch self {

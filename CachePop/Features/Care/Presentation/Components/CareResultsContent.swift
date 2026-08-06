@@ -206,64 +206,6 @@ private struct ResultsTopBar: View {
     }
 }
 
-private struct CompactResultsSidebar: View {
-    var body: some View {
-        VStack(spacing: 31) {
-            Spacer()
-                .frame(height: 160)
-
-            ForEach(CareSidebarItem.mainItems) { item in
-                ZStack(alignment: .topTrailing) {
-                    RoundedRectangle(cornerRadius: 17, style: .continuous)
-                        .fill(item == .smartCare ? .white.opacity(0.12) : .clear)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 17, style: .continuous)
-                                .stroke(item == .smartCare ? .white.opacity(0.16) : .clear, lineWidth: 1)
-                        }
-                        .frame(width: 56, height: 56)
-
-                    Image(systemName: item.symbolName)
-                        .font(.system(size: 23, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(item.iconColor)
-                        .frame(width: 56, height: 56)
-
-                    if item == .smartCare || item == .applications {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 15, weight: .black))
-                            .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
-                            .offset(x: 7, y: -7)
-                    }
-                }
-            }
-
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(.white.opacity(0.22))
-                    .frame(width: 34, height: 34)
-
-                Image(systemName: CareSidebarItem.assistant.symbolName)
-                    .font(.system(size: 20, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(CareSidebarItem.assistant.iconColor)
-            }
-            .padding(.bottom, 42)
-        }
-        .frame(maxHeight: .infinity)
-        .background {
-            Rectangle()
-                .fill(.white.opacity(0.028))
-                .overlay(alignment: .trailing) {
-                    Rectangle()
-                        .fill(.white.opacity(0.08))
-                        .frame(width: 1)
-                }
-        }
-    }
-}
-
 private struct ScanResultCard: View {
     let result: ScanResult
     let snapshot: CareScanSnapshot
@@ -306,7 +248,7 @@ private struct ScanResultCard: View {
                 HStack(spacing: 9) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(accent.solid)
+                        .foregroundStyle(AppTheme.Status.success)
 
                     Text(result.status)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))

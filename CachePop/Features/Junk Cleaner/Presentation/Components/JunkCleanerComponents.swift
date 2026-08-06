@@ -4,70 +4,39 @@ struct CleanupIntroContent: View {
     let onScan: () -> Void
 
     var body: some View {
-        GeometryReader { proxy in
-            let scale = min(max(proxy.size.width / 930, 0.82), 1.05)
+        ZStack(alignment: .top) {
+            CleanupTopBar(title: "", showsStartOver: false, onStartOver: {})
 
-            ZStack {
-                CleanupTopBar(title: "", showsStartOver: false, onStartOver: {})
-
-                HStack(spacing: 74 * scale) {
-                    CleanupDisk()
-                        .frame(width: 390 * scale, height: 390 * scale)
-
-                    VStack(alignment: .leading, spacing: 30 * scale) {
-                        VStack(alignment: .leading, spacing: 18 * scale) {
-                            Text("Junk Cleaner")
-                                .font(.system(size: 54 * scale, weight: .light, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.textPrimary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.74)
-
-                            Text("Clean your system to achieve maximum\nperformance and reclaim more free space.")
-                                .font(.system(size: 22 * scale, weight: .medium, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.68))
-                                .lineSpacing(6)
-                        }
-                        .padding(.bottom, 16 * scale)
-
-                        CleanupFeatureRow(symbolName: "archivebox.fill", title: "System Junk", scale: scale)
-                        CleanupFeatureRow(symbolName: "envelope.fill", title: "Mail Attachments", scale: scale)
-                        CleanupFeatureRow(symbolName: "trash.fill", title: "Trash Bins", scale: scale)
-                    }
-                    .frame(width: 430 * scale, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .offset(y: -26 * scale)
-
-                CleanupCircleButton(title: "Scan", action: onScan)
-                    .frame(width: 104 * scale, height: 104 * scale)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                    .offset(y: 22 * scale)
-            }
-        }
-        .transition(.opacity.combined(with: .scale(scale: 0.985)))
-    }
-}
-
-struct CleanupFeatureRow: View {
-    let symbolName: String
-    let title: String
-    let scale: CGFloat
-
-    var body: some View {
-        HStack(spacing: 20 * scale) {
-            ZStack {
-                Circle()
-                    .fill(FeatureAccent.cleanup.tint)
-                    .frame(width: 34 * scale, height: 34 * scale)
-
-                Image(systemName: symbolName)
-                    .font(.system(size: 15 * scale, weight: .bold))
-                    .foregroundStyle(FeatureAccent.cleanup.solid)
-            }
-
-            Text(title)
-                .font(.system(size: 19 * scale, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.92))
+            FeatureIntroScreen(
+                symbolName: "trash.fill",
+                title: "Junk Cleaner",
+                subtitle: "Reclaim disk space by clearing caches, logs, and temporary files your Mac no longer needs.",
+                points: [
+                    FeatureIntroPoint(
+                        symbolName: "safari.fill",
+                        title: "Browser & App Caches",
+                        subtitle: "Safari, Chrome, Firefox, Edge, Brave, Arc"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "doc.text.fill",
+                        title: "Logs & Temporary Files",
+                        subtitle: "Crash reports, system logs, temp folders"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "hammer.fill",
+                        title: "Developer Junk",
+                        subtitle: "Xcode, simulators, npm, pip, Homebrew"
+                    ),
+                    FeatureIntroPoint(
+                        symbolName: "trash.fill",
+                        title: "Trash Bins",
+                        subtitle: "Items already sitting in your Trash"
+                    )
+                ],
+                actionTitle: "Scan for Junk",
+                action: onScan
+            )
+            .padding(.top, 52)
         }
     }
 }
@@ -467,106 +436,6 @@ struct CleanupDisk: View {
                 .foregroundStyle(FeatureAccent.cleanup.solid)
         }
         .aspectRatio(1, contentMode: .fit)
-    }
-}
-
-struct CleanupSidebar: View {
-    private let items: [CleanupSidebarItem] = [
-        .smartCare,
-        .cleanup,
-        .performance,
-        .applications,
-        .myClutter
-    ]
-
-    var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
-                .frame(height: 118)
-
-            ForEach(items) { item in
-                CleanupSidebarIcon(item: item)
-            }
-
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(.white.opacity(0.24))
-                    .frame(width: 34, height: 34)
-
-                Image(systemName: "circle.grid.cross.fill")
-                    .font(.system(size: 19, weight: .semibold))
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.82), AppTheme.Colors.border.opacity(0.6))
-            }
-            .padding(.bottom, 42)
-        }
-        .frame(maxHeight: .infinity)
-        .background {
-            Rectangle()
-                .fill(.white.opacity(0.03))
-                .overlay(alignment: .trailing) {
-                    Rectangle()
-                        .fill(.white.opacity(0.06))
-                        .frame(width: 1)
-                }
-        }
-    }
-}
-
-struct CleanupSidebarIcon: View {
-    let item: CleanupSidebarItem
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(item == .cleanup ? .white.opacity(0.11) : .clear)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .stroke(item == .cleanup ? .white.opacity(0.16) : .clear, lineWidth: 1)
-                }
-                .frame(width: 58, height: 58)
-
-            Image(systemName: item.symbolName)
-                .font(.system(size: 23, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(AppTheme.Colors.textPrimary.opacity(0.9), AppTheme.Colors.textTertiary.opacity(item == .cleanup ? 0.95 : 0.45))
-                .frame(width: 58, height: 58)
-
-            if item == .cleanup {
-                Circle()
-                    .fill(.white.opacity(0.78))
-                    .frame(width: 16, height: 16)
-                    .shadow(color: .white.opacity(0.65), radius: 4)
-                    .offset(x: 5, y: -5)
-            }
-        }
-    }
-}
-
-enum CleanupSidebarItem: String, Identifiable {
-    case smartCare
-    case cleanup
-    case performance
-    case applications
-    case myClutter
-
-    var id: String { rawValue }
-
-    var symbolName: String {
-        switch self {
-        case .smartCare:
-            "desktopcomputer"
-        case .cleanup:
-            "face.smiling.inverse"
-        case .performance:
-            "bolt.fill"
-        case .applications:
-            "shippingbox.fill"
-        case .myClutter:
-            "folder.fill"
-        }
     }
 }
 
