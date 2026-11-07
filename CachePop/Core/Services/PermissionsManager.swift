@@ -1,32 +1,43 @@
 import AppKit
 import Foundation
-import SwiftUI
 
+/// Tracks whether CachePop has Full Disk Access.
+///
+/// CachePop isn't sandboxed, so it can already read developer folders, run `simctl` and `brew`,
+/// and clean user caches. macOS's privacy layer (TCC) still hides a few places — the Trash,
+/// Safari's and some Apple apps' caches — unless the user grants Full Disk Access.
 @Observable
 @MainActor
 final class PermissionsManager {
     static let shared = PermissionsManager()
-    
-    var hasFullDiskAccess: Bool = false
-    
+
+    private(set) var hasFullDiskAccess = false
+
     private init() {
-        checkFullDiskAccess()
+        refresh()
     }
-    
-    func checkFullDiskAccess() {
-        // macOS checks FDA by seeing if it can list the contents of protected directories like Library/Application Support/com.apple.TCC
-        let path = "/Library/Application Support/com.apple.TCC"
-        var isDir: ObjCBool = false
-        if FileManager.default.fileExists(atPath: path, isDirectory: &isDir) {
-            let isReadable = FileManager.default.isReadableFile(atPath: path)
-            hasFullDiskAccess = isReadable
-        } else {
-            hasFullDiskAccess = false
-        }
+
+    /// Re-check, e.g. when the app becomes active after the user visited System Settings.
+    func refresh() {
+        hasFullDiskAccess = Self.probeFullDiskAccess()
     }
-    
+
     func requestFullDiskAccess() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// The system TCC database and the Trash are both readable only with Full Disk Access.
+    /// `isReadableFile` only checks POSIX bits, so actually try to open them.
+    nonisolated static func probeFullDiskAccess() -> Bool {
+        let tccDatabase = "/Library/Application Support/com.apple.TCC/TCC.db"
+        let descriptor = open(tccDatabase, O_RDONLY)
+        if descriptor >= 0 {
+            close(descriptor)
+            return true
+        }
+
+        let trash = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash").path
+        return (try? FileManager.default.contentsOfDirectory(atPath: trash)) != nil
     }
 }

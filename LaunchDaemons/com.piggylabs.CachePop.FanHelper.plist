@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.piggylabs.CachePop.FanHelper</string>
+	<key>BundleProgram</key>
+	<string>Contents/MacOS/CachePopFanHelper</string>
+	<key>MachServices</key>
+	<dict>
+		<key>com.piggylabs.CachePop.FanHelper</key>
+		<true/>
+	</dict>
+	<!-- Relaunched straight after a crash, so it hands every fan back to macOS as it starts and
+	     the heat watchdog is back, without waiting for CachePop's next request. A normal exit
+	     (unregistered, or the Mac shutting down) is left alone. -->
+	<key>KeepAlive</key>
+	<dict>
+		<key>Crashed</key>
+		<true/>
+	</dict>
+	<key>AssociatedBundleIdentifiers</key>
+	<array>
+		<string>com.piggylabs.CachePop</string>
+	</array>
+</dict>
+</plist>

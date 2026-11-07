@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '' '32s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/' \"CachePop/Features/Clutter/Presentation/Components/MyClutterBottomBar.swift\")",
+      "Bash(sed -i '' '25s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/;86s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/' \"CachePop/Features/Clutter/Presentation/Components/ClutterScanningContent.swift\")",
+      "Bash(sed -i '' '19s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/' \"CachePop/Features/Clutter/Presentation/Components/MyClutterToolbar.swift\")",
+      "Bash(sed -i '' '146s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/' \"CachePop/Features/Clutter/Presentation/Components/ClutterSummaryCards.swift\")",
+      "Bash(sed -i '' '26s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/;37s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/;65s/buttonStyle\\(\\\\.plain\\)/buttonStyle\\(.appInteractive\\)/' \"CachePop/Features/Clutter/Presentation/Components/ClutterResultsSummaryContent.swift\")",
+      "Bash(xcodebuild -project CachePop.xcodeproj -scheme CachePop -configuration Debug -destination 'platform=macOS' build)",
+      "Bash(open \"/Users/vasanth/Library/Developer/Xcode/DerivedData/CachePop-aszqbgiyscwhnvbbvpxkjsuycqlx/Build/Products/Debug/CachePop.app\")",
+      "Bash(osascript -e 'tell application \"System Events\" to tell process \"CachePop\" to get name of every window')",
+      "Bash(osascript -e 'tell application \"CachePop\" to activate')",
+      "Bash(screencapture -x /private/tmp/claude-501/-Users-vasanth-Desktop-Code-Work-MacOS-CachePop/ce1a8a02-91c1-4777-b98d-5f7884cce679/scratchpad/app_screenshot.png)",
+      "Bash(system_profiler SPDisplaysDataType)",
+      "Bash(screencapture -x /tmp/test_screenshot.png)",
+      "Read(//tmp/**)",
+      "Bash(osascript -e 'tell application \"CachePop\" to quit')",
+      "Bash(pkill -x CachePop)"
+    ]
+  }
+}
