@@ -10,6 +10,7 @@ nonisolated enum CleanupGroupKind: String, CaseIterable, Identifiable, Sendable 
     case devices
     case leftovers
     case general
+    case browsers
 
     var id: String { rawValue }
 
@@ -21,6 +22,7 @@ nonisolated enum CleanupGroupKind: String, CaseIterable, Identifiable, Sendable 
         case .devices:         "iPhone & iPad"
         case .leftovers:       "Deleted apps & projects"
         case .general:         "App caches, logs & Trash"
+        case .browsers:        "Browser history & cookies"
         }
     }
 
@@ -32,18 +34,20 @@ nonisolated enum CleanupGroupKind: String, CaseIterable, Identifiable, Sendable 
         case .devices:         "ipad.and.iphone"
         case .leftovers:       "app.dashed"
         case .general:         "archivebox"
+        case .browsers:        "safari"
         }
     }
 
     /// What the scanner looks at, in plain words — shown while scanning and on the start screen.
     var scanDescription: String {
         switch self {
-        case .xcode:           "Derived data, device support, Xcode caches and old archives"
+        case .xcode:           "Derived data, device support, device crash logs, Xcode caches and old archives"
         case .simulators:      "Simulators, test clones, runtimes and Android emulators"
-        case .developerCaches: "npm, Gradle, SwiftPM, CocoaPods, Homebrew, Docker and other tool caches"
+        case .developerCaches: "npm, Gradle, SwiftPM, CocoaPods, Homebrew, Docker, local AI models and other tool caches"
         case .devices:         "Device backups and iOS update files"
-        case .leftovers:       "Data left by apps you've deleted, and by coding tools for projects you've removed"
-        case .general:         "App caches, web caches inside apps, old logs, installers in Downloads and the Trash"
+        case .leftovers:       "Data and broken login items left by apps you've deleted, and coding tools' data for projects you've removed"
+        case .general:         "App caches, Safari's cache, Mail attachments, old logs, installers in Downloads, Time Machine snapshots and the Trash"
+        case .browsers:        "History and cookies in Safari, Chrome, Firefox, Brave, Edge, Arc and Vivaldi. Never ticked for you"
         }
     }
 }

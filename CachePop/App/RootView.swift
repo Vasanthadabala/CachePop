@@ -65,6 +65,8 @@ struct RootView: View {
             CleanUpView(model: model.cleanUp, disk: model.disk, history: model.history, isShowingHistory: $model.isShowingHistory)
         case .largeFiles:
             LargeFilesView(model: model.largeFiles)
+        case .photos:
+            PhotosView(model: model.photos)
         case .systemMonitor:
             SystemMonitorView(model: model.monitor, fanControl: model.fanControl, disk: model.disk,
                               onOpenMenuBarSettings: {

@@ -39,10 +39,10 @@ struct CachePopApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        // The temperature and the fan speed, each in a menu bar item of its own. Both open the
-        // same panel as CachePop's icon.
+        // The temperature and the fan speed, each in a menu bar item of its own. The temperature
+        // opens the CPU, SSD and memory temperatures; the fan speed, CachePop's own panel.
         MenuBarExtra(isInserted: setting(\.menuBarShowsTemperature)) {
-            MenuBarContent(model: model)
+            TemperatureMenuContent(model: model)
         } label: {
             MenuBarReadingLabel(model: model, reading: .temperature)
         }

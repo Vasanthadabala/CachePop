@@ -240,6 +240,8 @@ nonisolated struct TemperatureSample: Sendable, Equatable {
     var chipMax: Double?
     var ssd: Double?
     var battery: Double?
+    /// From the SMC, not the HID sensors (see `MemoryTemperature`). nil where there's no sensor.
+    var memory: Double?
 
     /// Groups raw sensor readings: Apple silicon reports "PMU tdie…" for the chip, "NAND…" for the
     /// SSD and "gas gauge battery" for the battery. Readings outside 1–130 °C are sensor noise.
@@ -258,6 +260,30 @@ nonisolated struct TemperatureSample: Sendable, Equatable {
             ssd: average(lower.filter { $0.name.contains("nand") || $0.name.contains("ssd") }.map(\.celsius)),
             battery: average(lower.filter { $0.name.contains("battery") }.map(\.celsius))
         )
+    }
+}
+
+/// The memory's temperature, which only the SMC reports. Its sensor names differ from chip to
+/// chip, so CachePop looks for them once among all of the SMC's keys.
+nonisolated enum MemoryTemperature {
+    /// Apple silicon names memory sensors "Tm" and a digit (Tm02 on M1, Tm0B on M4, Tm0p on M4
+    /// Pro), though "Tm0P" is the mainboard. Intel Macs use "TM0P" and memory riser slots "TMA1".
+    static func keys(in keys: [String]) -> [String] {
+        keys.filter { key in
+            let c = Array(key)
+            guard c.count == 4, c[0] == "T" else { return false }
+            switch c[1] {
+            case "m": return c[2].isNumber && c[3] != "P"
+            case "M": return (c[2].isNumber && "PS".contains(c[3])) || ("AB".contains(c[2]) && c[3].isNumber)
+            default: return false
+            }
+        }
+    }
+
+    /// The sensors' average, leaving out readings outside 1–130 °C (sensor noise).
+    static func average(_ readings: [Double]) -> Double? {
+        let valid = readings.filter { $0 > 1 && $0 < 130 }
+        return valid.isEmpty ? nil : valid.reduce(0, +) / Double(valid.count)
     }
 }
 

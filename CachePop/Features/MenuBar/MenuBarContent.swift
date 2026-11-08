@@ -211,7 +211,8 @@ private struct MiniStat: View {
     }
 }
 
-private struct MenuRow: View {
+/// A row of a menu bar panel's menu: a symbol and a title, with a hover wash.
+struct MenuRow: View {
     let title: String
     let symbol: String
     let action: () -> Void

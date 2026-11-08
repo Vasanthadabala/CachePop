@@ -9,6 +9,7 @@ extension AppSection {
         switch self {
         case .cleanUp:       AppTheme.Palette.blue
         case .largeFiles:    AppTheme.Palette.sky
+        case .photos:        AppTheme.Palette.violet
         case .systemMonitor: AppTheme.Palette.green
         case .diskUsage:     AppTheme.Palette.rose
         case .apps:          AppTheme.Palette.teal
@@ -28,6 +29,7 @@ extension CleanupGroupKind {
         case .devices:         AppTheme.Palette.green
         case .leftovers:       AppTheme.Palette.graphite
         case .general:         AppTheme.Palette.rose
+        case .browsers:        AppTheme.Palette.violet
         }
     }
 }

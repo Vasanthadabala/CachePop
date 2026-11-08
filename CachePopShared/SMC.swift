@@ -36,6 +36,7 @@ nonisolated final class SMC: @unchecked Sendable {
 
     private static let readKeyCommand: UInt8 = 5
     private static let writeKeyCommand: UInt8 = 6
+    private static let keyAtIndexCommand: UInt8 = 8
     private static let readKeyInfoCommand: UInt8 = 9
     private static let handleEvent: UInt32 = 2
 
@@ -103,6 +104,21 @@ nonisolated final class SMC: @unchecked Sendable {
     func number(_ key: String) -> Double? {
         guard let value = read(key) else { return nil }
         return Self.decode(type: value.type, bytes: value.bytes)
+    }
+
+    /// Every key this Mac's SMC has, to find which sensors it reports. Thousands of calls: look
+    /// once and keep the answer.
+    func allKeys() -> [String] {
+        guard let count = number("#KEY"), count > 0 else { return [] }
+        lock.lock()
+        defer { lock.unlock() }
+        return (0..<UInt32(min(count, 10_000))).compactMap { index in
+            var request = Message()
+            request.command = Self.keyAtIndexCommand
+            request.data32 = index
+            guard let key = call(&request)?.key else { return nil }
+            return String(bytes: withUnsafeBytes(of: key.bigEndian) { Array($0) }, encoding: .ascii)
+        }
     }
 
     var fanCount: Int { Int(number("FNum") ?? 0) }

@@ -4,6 +4,7 @@ import SwiftUI
 enum AppSection: String, CaseIterable, Identifiable {
     case cleanUp
     case largeFiles
+    case photos
     case systemMonitor
     case diskUsage
     case apps
@@ -14,12 +15,13 @@ enum AppSection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     /// The sections listed in the sidebar and the View menu, in order.
-    static let navigation: [AppSection] = [.cleanUp, .largeFiles, .systemMonitor, .diskUsage, .apps, .loginItems]
+    static let navigation: [AppSection] = [.cleanUp, .largeFiles, .photos, .systemMonitor, .diskUsage, .apps, .loginItems]
 
     var title: String {
         switch self {
         case .cleanUp:    "Clean Up"
         case .largeFiles: "Large Files"
+        case .photos:     "Photos"
         case .systemMonitor: "System Monitor"
         case .diskUsage:  "Disk Usage"
         case .apps:       "Applications"
@@ -32,6 +34,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         switch self {
         case .cleanUp:    "trash"
         case .largeFiles: "doc.on.doc"
+        case .photos:     "photo.on.rectangle.angled"
         case .systemMonitor: "gauge.with.dots.needle.50percent"
         case .diskUsage:  "chart.pie"
         case .apps:       "square.grid.2x2"
@@ -40,7 +43,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         }
     }
 
-    /// ⌘1 … ⌘6, in sidebar order. Settings uses ⌘, instead.
+    /// ⌘1 … ⌘7, in sidebar order. Settings uses ⌘, instead.
     var shortcut: KeyEquivalent {
         if self == .settings { return "," }
         return KeyEquivalent(Character(String((Self.navigation.firstIndex(of: self) ?? 0) + 1)))
@@ -57,6 +60,7 @@ final class AppModel {
     let history: CleanHistory
     let cleanUp: CleanUpViewModel
     let largeFiles: LargeFilesViewModel
+    let photos: PhotosViewModel
     let diskUsage: DiskUsageViewModel
     let monitor: SystemMonitorViewModel
     let fanControl: FanControlViewModel
@@ -94,6 +98,9 @@ final class AppModel {
         self.notifications = notifications ?? SystemNotifications()
         cleanUp = CleanUpViewModel(engine: CleanupEngine(env: environment))
         largeFiles = LargeFilesViewModel(home: environment.home, settings: settings)
+        // Demo mode runs against a fixture home, and must never read the real Photos library.
+        photos = PhotosViewModel(home: environment.home,
+                                 allowsLibrary: environment.home.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL)
         diskUsage = DiskUsageViewModel(home: environment.home)
         monitor = SystemMonitorViewModel(fanSource: fanSource)
         fanControl = FanControlViewModel(controller: fanController ?? LiveFanController())
@@ -119,6 +126,7 @@ final class AppModel {
         }
         cleanUp.onAlwaysSkip = { [settings] item in settings.neverClean(item: item) }
         largeFiles.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
+        photos.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
         apps.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
     }
 
@@ -238,6 +246,8 @@ final class AppModel {
             if cleanUp.phase != .cleaning && cleanUp.phase != .scanning { cleanUp.scan() }
         case .largeFiles:
             if largeFiles.phase != .scanning { largeFiles.scan() }
+        case .photos:
+            if photos.phase != .scanning { photos.scan() }
         case .diskUsage:
             diskUsage.rescan()
         case .systemMonitor:

@@ -47,6 +47,24 @@ struct SystemMonitorTests {
         #expect(TemperatureSample.from([]).chip == nil)
     }
 
+    @Test func memorySensorsAreFoundAmongTheSMCKeys() {
+        let keys = ["Tm0B", "Tm02", "Tm0p", "Tm0P", "TMVR", "TM0P", "TM0S", "TMA1", "TMB4", "Tp01", "TH0x", "Tm", "#KEY"]
+        // M4 (Tm0B), M1 (Tm02), M4 Pro (Tm0p) and Intel (TM0P, TM0S, the riser slots). Not the
+        // mainboard (Tm0P), a voltage regulator (TMVR) or other sensors.
+        #expect(MemoryTemperature.keys(in: keys) == ["Tm0B", "Tm02", "Tm0p", "TM0P", "TM0S", "TMA1", "TMB4"])
+        #expect(MemoryTemperature.average([40, 42, -21.7, 0]) == 41)
+        #expect(MemoryTemperature.average([]) == nil)
+    }
+
+    @MainActor
+    @Test func temperaturePanelShowsTheSensorsThisMacHas() {
+        #expect(TemperatureMenuContent.rows(nil).map(\.title) == ["CPU"])
+        let all = TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39, battery: 34, memory: 40))
+        #expect(all.map(\.title) == ["CPU", "SSD", "Memory", "Battery"])
+        #expect(all.map(\.celsius) == [41, 39, 40, 34])
+        #expect(TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39)).map(\.title) == ["CPU", "SSD"])
+    }
+
     @Test func smcNumbersDecode() {
         let floatBytes = withUnsafeBytes(of: Float(2_412.5).bitPattern.littleEndian) { Array($0) }
         #expect(SMC.decode(type: "flt ", bytes: floatBytes) == 2_412.5)
@@ -98,6 +116,7 @@ struct SystemMonitorTests {
         #expect((0...1).contains(snapshot.cpu.total))
         #expect(!(snapshot.processes ?? []).isEmpty)
         if let chip = snapshot.temperatures.chip { #expect((1...130).contains(chip)) }
+        if let memory = snapshot.temperatures.memory { #expect((1...130).contains(memory)) }
         for fan in snapshot.fans { #expect(fan.rpm >= 0) }
     }
 }
