@@ -394,15 +394,14 @@ private struct UsageBar: View {
     }
 }
 
-/// The disk on its own, as a card (menu bar panel).
-struct DiskSpaceCard: View {
+/// The disk summary in the menu bar panel.
+struct MenuBarDiskSummary: View {
     let disk: DiskInfo
     var isLow = false
 
     var body: some View {
         DiskSummary(disk: disk, isLow: isLow)
             .padding(10)
-            .card(radius: 12)
     }
 }
 

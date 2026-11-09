@@ -348,8 +348,8 @@ private struct TemperatureCard: View {
             }
 
             HStack(spacing: AppTheme.Spacing.m) {
-                if let hottest = temperatures.chipMax {
-                    StatRow(label: "Hottest", value: SystemMonitorViewModel.temperature(hottest))
+                if let memory = temperatures.memory {
+                    StatRow(label: "Memory", value: SystemMonitorViewModel.temperature(memory))
                 }
                 if let ssd = temperatures.ssd {
                     StatRow(label: "SSD", value: SystemMonitorViewModel.temperature(ssd))

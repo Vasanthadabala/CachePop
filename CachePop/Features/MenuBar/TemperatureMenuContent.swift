@@ -26,7 +26,6 @@ struct TemperatureMenuContent: View {
                     TemperatureRow(row: row, isHot: row.title == "CPU" && monitor.isHot)
                 }
             }
-            .card(radius: 10)
 
             VStack(spacing: 2) {
                 MenuRow(title: "System Monitor", symbol: AppSection.systemMonitor.symbolName) {
@@ -42,7 +41,6 @@ struct TemperatureMenuContent: View {
         }
         .padding(AppTheme.Spacing.m)
         .frame(width: 260)
-        .background(AppTheme.Colors.canvas)
         .onAppear { monitor.begin("menu") }
         .onDisappear { monitor.end("menu") }
     }

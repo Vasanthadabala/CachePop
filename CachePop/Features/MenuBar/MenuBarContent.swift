@@ -73,7 +73,7 @@ struct MenuBarReadingLabel: View {
     }
 }
 
-/// The panel that opens from the menu bar: free space, the last clean, and a scan.
+/// The panel that opens from the menu bar: free space, live readings, and a scan.
 struct MenuBarContent: View {
     let model: AppModel
     @Environment(\.dismiss) private var dismiss
@@ -98,7 +98,7 @@ struct MenuBarContent: View {
                 .help("Settings")
             }
 
-            DiskSpaceCard(disk: model.disk, isLow: model.isLowOnSpace)
+            MenuBarDiskSummary(disk: model.disk, isLow: model.isLowOnSpace)
 
             if let snapshot = model.monitor.snapshot {
                 HStack(spacing: AppTheme.Spacing.xs) {
@@ -144,7 +144,6 @@ struct MenuBarContent: View {
         }
         .padding(AppTheme.Spacing.m)
         .frame(width: 300)
-        .background(AppTheme.Colors.canvas)
         .onAppear {
             model.refreshDisk()
             model.monitor.begin("menu")
@@ -158,9 +157,7 @@ struct MenuBarContent: View {
         case .cleaning: return "Cleaning…"
         case .review where cleanUp.result.reclaimableBytes > 0:
             return "\(ByteSize.string(cleanUp.result.reclaimableBytes)) found, waiting for your review."
-        default:
-            guard let last = model.history.lastClean else { return nil }
-            return "Last clean freed \(ByteSize.string(last.freedBytes)), \(last.date.formatted(.relative(presentation: .named)))."
+        default: return nil
         }
     }
 
@@ -207,7 +204,6 @@ private struct MiniStat: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 7)
-        .card(radius: 10)
     }
 }
 
