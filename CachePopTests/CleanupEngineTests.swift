@@ -55,14 +55,13 @@ struct CleanupEngineTests {
         let result = await engine.scan()
         #expect(result.groups.map(\.kind) == CleanupGroupKind.allCases)
 
-        // Preselected: regenerable things only.
+        // Regenerable items outside the manual categories can start selected.
         let recommended = Set(result.allItems.filter(\.isRecommended).map(\.id))
         #expect(recommended.isSuperset(of: [
             "xcode.derivedData", "xcode.deviceSupport.iOS DeviceSupport", "simulators.caches",
-            "simulators.testingClones", "simulators.unavailable", "dev.npm",
-            "dev.swiftpm", "general.appCaches", "general.logs"
+            "simulators.testingClones", "simulators.unavailable", "general.appCaches", "general.logs"
         ]))
-        #expect(!recommended.contains("dev.gradleCaches"), "Gradle is slow to rebuild, so it starts unticked")
+        #expect(result.allItems.filter { $0.group == .developerCaches }.allSatisfy { !$0.isRecommended })
         #expect(!recommended.contains("general.trash"))
         #expect(!recommended.contains("general.installers"))
         #expect(!recommended.contains("simulators.device.IPHONE16"))
@@ -73,13 +72,14 @@ struct CleanupEngineTests {
         #expect(fixture.children("Library/Developer/Xcode/DerivedData").isEmpty)
         #expect(fixture.exists("Library/Developer/Xcode/DerivedData"))
         #expect(fixture.children("Library/Developer/Xcode/iOS DeviceSupport").isEmpty)
-        #expect(fixture.children(".npm").isEmpty)
+        #expect(fixture.exists(".npm/_cacache/index-v5/aa"), "Developer caches stay untouched unless selected")
+        #expect(fixture.exists("Library/Caches/org.swift.swiftpm/repositories/pkg"))
         #expect(!fixture.children(".gradle/caches").isEmpty, "unticked, so left alone")
         #expect(fixture.children("Library/Caches/com.example.app").isEmpty)
         #expect(!fixture.exists("Library/Logs/old.log"))
         #expect(fixture.exists("Library/Logs/new.log"))
 
-        // Unselected and personal data are untouched; the symlink went, its target didn't.
+        // Unselected and personal data are untouched.
         #expect(fixture.exists("Downloads/Installer.dmg"))
         #expect(fixture.exists(".Trash/thrown-away.zip"))
         #expect(fixture.exists("Documents/thesis.pages"))

@@ -375,7 +375,8 @@ private struct MenuBarSettings: View {
             }
         }
 
-        SettingsCard("Readings", symbol: "thermometer.medium") {
+        SettingsCard("Readings", symbol: "thermometer.medium",
+                     footer: "⌘Q keeps the menu bar items running and removes CachePop from the Dock and app switcher. Open CachePop from the menu bar to return. Choose Quit CachePop to stop everything.") {
             SettingsRow(title: "Show temperature",
                         detail: "The chip's temperature in its own menu bar item. Click it for the CPU, SSD and memory temperatures.") {
                 SettingsSwitch(isOn: $settings.menuBarShowsTemperature)
@@ -398,9 +399,9 @@ private struct CleanUpSettings: View {
 
     var body: some View {
         SettingsCard("What starts ticked", symbol: "checkmark.circle",
-                     footer: "Only things that come back on their own or download again start ticked. Big downloads start unticked, so a clean never means a long wait the next time you build.") {
+                     footer: "Developer caches and browser history and cookies always start unticked. Other items that come back on their own or download again may start ticked; big downloads start unticked.") {
             SettingsRow(title: "Untick downloads that are",
-                        detail: "Package caches, simulator runtimes and other things fetched again when needed.") {
+                        detail: "For other categories, leave large downloads unchecked.") {
                 Picker("Untick downloads that are", selection: $settings.redownloadThreshold) {
                     ForEach(RedownloadThreshold.allCases) { Text($0.title).tag($0) }
                 }

@@ -152,8 +152,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         }
     }
 
-    /// Fans on a fixed speed go back to macOS before CachePop quits. (The helper also does
-    /// this on its own when CachePop disconnects.)
+    /// Explicit Quit (including the Dock's Quit), logout and shutdown all exit completely.
+    /// Custom fan speeds return to macOS before terminating. ⌘Q enters menu-bar-only mode
+    /// directly, without asking the application to terminate.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let fanControl = Self.model?.fanControl, fanControl.isCustom else { return .terminateNow }
         // Whichever comes first: the fans are released, or three seconds pass.
@@ -167,6 +168,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             reply.send()
         }
         return .terminateLater
+    }
+
+    /// Reopening CachePop from Finder or a pinned Dock icon restores its main window and Dock presence.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if sender.activationPolicy() == .accessory || sender.isHidden || !hasVisibleWindows, let model = Self.model {
+            model.show(model.section ?? .cleanUp)
+        }
+        return true
     }
 
     /// With a menu bar item showing, closing the window leaves CachePop running for alerts; so

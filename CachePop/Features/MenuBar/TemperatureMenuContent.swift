@@ -37,6 +37,8 @@ struct TemperatureMenuContent: View {
                         model.show(.settings)
                     }
                 }
+                Divider().padding(.vertical, 2)
+                MenuRow(title: "Quit CachePop", symbol: "power") { model.quitCompletely() }
             }
         }
         .padding(AppTheme.Spacing.m)

@@ -359,7 +359,7 @@ struct NeverCleanTests {
 @Suite("Cleanup settings")
 struct CleanupSettingsTests {
     private func download(bytes: Int64) -> CleanupItem {
-        CleanupItem(id: "dev.x", group: .developerCaches, title: "X", explanation: "", sizeBytes: bytes,
+        CleanupItem(id: "general.download", group: .general, title: "X", explanation: "", sizeBytes: bytes,
                     actions: [CleanupAction(id: "delete", title: "Delete", operation: .delete([]),
                                             regeneration: .redownloaded, explanation: "")],
                     isRecommended: true)

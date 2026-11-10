@@ -139,7 +139,12 @@ struct MenuBarContent: View {
                 MenuRow(title: "Disk Usage", symbol: AppSection.diskUsage.symbolName) { close { model.show(.diskUsage) } }
                 MenuRow(title: "History", symbol: "clock.arrow.circlepath") { close(model.showHistory) }
                 Divider().padding(.vertical, 2)
-                MenuRow(title: "Quit CachePop", symbol: "power") { NSApp.terminate(nil) }
+                if model.settings.showsAnyMenuBarItem {
+                    MenuRow(title: "Keep Running in Menu Bar", symbol: "menubar.rectangle") {
+                        close(model.keepRunningInMenuBar)
+                    }
+                }
+                MenuRow(title: "Quit CachePop", symbol: "power") { model.quitCompletely() }
             }
         }
         .padding(AppTheme.Spacing.m)

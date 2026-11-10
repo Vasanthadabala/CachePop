@@ -43,7 +43,7 @@ nonisolated enum CleanupGroupKind: String, CaseIterable, Identifiable, Sendable 
         switch self {
         case .xcode:           "Derived data, device support, device crash logs, Xcode caches and old archives"
         case .simulators:      "Simulators, test clones, runtimes and Android emulators"
-        case .developerCaches: "npm, Gradle, SwiftPM, CocoaPods, Homebrew, Docker, local AI models and other tool caches"
+        case .developerCaches: "npm, Gradle, SwiftPM, CocoaPods, Homebrew, Docker, local AI models and other tool caches. Never ticked for you"
         case .devices:         "Device backups and iOS update files"
         case .leftovers:       "Data and broken login items left by apps you've deleted, and coding tools' data for projects you've removed"
         case .general:         "App caches, Safari's cache, Mail attachments, old logs, installers in Downloads, Time Machine snapshots and the Trash"
@@ -241,13 +241,18 @@ nonisolated enum RecommendationPolicy {
     /// it costs a long re-download the next time a project builds. 100 MB as Finder counts it.
     static let largeDownloadThreshold: Int64 = 100_000_000
 
-    /// `threshold` comes from Settings; nil keeps every re-download ticked.
+    /// `threshold` comes from Settings; nil skips the size rule. Developer caches and browser
+    /// history and cookies always require manual selection.
     static func apply(to item: CleanupItem, threshold: Int64? = largeDownloadThreshold) -> CleanupItem {
+        var item = item
+        if item.group == .developerCaches || item.group == .browsers {
+            item.isRecommended = false
+            return item
+        }
         guard let threshold,
               item.isRecommended,
               item.defaultAction.regeneration == .redownloaded,
               item.sizeBytes > threshold else { return item }
-        var item = item
         item.isRecommended = false
         item.note = "Unticked because it's over \(ByteSize.string(threshold)) to download again. Tick it when you need the space."
         return item
@@ -341,7 +346,7 @@ nonisolated struct CleanupReport: Sendable, Equatable {
 
 /// The user's choices from Settings that change what a scan offers and what a clean touches.
 nonisolated struct CleanupSettings: Sendable, Equatable {
-    /// Re-downloads bigger than this start unticked; nil keeps them ticked.
+    /// Re-downloads bigger than this start unticked; nil skips this size rule.
     var largeDownloadThreshold: Int64? = RecommendationPolicy.largeDownloadThreshold
     /// Logs younger than this are kept.
     var logAge: TimeInterval = 7 * 86_400

@@ -46,7 +46,7 @@ Most cleaners show one big number and a "Clean" button. CachePop shows you **wha
 |---|---|
 | **Xcode** | Derived data, iOS device support, old device crash logs, Xcode caches, archives older than 3 months |
 | **Simulators & emulators** | Parallel-testing clones, SwiftUI preview simulators, broken simulators, unused runtimes, every simulator and Android emulator (erase or delete), unused Android system images |
-| **Developer caches** | npm, Yarn, Bun, Gradle, SwiftPM, CocoaPods, pip, Go, Cargo, Maven, Flutter, Android SDK, JetBrains, Playwright, Deno, Codex, Docker, Homebrew, `~/.cache`, and local AI models from Ollama and LM Studio |
+| **Developer caches** | npm, Yarn, Bun, Gradle, SwiftPM, CocoaPods, pip, Go, Cargo, Maven, Flutter, Android SDK, JetBrains, Playwright, Deno, Codex, Docker, Homebrew, `~/.cache`, and local AI models from Ollama and LM Studio. Never ticked for you |
 | **iPhone & iPad** | Device backups Finder made, and iOS update files |
 | **Deleted apps & projects** | Data left by apps you've removed, broken login items, and Claude Code, Codex and editor data for project folders that no longer exist |
 | **App caches, logs & Trash** | App caches, Safari's cache, web caches inside apps (Claude, VS Code, Slack…), Mail attachments, old logs and crash reports, installers in Downloads, Time Machine local snapshots, the Trash |
@@ -56,6 +56,7 @@ Most cleaners show one big number and a "Clean" button. CachePop shows you **wha
 
 - **CachePop menu:** free space, your last clean, and a quick scan.
 - **Live readings (optional):** chip temperature and fan speed, each as its own menu bar item.
+- **Keep readings running:** when a menu bar item is enabled, ⌘Q switches CachePop to menu-bar-only mode, removing it from the Dock and app switcher. Reopen the main window from the menu bar or Finder. Choose **Quit CachePop** in a menu bar popup or the Dock's Quit command to stop everything.
 - **Temperature panel:** CPU, SSD, memory and battery temperatures at a glance.
 - **Low-space alerts:** one notification when free space drops below the level you pick, at most once a day.
 
@@ -74,7 +75,7 @@ flowchart LR
 ```
 
 1. **Scan.** All scanners run at the same time and each group appears as soon as it's ready.
-2. **Review.** Safe items start ticked; anything permanent, like erasing a simulator or emptying the Trash, starts unticked.
+2. **Review.** Developer caches, browser history and cookies always start unticked. Other safe items may start ticked; anything permanent, like erasing a simulator or emptying the Trash, starts unticked.
 3. **Confirm.** A sheet lists exactly what will happen, grouped by whether it comes back.
 4. **Clean.** Every path is checked again by `PathSafety`, and booted simulators, running builds and open apps are skipped.
 5. **Measure.** CachePop reads the free space on the disk before and after, and saves the result in **History** (⌘Y).
@@ -129,6 +130,8 @@ Then pick the **CachePop** scheme and press **⌘R**.
 | ⌘R | Scan again |
 | ⇧⌘⌫ | Clean selected |
 | ⌘Y | History |
+| ⌘Q | Switch to menu-bar-only mode when a menu bar item is enabled; otherwise quit |
+| ⌥⌘Q | Quit completely, including menu bar readings (while a menu bar item is enabled) |
 
 ---
 
@@ -179,9 +182,16 @@ Add `-CachePopDemo` under **Product › Scheme › Edit Scheme › Run › Argum
 
 ### Make a release DMG
 
-`scripts/make-dmg.sh` archives a Release build, signs it with your Developer ID, puts it in a disk image next to an Applications shortcut, then notarizes and staples the disk image. The DMG lands in `build/`.
+`scripts/make-dmg.sh` archives a Release build, signs it with your Developer ID, and packages a branded drag-to-install window with a Retina background and fixed icon positions. It then notarizes and staples the disk image. The DMG lands in `build/`.
 
 You need to set these up once:
+
+Install the Finder layout tool in an isolated build folder:
+
+```bash
+python3 -m venv build/dmg-tools
+build/dmg-tools/bin/python -m pip install -r scripts/dmg-requirements.txt
+```
 
 1. A **Developer ID Application** certificate. Create it in **Xcode › Settings › Accounts › Manage Certificates › + › Developer ID Application**.
 2. Notary credentials saved in your keychain. The command asks for an app-specific password, which you can create at account.apple.com under **Sign-In and Security**:
@@ -197,6 +207,8 @@ scripts/make-dmg.sh
 ```
 
 Before you have the certificate, `scripts/make-dmg.sh --dev` makes the same DMG signed with your development certificate. Use it only to check the disk image on your own Mac. `--help` lists the other options.
+
+After changing the installer artwork or layout, `scripts/make-dmg.sh --dev --repackage` rebuilds the DMG using the existing exported app without compiling it again.
 
 ---
 

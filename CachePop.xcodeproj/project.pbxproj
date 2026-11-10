@@ -518,8 +518,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "CachePop lists the apps that open when you log in and switches them on or off for you.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CachePop looks through your Photos library for similar, blurry, dark and overexposed shots. Nothing is removed unless you choose it.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CachePop looks through your Photos library for similar, blurry, dark and overexposed shots. Nothing is removed unless you choose it.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -556,8 +556,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "CachePop lists the apps that open when you log in and switches them on or off for you.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CachePop looks through your Photos library for similar, blurry, dark and overexposed shots. Nothing is removed unless you choose it.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "CachePop looks through your Photos library for similar, blurry, dark and overexposed shots. Nothing is removed unless you choose it.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

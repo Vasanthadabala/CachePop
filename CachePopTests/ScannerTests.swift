@@ -285,16 +285,25 @@ struct ScannerEdgeCaseTests {
 
 @Suite("Default selection")
 struct RecommendationPolicyTests {
-    private func item(_ id: String, bytes: Int64, regeneration: Regeneration, recommended: Bool = true) -> CleanupItem {
+    private func item(_ id: String, bytes: Int64, regeneration: Regeneration, group: CleanupGroupKind = .general, recommended: Bool = true) -> CleanupItem {
         CleanupItem(
             id: id,
-            group: .developerCaches,
+            group: group,
             title: id,
             explanation: "",
             sizeBytes: bytes,
             actions: [CleanupAction(id: "delete", title: "Delete", operation: .deleteContents([]), regeneration: regeneration, explanation: "")],
             isRecommended: recommended
         )
+    }
+
+    @Test(arguments: [CleanupGroupKind.developerCaches, .browsers])
+    func manualCategoriesStayUntickedRegardlessOfDownloadSetting(_ group: CleanupGroupKind) {
+        for regeneration in [Regeneration.automatic, .redownloaded, .permanent] {
+            let candidate = item("manual", bytes: 20_000, regeneration: regeneration, group: group)
+            #expect(!RecommendationPolicy.apply(to: candidate).isRecommended)
+            #expect(!RecommendationPolicy.apply(to: candidate, threshold: nil).isRecommended)
+        }
     }
 
     @Test func largeRedownloadsStartUnticked() {
@@ -319,7 +328,7 @@ struct RecommendationPolicyTests {
     }
 
     @Test func groupKeepsTickedItemsFirst() {
-        let group = CleanupGroup(kind: .developerCaches, items: [
+        let group = CleanupGroup(kind: .general, items: [
             item("big", bytes: 900_000_000, regeneration: .redownloaded),
             item("small", bytes: 20_000_000, regeneration: .redownloaded)
         ])
@@ -330,17 +339,36 @@ struct RecommendationPolicyTests {
         #expect(updated.items.map(\.isRecommended) == [true, false])
     }
 
-    @Test func scanAppliesTheRule() async throws {
+    @MainActor
+    @Test func scanLeavesManualCategoriesUntickedAndAllowsManualSelection() async throws {
         let fixture = try Fixture()
         try fixture.file(".npm/_cacache/index", bytes: 20_000)
+        try fixture.file(".codex/cache/catalog.json", bytes: 20_000)
+        try fixture.file("Library/Application Support/Google/Chrome/Default/Preferences", bytes: 100)
+        try fixture.file("Library/Application Support/Google/Chrome/Default/History", bytes: 20_000)
+        try fixture.file("Library/Application Support/Google/Chrome/Default/Network/Cookies", bytes: 20_000)
+        try fixture.file("Library/Caches/com.example.app/cache", bytes: 20_000)
         let simctl = FakeSimctl(brewDryRun: "==> This operation would free approximately 1.2GB of disk space.")
         let engine = CleanupEngine(env: fixture.environment(simctl: simctl, withBrew: true))
+        let model = CleanUpViewModel(engine: engine)
 
-        let result = await engine.scan()
+        for threshold in [RecommendationPolicy.largeDownloadThreshold, nil] {
+            let result = await engine.scan(settings: CleanupSettings(largeDownloadThreshold: threshold))
+            let manualItems = result.allItems.filter { $0.group == .developerCaches || $0.group == .browsers }
+            #expect(Set(manualItems.map(\.id)).isSuperset(of: [
+                "dev.npm", "dev.codex", "dev.homebrew", "browsers.chrome.history", "browsers.chrome.cookies"
+            ]))
+            #expect(manualItems.allSatisfy { !$0.isRecommended && !$0.isBlocked })
 
-        let brew = try #require(result.item("dev.homebrew"))
-        #expect(!brew.isRecommended)
-        #expect(brew.note != nil)
-        #expect(result.item("dev.npm")?.isRecommended == true)
+            model.apply(result)
+            #expect(manualItems.allSatisfy { !model.isSelected($0) })
+            #expect(model.selectedIDs.contains("general.appCaches"))
+            for item in manualItems {
+                model.setSelected(item, true)
+                #expect(model.isSelected(item))
+            }
+            model.apply(result)
+            #expect(manualItems.allSatisfy { !model.isSelected($0) }, "A new scan resets manual selections")
+        }
     }
 }

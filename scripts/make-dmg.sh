@@ -9,6 +9,9 @@
 #   2. Notary credentials in your keychain, under a profile name ("CachePop" by default):
 #        xcrun notarytool store-credentials CachePop --apple-id <your Apple ID> --team-id 4R2U97FG78
 #      It asks for an app-specific password (account.apple.com › Sign-In and Security).
+#   3. The Finder layout tool, installed once in an isolated build folder:
+#        python3 -m venv build/dmg-tools
+#        build/dmg-tools/bin/python -m pip install -r scripts/dmg-requirements.txt
 #
 # Usage:
 #   scripts/make-dmg.sh                  signed, notarized and stapled: ready to share
@@ -16,6 +19,7 @@
 #   scripts/make-dmg.sh --dev            signed with your development certificate, to check the DMG on
 #                                        this Mac before you have a Developer ID certificate
 # Options:
+#   --repackage      reuse build/work/export/CachePop.app; only rebuild the disk image
 #   --profile NAME   notarytool keychain profile (default: $CACHEPOP_NOTARY_PROFILE, else CachePop)
 #   --output DIR     where the DMG and the archive go (default: build/)
 
@@ -30,6 +34,7 @@ APP_ID="com.piggylabs.CachePop"
 HELPER_ID="com.piggylabs.CachePop.FanHelper"
 
 MODE="release"
+REPACKAGE=false
 PROFILE="${CACHEPOP_NOTARY_PROFILE:-CachePop}"
 OUT="$ROOT/build"
 
@@ -37,9 +42,10 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --skip-notarize) MODE="unnotarized" ;;
         --dev) MODE="dev" ;;
+        --repackage) REPACKAGE=true ;;
         --profile) PROFILE="${2:?--profile needs a name}"; shift ;;
         --output) OUT="${2:?--output needs a folder}"; shift ;;
-        -h | --help) sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h | --help) sed -n '2,/^$/p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "Unknown option: $1 (see --help)" >&2; exit 64 ;;
     esac
     shift
@@ -65,27 +71,41 @@ fi
 
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
+DMG_PYTHON="${CACHEPOP_DMG_PYTHON:-$OUT/dmg-tools/bin/python}"
+if [ ! -x "$DMG_PYTHON" ]; then
+    DMG_PYTHON="$(command -v python3 || true)"
+fi
+[ -n "$DMG_PYTHON" ] && "$DMG_PYTHON" -c 'import dmgbuild, ds_store' > /dev/null 2>&1 \
+    || fail "Install the Finder layout tool once:
+  python3 -m venv build/dmg-tools
+  build/dmg-tools/bin/python -m pip install -r scripts/dmg-requirements.txt
+For a custom output directory, set CACHEPOP_DMG_PYTHON to that Python executable's full path."
 WORK="$OUT/work"
-rm -rf "$WORK"
-mkdir -p "$WORK"
 ARCHIVE="$WORK/$APP_NAME.xcarchive"
 APP="$WORK/export/$APP_NAME.app"
+if [ "$REPACKAGE" = true ]; then
+    [ -d "$APP" ] || fail "No exported app at $APP. Run without --repackage first."
+else
+    rm -rf "$WORK"
+    mkdir -p "$WORK"
+fi
 
 # MARK: Build
 
-step "Archiving a Release build"
-xcodebuild archive -quiet \
-    -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
-    -destination "generic/platform=macOS" \
-    -archivePath "$ARCHIVE" -derivedDataPath "$WORK/DerivedData"
+if [ "$REPACKAGE" = false ]; then
+    step "Archiving a Release build"
+    xcodebuild archive -quiet \
+        -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
+        -destination "generic/platform=macOS" \
+        -archivePath "$ARCHIVE" -derivedDataPath "$WORK/DerivedData"
 
-if [ "$MODE" = "dev" ]; then
-    step "Taking the app as Xcode signed it (development certificate)"
-    mkdir -p "$WORK/export"
-    ditto "$ARCHIVE/Products/Applications/$APP_NAME.app" "$APP"
-else
-    step "Exporting with your Developer ID"
-    cat > "$WORK/ExportOptions.plist" <<EOF
+    if [ "$MODE" = "dev" ]; then
+        step "Taking the app as Xcode signed it (development certificate)"
+        mkdir -p "$WORK/export"
+        ditto "$ARCHIVE/Products/Applications/$APP_NAME.app" "$APP"
+    else
+        step "Exporting with your Developer ID"
+        cat > "$WORK/ExportOptions.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -99,8 +119,9 @@ else
 </dict>
 </plist>
 EOF
-    xcodebuild -exportArchive -quiet -allowProvisioningUpdates \
-        -archivePath "$ARCHIVE" -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export"
+        xcodebuild -exportArchive -quiet -allowProvisioningUpdates \
+            -archivePath "$ARCHIVE" -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export"
+    fi
 fi
 
 # MARK: Check the signatures
@@ -140,12 +161,23 @@ DMG="$OUT/$APP_NAME-$VERSION.dmg"
 [ "$MODE" = "dev" ] && DMG="$OUT/$APP_NAME-$VERSION-dev.dmg"
 
 step "Making $(basename "$DMG")"
-STAGE="$WORK/dmg"
-mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/$APP_NAME.app"
-ln -s /Applications "$STAGE/Applications"
-rm -f "$DMG"
-hdiutil create -quiet -volname "$APP_NAME" -srcfolder "$STAGE" -fs HFS+ -format ULFO -ov "$DMG"
+BACKGROUND="$WORK/installer-background.tiff"
+xcrun swift -module-cache-path "$WORK/SwiftModuleCache" "$ROOT/scripts/dmg-background.swift" \
+    "$BACKGROUND" "$ROOT/CachePop/Assets.xcassets/BrandGlyph.imageset/BrandGlyph.png"
+"$DMG_PYTHON" -m dmgbuild -s "$ROOT/scripts/dmg-settings.py" -D "app=$APP" -D "background=$BACKGROUND" \
+    "Install $APP_NAME" "$WORK/$APP_NAME-layout.dmg"
+
+step "Verifying the app inside the finished disk image"
+VERIFY_MOUNT="$(mktemp -d "${TMPDIR:-/tmp}/CachePop-dmg-verify.XXXXXX")"
+hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$VERIFY_MOUNT" "$WORK/$APP_NAME-layout.dmg" \
+    > "$WORK/verify-mount.log"
+PACKAGED_APP_VALID=true
+codesign --verify --deep --strict "$VERIFY_MOUNT/$APP_NAME.app" || PACKAGED_APP_VALID=false
+hdiutil detach -quiet "$VERIFY_MOUNT"
+rmdir "$VERIFY_MOUNT"
+[ "$PACKAGED_APP_VALID" = true ] || fail "The packaged app's signature doesn't verify."
+hdiutil verify -quiet "$WORK/$APP_NAME-layout.dmg"
+mv -f "$WORK/$APP_NAME-layout.dmg" "$DMG"
 
 if [ "$MODE" != "dev" ]; then
     step "Signing the disk image"
@@ -175,7 +207,7 @@ if [ "$MODE" = "release" ]; then
 fi
 
 # The archive stays, with its debug symbols, to read crash reports from this build.
-rm -rf "$WORK/DerivedData" "$WORK/dmg"
+rm -rf "$WORK/DerivedData" "$WORK/SwiftModuleCache"
 
 step "Done: $DMG"
 case "$MODE" in

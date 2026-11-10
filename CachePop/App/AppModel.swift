@@ -213,9 +213,27 @@ final class AppModel {
 
     /// Brings the main window forward on `section`.
     func show(_ section: AppSection) {
+        NSApp.setActivationPolicy(.regular)
         openMainWindow()
+        NSApp.unhide(nil)
         NSApp.activate()
         withAnimation(AppTheme.Motion.standard) { self.section = section }
+    }
+
+    /// Dismisses the main app from the Dock and app switcher while its menu bar items keep
+    /// running. Reopening a section restores the regular app presentation.
+    func keepRunningInMenuBar() {
+        guard settings.showsAnyMenuBarItem else {
+            quitCompletely()
+            return
+        }
+        NSApp.hide(nil)
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    /// Stops the app and its menu bar readings; the delegate first releases custom fan speeds.
+    func quitCompletely() {
+        NSApp.terminate(nil)
     }
 
     /// The line under the section's title in the top bar.
