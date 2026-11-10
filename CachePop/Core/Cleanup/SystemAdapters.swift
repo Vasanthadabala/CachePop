@@ -225,6 +225,12 @@ nonisolated struct LiveProcessInspector: ProcessInspecting {
 nonisolated protocol SpaceMeasuring: Sendable {
     /// Bytes available for important usage on the volume holding the home folder.
     func availableBytes() -> Int64?
+    /// Space macOS counts as available but still holds, such as Time Machine snapshots.
+    func purgeableBytes() -> Int64?
+}
+
+extension SpaceMeasuring {
+    func purgeableBytes() -> Int64? { nil }
 }
 
 /// Reads `volumeAvailableCapacityForImportantUsage` — the figure Finder and Storage settings
@@ -238,6 +244,15 @@ nonisolated struct VolumeSpaceMeter: SpaceMeasuring {
         let url = URL(fileURLWithPath: volumeURL.path)
         let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
         return values?.volumeAvailableCapacityForImportantUsage
+    }
+
+    /// Available for important usage minus what's free outright.
+    func purgeableBytes() -> Int64? {
+        let url = URL(fileURLWithPath: volumeURL.path)
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey]),
+              let important = values.volumeAvailableCapacityForImportantUsage,
+              let free = values.volumeAvailableCapacity else { return nil }
+        return max(important - Int64(free), 0)
     }
 }
 

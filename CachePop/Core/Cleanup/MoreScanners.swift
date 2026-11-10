@@ -444,6 +444,7 @@ nonisolated enum LeftoversScanner {
 
         // Data coding tools keep for project folders that are gone.
         items += ProjectLeftoversScanner.scan(context)
+        if let broken = BrokenLoginItemsScanner.scan(context) { items.insert(broken, at: 0) }
         return CleanupGroup(kind: .leftovers, items: items)
     }
 

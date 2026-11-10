@@ -16,6 +16,7 @@ struct AppSidebar: View {
             VStack(spacing: 2) {
                 row(.cleanUp)
                 row(.largeFiles)
+                row(.photos)
             }
 
             SidebarGroupLabel("Monitor")
@@ -221,8 +222,7 @@ private struct SidebarFooter: View {
         }
     }
 
-    /// Opens Settings in the detail area. While Settings is showing, the card gets an accent
-    /// outline.
+    /// Opens Settings in the detail area.
     private var settingsCard: some View {
         FooterButton(help: "Open Settings", action: onOpenSettings) { _ in
             HStack(spacing: 9) {
@@ -238,12 +238,6 @@ private struct SidebarFooter: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         .card(radius: Self.radius)
-        .overlay {
-            if isSettingsSelected {
-                RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
-                    .strokeBorder(AppTheme.Colors.accent.opacity(0.55), lineWidth: 1.5)
-            }
-        }
         .accessibilityAddTraits(isSettingsSelected ? .isSelected : [])
     }
 
@@ -400,15 +394,14 @@ private struct UsageBar: View {
     }
 }
 
-/// The disk on its own, as a card (menu bar panel).
-struct DiskSpaceCard: View {
+/// The disk summary in the menu bar panel.
+struct MenuBarDiskSummary: View {
     let disk: DiskInfo
     var isLow = false
 
     var body: some View {
         DiskSummary(disk: disk, isLow: isLow)
             .padding(10)
-            .card(radius: 12)
     }
 }
 
@@ -444,6 +437,17 @@ extension AppModel {
                 let total = largeFiles.result.largeBytes + largeFiles.result.duplicateExtraBytes
                 return SidebarStatus(subtitle: total > 0 ? "To review" : "Nothing large found",
                                      badge: total > 0 ? ByteSize.string(total) : nil)
+            }
+
+        case .photos:
+            switch photos.phase {
+            case .start:
+                return SidebarStatus(subtitle: "Similar & blurry shots")
+            case .scanning:
+                return SidebarStatus(subtitle: "Checking photos…", isBusy: true)
+            case .results:
+                let count = photos.result.reviewCount
+                return SidebarStatus(subtitle: count > 0 ? "\(count) to review" : "Nothing to review")
             }
 
         case .systemMonitor:

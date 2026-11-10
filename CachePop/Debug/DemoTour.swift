@@ -168,7 +168,12 @@ enum DemoTour {
         NSApp.appearance = NSAppearance(named: .aqua)
         await pause(0.5)
 
-        await snapMenuBarPanel("18-menu-bar", folder, model: model)
+        await snapMenuBarPanel("18-menu-bar", folder, MenuBarContent(model: model))
+        await snapMenuBarPanel("18b-menu-bar-temperatures", folder, TemperatureMenuContent(model: model))
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+        await pause(0.3)
+        await snapMenuBarPanel("18c-menu-bar-temperatures-dark", folder, TemperatureMenuContent(model: model))
+        NSApp.appearance = NSAppearance(named: .aqua)
 
         model.section = .settings
         for (index, tab) in SettingsTab.allCases.enumerated() {
@@ -184,9 +189,9 @@ enum DemoTour {
         NSApp.appearance = nil
     }
 
-    /// The menu bar panel, hosted in a plain window so it can be captured.
-    private static func snapMenuBarPanel(_ name: String, _ folder: URL, model: AppModel) async {
-        let host = NSHostingView(rootView: MenuBarContent(model: model))
+    /// A menu bar panel, hosted in a plain window so it can be captured.
+    private static func snapMenuBarPanel(_ name: String, _ folder: URL, _ panel: some View) async {
+        let host = NSHostingView(rootView: panel)
         host.frame.size = host.fittingSize
         let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: 1300, y: 300), size: host.fittingSize),
                               styleMask: [.borderless], backing: .buffered, defer: false)

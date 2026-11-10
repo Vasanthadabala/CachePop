@@ -41,7 +41,11 @@ nonisolated struct CleanupEngine: Sendable {
             }
             taskGroup.addTask { DeviceFilesScanner.scan(context) }
             taskGroup.addTask { await LeftoversScanner.scan(context) }
-            taskGroup.addTask { GeneralScanner.scan(context) }
+            taskGroup.addTask { BrowserDataScanner.scan(context) }
+            taskGroup.addTask {
+                async let snapshots = TimeMachineScanner.scan(context)
+                return GeneralScanner.scan(context).appending(await snapshots, sortRecommendedFirst: true)
+            }
 
             for await scanned in taskGroup {
                 let tuned = RecommendationPolicy.apply(to: scanned, threshold: settings.largeDownloadThreshold)

@@ -73,6 +73,7 @@ enum AppTheme {
         static let rose = Hue(0xD9487D)
         static let graphite = Hue(0x6B7280)
         static let green = Hue(0x1F9D55)
+        static let violet = Hue(0x7C5CE0)
     }
 
     enum Typography {

@@ -377,7 +377,7 @@ private struct MenuBarSettings: View {
 
         SettingsCard("Readings", symbol: "thermometer.medium") {
             SettingsRow(title: "Show temperature",
-                        detail: "The chip's temperature in its own menu bar item, updated every few seconds.") {
+                        detail: "The chip's temperature in its own menu bar item. Click it for the CPU, SSD and memory temperatures.") {
                 SettingsSwitch(isOn: $settings.menuBarShowsTemperature)
             }
             RowDivider()

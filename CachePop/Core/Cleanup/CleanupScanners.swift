@@ -105,6 +105,8 @@ nonisolated enum XcodeScanner {
             ))
         }
 
+        if let logs = deviceLogs(context) { items.append(logs) }
+
         // Xcode's own caches
         let cachesFolder = env.path("Library/Caches")
         let xcodeCacheFolders = FileManager.default.children(of: cachesFolder)
@@ -494,6 +496,9 @@ nonisolated enum DeveloperCacheScanner {
         "black", "jedi", "go-build", "golangci-lint", "prisma", "turbo", "nx", "selenium", "pnpm"
     ]
 
+    /// `~/.cache` folders another scanner reports in its own way.
+    static let xdgHandledElsewhere: Set<String> = ["lm-studio"]
+
     static func scan(_ context: ScanContext) async -> CleanupGroup {
         let env = context.env
         var items: [CleanupItem] = []
@@ -526,6 +531,8 @@ nonisolated enum DeveloperCacheScanner {
         // ~/.cache, one folder per tool
         let xdg = env.path(".cache")
         for folder in FileManager.default.children(of: xdg) where FileManager.default.isDirectory(folder) {
+            // Its models get a row each below; the rest of the folder holds its chats.
+            guard !xdgHandledElsewhere.contains(folder.lastPathComponent.lowercased()) else { continue }
             let size = DirectorySizer.size(of: folder)
             guard size.bytes > 0 else { continue }
             let name = folder.lastPathComponent
@@ -549,6 +556,8 @@ nonisolated enum DeveloperCacheScanner {
                 isRecommended: known
             ))
         }
+
+        items += LocalModelsScanner.scan(context)
 
         // Homebrew
         if let brew = context.tools.brew {
@@ -606,6 +615,8 @@ nonisolated enum GeneralScanner {
         if let appCaches = appCaches(context, openApps: &openApps) { items.append(appCaches) }
         if let webCaches = appWebCaches(context, openApps: &openApps) { items.append(webCaches) }
         if let updates = googleUpdateDownloads(context) { items.append(updates) }
+        if let safari = safariCache(context) { items.append(safari) }
+        if let mail = mailAttachments(context) { items.append(mail) }
         if !openApps.isEmpty {
             // "Claude Helper" is Claude; name each app once.
             let names = Set(openApps.map { $0.hasSuffix(" Helper") ? String($0.dropLast(" Helper".count)) : $0 }).sorted()
@@ -743,36 +754,9 @@ nonisolated enum GeneralScanner {
     }
 
     static func oldLogs(_ context: ScanContext) -> CleanupItem? {
-        let logs = context.env.path("Library/Logs")
         let age = context.settings.logAge
         let cutoff = context.env.now().addingTimeInterval(-age)
-        let keys: Set<URLResourceKey> = [.isRegularFileKey, .contentModificationDateKey, .totalFileAllocatedSizeKey, .fileSizeKey]
-        guard let enumerator = FileManager.default.enumerator(
-            at: logs,
-            includingPropertiesForKeys: Array(keys),
-            options: [],
-            errorHandler: { _, _ in true }
-        ) else { return nil }
-
-        var files: [URL] = []
-        var total: Int64 = 0
-        var done = false
-        while !done {
-            // Simulator and crash logs can number tens of thousands; drain each file's
-            // autoreleased URL and resource values as we go.
-            autoreleasepool {
-                guard let url = enumerator.nextObject() as? URL else {
-                    done = true
-                    return
-                }
-                guard let values = try? url.resourceValues(forKeys: keys),
-                      values.isRegularFile == true,
-                      let modified = values.contentModificationDate,
-                      modified < cutoff else { return }
-                files.append(url)
-                total += Int64(values.totalFileAllocatedSize ?? values.fileSize ?? 0)
-            }
-        }
+        let (files, total) = OldFiles.find(in: context.env.path("Library/Logs"), before: cutoff)
 
         guard total > 0 else { return nil }
         return CleanupItem(

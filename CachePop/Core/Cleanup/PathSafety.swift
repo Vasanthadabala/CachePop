@@ -27,6 +27,9 @@ nonisolated enum PathSafety {
         Root(relativePath: "Library/Developer/Xcode/xrOS DeviceSupport", allowsPermanentDelete: true),
         Root(relativePath: "Library/Developer/Xcode/macOS DeviceSupport", allowsPermanentDelete: true),
         Root(relativePath: "Library/Developer/Xcode/DocumentationCache", allowsPermanentDelete: true),
+        // Crash reports Xcode copied from devices (DeviceLogs since Xcode 15).
+        Root(relativePath: "Library/Developer/Xcode/DeviceLogs", allowsPermanentDelete: true),
+        Root(relativePath: "Library/Developer/Xcode/iOS Device Logs", allowsPermanentDelete: true),
         Root(relativePath: "Library/Developer/Xcode/Archives", allowsPermanentDelete: false),
         Root(relativePath: "Library/Developer/CoreSimulator/Caches", allowsPermanentDelete: true),
         Root(relativePath: "Library/Caches", allowsPermanentDelete: true),
@@ -56,8 +59,19 @@ nonisolated enum PathSafety {
         Root(relativePath: "Library/iTunes/iPhone Software Updates", allowsPermanentDelete: true),
         Root(relativePath: "Library/iTunes/iPad Software Updates", allowsPermanentDelete: true),
         Root(relativePath: "Library/iTunes/iPod Software Updates", allowsPermanentDelete: true),
+        // Models downloaded to run on this Mac.
+        Root(relativePath: ".ollama/models", allowsPermanentDelete: true),
+        Root(relativePath: ".lmstudio/models", allowsPermanentDelete: true),
+        // Login items whose program is gone. Trash only, so they can be put back.
+        Root(relativePath: "Library/LaunchAgents", allowsPermanentDelete: false),
         // User-visible files are only ever moved to the Trash, never deleted outright.
         Root(relativePath: "Downloads", allowsPermanentDelete: false)
+    ]
+
+    /// Folders inside protected places that may still be cleaned, strictly inside.
+    static let protectedFolderExceptions: [Root] = [
+        // Copies Mail made of attachments you opened; the messages keep the originals.
+        Root(relativePath: "Library/Containers/com.apple.mail/Data/Library/Mail Downloads", allowsPermanentDelete: true)
     ]
 
     /// Inside protected folders, exactly one level down: places that hold one app's or one
@@ -118,6 +132,15 @@ nonisolated enum PathSafety {
 
         for fragment in protectedNameFragments where (relativeLower + "/").contains(fragment) {
             return "\(name) looks like personal data or source code."
+        }
+
+        // Exactly the history and cookie files of known browsers, nothing else in their folders.
+        if BrowserDataScanner.isBrowserDataFile(relativeLower: relativeLower) {
+            return nil
+        }
+
+        if let exception = protectedFolderExceptions.first(where: { relativeLower.hasPrefix($0.relativePath.lowercased() + "/") }) {
+            return mode == .delete && !exception.allowsPermanentDelete ? "\(name) is only ever moved to the Trash." : nil
         }
 
         if let allowedMode = appSupportException(relativeLower: relativeLower) {

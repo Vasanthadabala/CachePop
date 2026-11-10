@@ -87,7 +87,7 @@ final class FakeCommandRunner: CommandRunning, @unchecked Sendable {
     /// Calls other than the read-only list and dry-run commands.
     var mutatingCalls: [[String]] {
         calls.map(\.arguments).filter { arguments in
-            !(arguments.contains("list") || arguments.contains("--dry-run"))
+            !(arguments.contains("list") || arguments.contains("--dry-run") || arguments.contains("listlocalsnapshotdates"))
         }
     }
 

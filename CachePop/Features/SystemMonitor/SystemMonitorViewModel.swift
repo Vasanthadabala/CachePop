@@ -23,6 +23,8 @@ actor SystemSampler {
     private let fanSource: (@Sendable () -> [FanSample])?
     private var temperatureReader: TemperatureReader?
     private var smc: SMC?
+    /// The SMC's memory sensors, looked for on the first reading.
+    private var memoryKeys: [String]?
     private var lastTicks: [CPUTicks] = []
     private var lastDisk: ByteCounters?
     private var lastNetwork: ByteCounters?
@@ -66,6 +68,8 @@ actor SystemSampler {
         lastTime = now
 
         snapshot.temperatures = temperatureReader?.read() ?? TemperatureSample()
+        if memoryKeys == nil { memoryKeys = MemoryTemperature.keys(in: smc?.allKeys() ?? []) }
+        snapshot.temperatures.memory = MemoryTemperature.average((memoryKeys ?? []).compactMap { smc?.number($0) })
         snapshot.fans = fanSource?() ?? smc?.fans() ?? []
         snapshot.battery = BatteryReader.read()
 
