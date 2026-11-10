@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Menu bar commands: sections in the View menu (⌘1–⌘5), and a Clean menu.
@@ -11,6 +12,18 @@ struct AppCommands: Commands {
         CommandGroup(replacing: .appSettings) {
             Button("Settings…") { model.show(.settings) }
                 .keyboardShortcut(",", modifiers: .command)
+        }
+
+        CommandGroup(replacing: .appTermination) {
+            if model.settings.showsAnyMenuBarItem {
+                Button("Keep Running in Menu Bar") { model.keepRunningInMenuBar() }
+                    .keyboardShortcut("q", modifiers: .command)
+                Button("Quit CachePop") { model.quitCompletely() }
+                    .keyboardShortcut("q", modifiers: [.command, .option])
+            } else {
+                Button("Quit CachePop") { model.quitCompletely() }
+                    .keyboardShortcut("q", modifiers: .command)
+            }
         }
 
         CommandGroup(before: .sidebar) {

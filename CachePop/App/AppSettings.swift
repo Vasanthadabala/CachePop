@@ -139,10 +139,15 @@ final class AppSettings {
 
     var largeFileThreshold: Int64 { Int64(largeFileMinimumMB) * 1_048_576 }
 
+    /// Live readings stay available when ⌘Q dismisses the main app into the menu bar.
+    var showsMenuBarReadings: Bool {
+        menuBarShowsTemperature || menuBarShowsFanSpeed
+    }
+
     /// Whether any of CachePop's menu bar items shows (its icon, the temperature, the fan speed).
     /// While one does, CachePop keeps running with its window closed.
     var showsAnyMenuBarItem: Bool {
-        showMenuBarItem || menuBarShowsTemperature || menuBarShowsFanSpeed
+        showMenuBarItem || showsMenuBarReadings
     }
 
     // MARK: Open at login
