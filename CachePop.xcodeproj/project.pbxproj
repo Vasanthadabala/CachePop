@@ -516,6 +516,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CachePop;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "CachePop lists the apps that open when you log in and switches them on or off for you.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -524,6 +525,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.piggylabs.CachePop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -554,6 +556,7 @@
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = CachePop;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "CachePop lists the apps that open when you log in and switches them on or off for you.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -562,6 +565,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.piggylabs.CachePop;
 				PRODUCT_NAME = "$(TARGET_NAME)";
