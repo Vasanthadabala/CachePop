@@ -84,7 +84,6 @@ struct ApplicationSizeTests {
             name: "Claude",
             path: "/Applications/Claude.app",
             bundleIdentifier: "com.anthropic.claudefordesktop",
-            icon: nil,
             version: "4.23",
             sizeBytes: 680_900_000,
             lastUsedDate: nil

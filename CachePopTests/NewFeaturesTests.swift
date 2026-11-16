@@ -412,19 +412,28 @@ struct CleanupSettingsTests {
         let defaults = try #require(UserDefaults(suiteName: suite))
 
         let settings = AppSettings(defaults: defaults, canChangeLoginItem: false)
-        #expect(!settings.menuBarShowsTemperature && !settings.menuBarShowsFanSpeed)
+        let readings: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
+            \.menuBarShowsCPUUsage, \.menuBarShowsMemoryUsage, \.menuBarShowsSSDUsage,
+            \.menuBarShowsTemperature, \.menuBarShowsFanSpeed
+        ]
+        #expect(readings.allSatisfy { !settings[keyPath: $0] })
         #expect(settings.showsAnyMenuBarItem)  // CachePop's own item is on by default
 
         // Each reading is a menu bar item of its own, shown without CachePop's icon too.
         settings.showMenuBarItem = false
         #expect(!settings.showsAnyMenuBarItem)
-        settings.menuBarShowsFanSpeed = true
-        #expect(settings.showsAnyMenuBarItem)
+        for enabled in readings {
+            for key in readings { settings[keyPath: key] = key == enabled }
+            #expect(settings.showsAnyMenuBarItem)
 
-        let reloaded = AppSettings(defaults: defaults, canChangeLoginItem: false)
-        #expect(reloaded.menuBarShowsFanSpeed && !reloaded.menuBarShowsTemperature && !reloaded.showMenuBarItem)
+            let reloaded = AppSettings(defaults: defaults, canChangeLoginItem: false)
+            #expect(!reloaded.showMenuBarItem)
+            #expect(reloaded.showsMenuBarReadings)
+            #expect(readings.allSatisfy { reloaded[keyPath: $0] == ($0 == enabled) })
+        }
+
         // Tests can't change the login item, so CachePop's item is never locked on here.
-        #expect(!reloaded.menuBarItemIsRequired)
+        #expect(!settings.menuBarItemIsRequired)
     }
 }
 

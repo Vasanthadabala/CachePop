@@ -7,7 +7,7 @@ nonisolated enum FanHelperConstants {
     static let machServiceName = label
     static let plistName = "\(label).plist"
     /// Bump when the helper changes, so the app re-registers the new one.
-    static let version = "2"
+    static let version = "3"
 
     static let teamID = "4R2U97FG78"
     static let appIdentifier = "com.piggylabs.CachePop"

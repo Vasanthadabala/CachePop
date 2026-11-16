@@ -50,12 +50,17 @@ enum AppSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// Owns one view model per section, so switching sections never loses a scan in progress
-/// or a half-made selection. Shared by the main window, the menu bar item and Settings.
+/// Shares services with the menu bar and clears each section's temporary state on navigation.
 @Observable
 @MainActor
 final class AppModel {
-    var section: AppSection? = .cleanUp
+    var section: AppSection? = .cleanUp {
+        didSet {
+            let previous = oldValue ?? .cleanUp
+            guard previous != (section ?? .cleanUp) else { return }
+            resetSection(previous)
+        }
+    }
     let settings: AppSettings
     let history: CleanHistory
     let cleanUp: CleanUpViewModel
@@ -64,23 +69,30 @@ final class AppModel {
     let diskUsage: DiskUsageViewModel
     let monitor: SystemMonitorViewModel
     let fanControl: FanControlViewModel
-    let apps = AppsViewModel()
+    let apps: AppsViewModel
     let loginItems: LoginItemsViewModel
     private(set) var disk: DiskInfo = .empty
     /// True while the launch screen is showing.
     private(set) var isLaunching = true
     var isShowingHistory = false
+    /// Keep the model state, but release the window view graph in background mode.
+    private(set) var isMainWindowContentActive = true
 
     /// Set by views that have SwiftUI's window actions, so the menu bar item, notifications
     /// and menu commands can bring the main window or Settings back.
     @ObservationIgnored var openMainWindow: () -> Void = {}
+    @ObservationIgnored var openUsagePanel: (UsageMenuKind) -> Void = { _ in }
 
     private let diskURL: URL
+    private let diskReader: @Sendable (URL) async -> DiskInfo
     private let notifications: any NotificationPosting
-    private var lowSpaceRule = LowSpaceRule()
-    private var refreshTask: Task<Void, Never>?
-    private var monitorTask: Task<Void, Never>?
-    private var diskReadTask: Task<Void, Never>?
+    private var lowSpaceRule: LowSpaceRule
+    @ObservationIgnored private var refreshTask: Task<Void, Never>?
+    @ObservationIgnored private var monitorTask: Task<Void, Never>?
+    @ObservationIgnored private var diskReadTask: Task<Void, Never>?
+    @ObservationIgnored private var diskRefreshPending = false
+    @ObservationIgnored private var memoryTrimTask: Task<Void, Never>?
+    @ObservationIgnored private var memoryPressureSource: (any DispatchSourceMemoryPressure)?
 
     init(
         environment: CleanupEnvironment = .live,
@@ -89,11 +101,15 @@ final class AppModel {
         notifications: (any NotificationPosting)? = nil,
         fanController: (any FanControlling)? = nil,
         fanSource: (@Sendable () -> [FanSample])? = nil,
-        startupControl: (any StartupControlling)? = nil
+        startupControl: (any StartupControlling)? = nil,
+        diskReader: @escaping @Sendable (URL) async -> DiskInfo = { await SystemInfoService.readDisk(for: $0) }
     ) {
         let settings = settings ?? AppSettings()
+        let usesLiveHome = environment.home.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         diskURL = environment.home
+        self.diskReader = diskReader
         self.settings = settings
+        lowSpaceRule = settings.savedLowSpaceRule
         self.history = history ?? CleanHistory()
         self.notifications = notifications ?? SystemNotifications()
         cleanUp = CleanUpViewModel(engine: CleanupEngine(env: environment))
@@ -101,22 +117,26 @@ final class AppModel {
         // Demo mode runs against a fixture home, and must never read the real Photos library.
         photos = PhotosViewModel(home: environment.home,
                                  allowsLibrary: environment.home.standardizedFileURL == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL)
-        diskUsage = DiskUsageViewModel(home: environment.home)
+        diskUsage = DiskUsageViewModel(home: environment.home,
+                                      applications: usesLiveHome ? URL(fileURLWithPath: "/Applications") : environment.path("Applications"))
+        apps = AppsViewModel(engine: AppUninstallerEngine(home: environment.home,
+                             appDirectories: usesLiveHome ? nil : [environment.path("Applications").path]), catalog: environment.apps)
         monitor = SystemMonitorViewModel(fanSource: fanSource)
-        fanControl = FanControlViewModel(controller: fanController ?? LiveFanController())
-        loginItems = LoginItemsViewModel(control: startupControl ?? LiveStartupControl())
+        fanControl = FanControlViewModel(controller: fanController ?? LiveFanController(), boostRules: settings.fanBoostRules)
+        fanControl.onBoostRulesChanged = { [settings] in settings.fanBoostRules = $0 }
+        loginItems = LoginItemsViewModel(control: startupControl ?? LiveStartupControl(), home: environment.home)
         loginItems.rememberedOffApps = { [settings] in settings.loginAppsTurnedOff }
         loginItems.setRememberedOffApps = { [settings] in settings.loginAppsTurnedOff = $0 }
 
         // While fans are on a fixed speed, keep reading temperatures so heat releases them.
         // Weak both ways: each view model's callback would otherwise keep the other alive.
         fanControl.onModeChanged = { [weak monitor] mode in
-            if mode == .custom { monitor?.begin("fans") } else { monitor?.end("fans") }
+            // A mode change must keep one client, including switching between the two overrides.
+            monitor?.end("fans")
+            if mode != .automatic { monitor?.begin("fans") }
         }
         monitor.onSnapshot = { [weak fanControl] snapshot, thermalState in
-            // Only fixed speeds need the heat check; skip a task per sample otherwise.
-            guard let fanControl, fanControl.isCustom else { return }
-            Task { await fanControl.checkSafety(temperatures: snapshot.temperatures, thermalState: thermalState) }
+            fanControl?.receive(snapshot, thermalState: thermalState)
         }
 
         cleanUp.settingsProvider = { [settings] in settings.cleanupSettings }
@@ -128,6 +148,23 @@ final class AppModel {
         largeFiles.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
         photos.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
         apps.onSpaceChanged = { [weak self] in self?.refreshDiskWhileSettling() }
+        let pressure = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        pressure.setEventHandler { [weak self] in
+            MainActor.assumeIsolated {
+                self?.trimTransientMemory()
+                self?.scheduleMemoryTrim(underPressure: true)
+            }
+        }
+        pressure.activate()
+        memoryPressureSource = pressure
+    }
+
+    isolated deinit {
+        refreshTask?.cancel()
+        monitorTask?.cancel()
+        diskReadTask?.cancel()
+        memoryTrimTask?.cancel()
+        memoryPressureSource?.cancel()
     }
 
     // MARK: Launch
@@ -144,22 +181,33 @@ final class AppModel {
     func finishLaunchIfStuck(reduceMotion: Bool) async {
         guard isLaunching else { return }
         try? await Task.sleep(for: .seconds(8))
+        guard !Task.isCancelled else { return }
         endLaunch(reduceMotion: reduceMotion)
     }
 
     // MARK: Disk
 
     /// Reads free space off the main thread: the important-usage figure asks macOS how much is
-    /// purgeable, which can stall (most of all right after a big clean). The newest read wins.
+    /// purgeable, which can stall (most of all right after a big clean). Concurrent requests
+    /// share one read, with at most one follow-up, rather than spawning uncancellable IO jobs.
     func refreshDisk() {
-        diskReadTask?.cancel()
+        guard diskReadTask == nil else {
+            diskRefreshPending = true
+            return
+        }
         let url = diskURL
-        diskReadTask = Task {
-            let reading = await Task.detached(priority: .userInitiated) { SystemInfoService.disk(for: url) }.value
+        diskReadTask = Task { [weak self, diskReader] in
+            let reading = await diskReader(url)
+            guard let self else { return }
+            self.diskReadTask = nil
             guard !Task.isCancelled else { return }
             // Publish only a change, so an activation with nothing new redraws nothing.
-            if reading != disk { disk = reading }
-            checkLowSpace()
+            if reading != self.disk { self.disk = reading }
+            self.checkLowSpace()
+            if self.diskRefreshPending {
+                self.diskRefreshPending = false
+                self.refreshDisk()
+            }
         }
     }
 
@@ -167,11 +215,11 @@ final class AppModel {
     func refreshDiskWhileSettling() {
         refreshDisk()
         refreshTask?.cancel()
-        refreshTask = Task {
+        refreshTask = Task { [weak self] in
             for delay in [2.0, 5.0, 15.0] {
                 try? await Task.sleep(for: .seconds(delay))
                 guard !Task.isCancelled else { return }
-                refreshDisk()
+                self?.refreshDisk()
             }
         }
     }
@@ -183,8 +231,8 @@ final class AppModel {
         monitorTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(300))
-                guard let self else { return }
-                refreshDisk()
+                guard !Task.isCancelled, self != nil else { return }
+                self?.refreshDisk()
             }
         }
     }
@@ -200,7 +248,10 @@ final class AppModel {
 
     private func checkLowSpace() {
         guard settings.lowSpaceAlerts, disk.totalBytes > 0 else { return }
-        if lowSpaceRule.evaluate(availableBytes: disk.availableBytes, thresholdBytes: lowSpaceThresholdBytes, now: Date()) {
+        let previous = lowSpaceRule
+        let shouldNotify = lowSpaceRule.evaluate(availableBytes: disk.availableBytes, thresholdBytes: lowSpaceThresholdBytes, now: Date())
+        if previous != lowSpaceRule { settings.savedLowSpaceRule = lowSpaceRule }
+        if shouldNotify {
             notifications.postLowSpace(availableBytes: disk.availableBytes)
         }
     }
@@ -211,8 +262,28 @@ final class AppModel {
 
     // MARK: Navigation
 
+    private func resetSection(_ section: AppSection) {
+        switch section {
+        case .cleanUp:
+            isShowingHistory = false
+            cleanUp.resetForNavigation()
+        case .largeFiles: largeFiles.resetForNavigation()
+        case .photos: photos.resetForNavigation()
+        case .diskUsage: diskUsage.resetForNavigation()
+        case .apps: apps.resetForNavigation()
+        case .loginItems: loginItems.resetForNavigation()
+        case .systemMonitor:
+            monitor.activePage = .cpu
+            monitor.processToQuit = nil
+            monitor.processSort = .cpu
+            monitor.scrollToProcesses = false
+        case .settings: settings.selectedTab = .general
+        }
+    }
+
     /// Brings the main window forward on `section`.
     func show(_ section: AppSection) {
+        resumeMainWindowContent()
         NSApp.setActivationPolicy(.regular)
         openMainWindow()
         NSApp.unhide(nil)
@@ -227,8 +298,43 @@ final class AppModel {
             quitCompletely()
             return
         }
+        suspendMainWindowContent()
         NSApp.hide(nil)
         NSApp.setActivationPolicy(.accessory)
+    }
+
+    func resumeMainWindowContent() {
+        memoryTrimTask?.cancel()
+        memoryTrimTask = nil
+        isMainWindowContentActive = true
+    }
+
+    func suspendMainWindowContent() {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) { isMainWindowContentActive = false }
+        scheduleMemoryTrim()
+    }
+
+    /// Discard rebuildable caches, while keeping scans, selections, Put Back and recordings.
+    func trimTransientMemory() {
+        FileKind.clearCache()
+        PhotoThumbnails.clear()
+        IconCache.clear()
+        apps.releaseRelatedFileCache()
+        diskUsage.releaseInactiveListings()
+        monitor.releaseUnusedProcessDetails(discardMenuCache: true)
+    }
+
+    private func scheduleMemoryTrim(underPressure: Bool = false) {
+        memoryTrimTask?.cancel()
+        memoryTrimTask = Task { [weak self] in
+            // Let SwiftUI finish detaching the window's views before releasing free pages.
+            do { try await Task.sleep(for: .milliseconds(750)) } catch { return }
+            guard self != nil, underPressure || self?.isMainWindowContentActive == false else { return }
+            self?.trimTransientMemory()
+            await MemoryResources.releaseUnusedPages()
+        }
     }
 
     /// Stops the app and its menu bar readings; the delegate first releases custom fan speeds.
@@ -239,7 +345,7 @@ final class AppModel {
     /// The line under the section's title in the top bar.
     func pageSubtitle(for section: AppSection) -> String {
         section == .settings
-            ? "Appearance, startup, alerts and what CachePop may clean"
+            ? ""
             : sidebarStatus(for: section).subtitle
     }
 

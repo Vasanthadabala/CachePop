@@ -38,10 +38,11 @@ struct SystemMonitorTests {
     @Test func temperaturesAreGroupedAndNoiseIgnored() {
         let sample = TemperatureSample.from([
             ("PMU tdie1", 40), ("PMU tdie2", 44), ("PMU2 tdie1", 42), ("PMU tdev1", -21.9),
-            ("NAND CH0 temp", 37), ("gas gauge battery", 32), ("gas gauge battery", 34), ("PMU tcal", 51.8)
+            ("NAND CH0 temp", 37), ("gas gauge battery", 32), ("gas gauge battery", 34), ("PMU tcal", 51.8),
+            ("pACC MTR Temp Sensor0", 60), ("eACC MTR Temp Sensor0", 50)
         ])
-        #expect(sample.chip == 42)
-        #expect(sample.chipMax == 44)
+        #expect(sample.chip == 55)
+        #expect(sample.chipMax == 60)
         #expect(sample.ssd == 37)
         #expect(sample.battery == 33)
         #expect(TemperatureSample.from([]).chip == nil)
@@ -60,9 +61,9 @@ struct SystemMonitorTests {
     @Test func temperaturePanelShowsTheSensorsThisMacHas() {
         #expect(TemperatureMenuContent.rows(nil).map(\.title) == ["CPU"])
         let all = TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39, battery: 34, memory: 40))
-        #expect(all.map(\.title) == ["CPU", "SSD", "Memory", "Battery"])
+        #expect(all.map(\.title) == ["CPU", "Drive", "Memory", "Battery"])
         #expect(all.map(\.celsius) == [41, 39, 40, 34])
-        #expect(TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39)).map(\.title) == ["CPU", "SSD"])
+        #expect(TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39)).map(\.title) == ["CPU", "Drive"])
     }
 
     @Test func smcNumbersDecode() {
@@ -112,7 +113,12 @@ struct SystemMonitorTests {
         #expect(memory.used <= memory.total)
         let sampler = SystemSampler()
         _ = await sampler.sample(includeProcesses: false)
-        let snapshot = await sampler.sample(includeProcesses: true)
+        var snapshot = await sampler.sample(includeProcesses: true)
+        // Process commands finish independently of the live sensor readings.
+        for _ in 0..<500 where snapshot.processes == nil {
+            try? await Task.sleep(for: .milliseconds(10))
+            snapshot = await sampler.sample(includeProcesses: true, includeDetails: false)
+        }
         #expect((0...1).contains(snapshot.cpu.total))
         #expect(!(snapshot.processes ?? []).isEmpty)
         if let chip = snapshot.temperatures.chip { #expect((1...130).contains(chip)) }
@@ -123,6 +129,24 @@ struct SystemMonitorTests {
 
 @Suite("Monitor formatting")
 struct MonitorFormattingTests {
+    @MainActor
+    @Test func menuBarUsageDistinguishesMissingReadingsFromZeroUsage() {
+        #expect(SystemMonitorViewModel.menuBarCPUUsage(nil) == nil)
+        #expect(SystemMonitorViewModel.menuBarMemoryUsage(nil) == nil)
+        #expect(SystemMonitorViewModel.menuBarMemoryUsage(SystemSnapshot()) == nil)
+        #expect(SystemMonitorViewModel.menuBarSSDUsage(.empty) == nil)
+
+        var snapshot = SystemSnapshot()
+        #expect(SystemMonitorViewModel.menuBarCPUUsage(snapshot) == "0%")
+        snapshot.cpu.total = 0.426
+        snapshot.memory = MemorySample(total: 1_000, app: 600, wired: 100, compressed: 50, cached: 150)
+        #expect(SystemMonitorViewModel.menuBarCPUUsage(snapshot) == "43%")
+        #expect(SystemMonitorViewModel.menuBarMemoryUsage(snapshot) == "75%")
+        #expect(SystemMonitorViewModel.menuBarSSDUsage(DiskInfo(totalBytes: 1_000, availableBytes: 360)) == "64%")
+        #expect(SystemMonitorViewModel.menuBarSSDUsage(DiskInfo(totalBytes: 1_000, availableBytes: 1_000)) == "0%")
+        #expect(SystemMonitorViewModel.menuBarSSDUsage(DiskInfo(totalBytes: 1_000, availableBytes: 0)) == "100%")
+    }
+
     @Test func memoryUsesBinaryUnitsAndRatesStartAtKilobytes() {
         #expect(ByteSize.memory(17_179_869_184) == "16 GB")
         #expect(!ByteSize.rate(481).contains("bytes"))

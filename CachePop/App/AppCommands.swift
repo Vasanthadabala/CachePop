@@ -4,8 +4,11 @@ import SwiftUI
 /// Menu bar commands: sections in the View menu (⌘1–⌘5), and a Clean menu.
 struct AppCommands: Commands {
     let model: AppModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        // Commands exist before a restored window appears, including native-menu-only launches.
+        let _ = registerWindowAction()
         CommandGroup(replacing: .newItem) {}
 
         // Settings open in the main window, like the other sections.
@@ -47,5 +50,19 @@ struct AppCommands: Commands {
             Button("History") { model.showHistory() }
                 .keyboardShortcut("y", modifiers: .command)
         }
+
+        CommandGroup(after: .sidebar) {
+            Menu("Monitoring Panels") {
+                ForEach(UsageMenuKind.allCases, id: \.rawValue) { kind in
+                    Button("\(kind.title) panel") { model.openUsagePanel(kind) }
+                        .keyboardShortcut(KeyEquivalent(Character(kind.shortcut)), modifiers: [.command, .control])
+                        .disabled(!model.settings[keyPath: kind.setting])
+                }
+            }
+        }
+    }
+
+    private func registerWindowAction() {
+        model.openMainWindow = { [openWindow] in openWindow(id: CachePopApp.mainWindowID) }
     }
 }

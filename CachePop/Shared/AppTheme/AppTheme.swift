@@ -3,10 +3,9 @@ import SwiftUI
 
 /// CachePop's design tokens.
 ///
-/// A white canvas with soft grey cards (in light mode), one accent blue for actions, selection and progress, and
-/// neutral greys for everything else. Category colours (`Palette`) appear only where they
-/// tell kinds of things apart. Green, orange and red appear only where they mean something:
-/// done, needs care, can't be undone. Every colour has a dark-mode value.
+/// Neutral surfaces and text, blue actions, and distinct colours for categories and data.
+/// Status colours communicate success, warnings and destructive actions.
+/// Colours adapt to light and dark appearances.
 enum AppTheme {
     /// A compact scale: tight inside cards, a little more between them.
     enum Spacing {
@@ -19,26 +18,20 @@ enum AppTheme {
     }
 
     enum Radius {
-        static let medium: CGFloat = 8
-        static let large: CGFloat = 12
-        static let bar: CGFloat = 12
+        static let medium: CGFloat = 9
+        static let large: CGFloat = 14
+        static let bar: CGFloat = 14
     }
 
     enum Colors {
         /// The one accent colour: primary buttons, selection, progress.
-        static let accent = Color(hex: 0x2F6BF0)
-        static let accentSoft = Color.dynamic(light: 0x2F6BF0, lightAlpha: 0.10, dark: 0x3D8BFF, darkAlpha: 0.18)
+        static let accent = Color(nsColor: .systemBlue)
+        static let accentSoft = accent.opacity(0.12)
 
-        /// The window behind everything: white in light mode, black in dark mode.
         static let canvas = Color.dynamic(light: 0xFFFFFF, dark: 0x000000)
-        /// The sidebar: the same as the canvas, with a hairline between them.
         static let sidebar = Color.dynamic(light: 0xFFFFFF, dark: 0x000000)
-        /// The open section's row in the sidebar: the card grey.
-        static let sidebarSelection = Color.dynamic(light: 0xF6F6F5, dark: 0x1C1C1C)
-        /// Cards and grouped lists: flat grey on the canvas, with no outline; the fill sets them apart.
-        static let card = Color.dynamic(light: 0xF6F6F5, dark: 0x1C1C1C)
-        /// Things that sit up off a card: the selected tab, an unticked box, the floating action
-        /// bar, sheets. White in light mode, a step lighter than cards in dark mode.
+        static let sidebarSelection = Color.dynamic(light: 0xF5F5F5, dark: 0x1C1C1C)
+        static let card = Color.dynamic(light: 0xF5F5F5, dark: 0x1C1C1C)
         static let raised = Color.dynamic(light: 0xFFFFFF, dark: 0x2A2A2A)
         static let raisedBorder = Color.dynamic(light: 0x000000, lightAlpha: 0.07, dark: 0xFFFFFF, darkAlpha: 0.07)
         static let raisedShadow = Color.dynamic(light: 0x000000, lightAlpha: 0.06, dark: 0x000000, darkAlpha: 0)
@@ -51,7 +44,7 @@ enum AppTheme {
 
         static let textPrimary = Color(nsColor: .labelColor)
         static let textSecondary = Color(nsColor: .secondaryLabelColor)
-        static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+        static let textTertiary = Color.dynamic(light: 0x686868, dark: 0xAAAAAA)
     }
 
     /// Meaning-carrying colours. Never decorative.
@@ -62,25 +55,25 @@ enum AppTheme {
         static let warningSoft = Color.dynamic(light: 0xE08A1E, lightAlpha: 0.12, dark: 0xF2A33A, darkAlpha: 0.16)
     }
 
-    /// Category colours. Used only where colour tells kinds of things apart: the sidebar's
-    /// section icons, Clean Up's six categories (scan, breakdown, group headers), the parts
-    /// of a chart, and System Monitor's metrics. Never on buttons, plain list headers, intro
-    /// cards or settings, which stay neutral.
+    /// Category colours shared by legends, charts and small identifying icons.
     enum Palette {
-        static let blue = Hue(0x2F6BF0)
-        static let sky = Hue(0x1597D8)
-        static let teal = Hue(0x12A594)
-        static let rose = Hue(0xD9487D)
-        static let graphite = Hue(0x6B7280)
-        static let green = Hue(0x1F9D55)
-        static let violet = Hue(0x7C5CE0)
+        static let red = Hue(.systemRed)
+        static let blue = Hue(.systemBlue)
+        static let graphite = Hue(NSColor(name: nil) { appearance in
+            let isDark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            return NSColor(hex: isDark ? 0x808080 : 0x555555, alpha: 1)
+        })
+        static let green = Hue(.systemGreen)
+        static let orange = Hue(.systemOrange)
+        static let turquoise = Hue(NSColor(hex: 0x13BFC8, alpha: 1))
+        static let violet = Hue(NSColor(hex: 0x6C68EB, alpha: 1))
     }
 
     enum Typography {
         /// Hero figures: free space, amount found, amount freed.
-        static let display = Font.system(size: 34, weight: .semibold, design: .rounded)
-        static let largeTitle = Font.system(size: 22, weight: .bold)
-        static let title = Font.system(size: 18, weight: .bold)
+        static let display = Font.system(size: 30, weight: .semibold)
+        static let largeTitle = Font.system(size: 20, weight: .semibold)
+        static let title = Font.system(size: 17, weight: .semibold)
         static let title2 = Font.system(size: 14, weight: .semibold)
         static let headline = Font.system(size: 13, weight: .semibold)
         static let body = Font.system(size: 13)
@@ -90,6 +83,8 @@ enum AppTheme {
     }
 
     enum Layout {
+        /// A compact first-launch window; macOS may restore a size the user chose later.
+        static let defaultWindowSize = CGSize(width: 1000, height: 680)
         /// Space left under scrolling content for the floating action bar.
         static let actionBarClearance: CGFloat = 68
         /// Icons and tiles at the start of list rows.
@@ -104,14 +99,13 @@ enum AppTheme {
 
 /// A category colour: `solid` for icon tiles and chart parts, `wash` for a faint tint.
 struct Hue: Equatable {
-    let base: UInt
+    let solid: Color
 
-    init(_ base: UInt) {
-        self.base = base
+    init(_ color: NSColor) {
+        self.solid = Color(nsColor: color)
     }
 
-    var solid: Color { Color(hex: base) }
-    var wash: Color { Color(hex: base).opacity(0.12) }
+    var wash: Color { solid.opacity(0.12) }
 }
 
 extension Color {
@@ -159,8 +153,7 @@ extension View {
             .controlSize(.regular)
     }
 
-    /// Card: flat grey on the canvas, with no outline. `raised` makes it the raised colour
-    /// with a hairline and a whisper of shadow, for things that float.
+    /// A grouped surface. Floating controls get a stronger edge and a small shadow.
     func card(padding: CGFloat = 0, radius: CGFloat = AppTheme.Radius.large, raised: Bool = false) -> some View {
         self
             .padding(padding)
@@ -173,6 +166,7 @@ extension View {
                 if raised {
                     RoundedRectangle(cornerRadius: radius, style: .continuous)
                         .strokeBorder(AppTheme.Colors.raisedBorder, lineWidth: 1)
+                        .allowsHitTesting(false)
                 }
             }
     }

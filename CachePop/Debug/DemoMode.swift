@@ -1,6 +1,7 @@
 #if DEBUG
 import AppKit
 import Foundation
+import ImageIO
 
 /// Debug-only: run the whole app against a fixture home folder instead of the real one.
 ///
@@ -15,18 +16,54 @@ enum DemoMode {
     static var isRequested: Bool {
         ProcessInfo.processInfo.arguments.contains(argument)
     }
+    static var isMemoryUITest: Bool { isRequested && ProcessInfo.processInfo.arguments.contains("-CachePopMemoryUITest") }
+    static var isMenuBarOrderUITest: Bool { isRequested && ProcessInfo.processInfo.arguments.contains("-CachePopMenuBarOrderUITest") }
+    static var isFanUITest: Bool { isRequested && ProcessInfo.processInfo.arguments.contains("-CachePopFanUITest") }
+    static var isUsageUITest: Bool { isRequested && ProcessInfo.processInfo.arguments.contains("-CachePopUsageUITest") }
+    static var isMonitorUITest: Bool { isFanUITest || isUsageUITest || isMenuBarOrderUITest }
+    static var isAuditUITest: Bool { isRequested && ProcessInfo.processInfo.arguments.contains("-CachePopAuditUITest") }
 
     static let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("CachePopDemo", isDirectory: true)
     static var home: URL { root.appendingPathComponent("home", isDirectory: true) }
 
     private static var cachedEnvironment: CleanupEnvironment?
+    private static var positionedMonitorTestWindow = false
+
+    @MainActor
+    static func prepareMonitorTestWindow() {
+        guard isMonitorUITest || isAuditUITest, !positionedMonitorTestWindow else { return }
+        positionedMonitorTestWindow = true
+        DispatchQueue.main.async {
+            guard let screen = NSScreen.screens.first,
+                  let window = NSApp.windows.first(where: { $0.canBecomeMain }) else { return }
+            let area = screen.visibleFrame
+            let size = isAuditUITest ? NSSize(width: 940, height: 668) : AppTheme.Layout.defaultWindowSize
+            window.setFrame(NSRect(x: area.minX + 30, y: area.minY + 30,
+                                   width: min(size.width, area.width - 60), height: min(size.height, area.height - 60)), display: true)
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate()
+        }
+    }
 
     @MainActor
     static func environmentIfRequested() -> CleanupEnvironment? {
         guard isRequested else { return nil }
         if let cachedEnvironment { return cachedEnvironment }
 
-        try? FixtureBuilder.build(home: home)
+        if isMonitorUITest {
+            try? FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+        } else {
+            try? FixtureBuilder.build(home: home)
+            if isMemoryUITest {
+                let manager = FileManager.default
+                let source = home.appendingPathComponent("Pictures/Retake 1.jpg")
+                if manager.fileExists(atPath: source.path) {
+                    for index in 0..<64 {
+                        try? manager.copyItem(at: source, to: source.deletingLastPathComponent().appendingPathComponent("Memory retake \(index).jpg"))
+                    }
+                }
+            }
+        }
         let environment = CleanupEnvironment(
             home: home,
             commands: DemoTools(home: home),
@@ -47,6 +84,34 @@ enum DemoMode {
         UserDefaults().removePersistentDomain(forName: suite)
         let settings = AppSettings(defaults: UserDefaults(suiteName: suite) ?? .standard, canChangeLoginItem: false)
         settings.neverClean(folder: home.appendingPathComponent("Library/Caches/com.spotify.client"))
+        if isFanUITest {
+            settings.showMenuBarItem = false
+            settings.menuBarShowsFanSpeed = true
+        }
+        if isUsageUITest {
+            // Keep SwiftUI's window action available so the appearance test can
+            // open Settings even when macOS restores a menu-bar-only launch.
+            settings.showMenuBarItem = true
+            let selected = ProcessInfo.processInfo.arguments.first { $0.hasPrefix("-CachePopUsageMenu=") }?
+                .split(separator: "=").last.map(String.init)
+            settings.menuBarShowsCPUUsage = selected == nil || selected == "cpu"
+            settings.menuBarShowsGPUUsage = selected == "gpu"
+            settings.menuBarShowsBattery = selected == "battery"
+            settings.menuBarShowsMemoryUsage = selected == nil || selected == "memory"
+            settings.menuBarShowsSSDUsage = selected == nil || selected == "drive"
+        }
+        if isMenuBarOrderUITest {
+            settings.showMenuBarItem = true
+            settings.menuBarShowsTemperature = true
+            settings.menuBarShowsCPUUsage = true
+            settings.menuBarShowsMemoryUsage = true
+            settings.menuBarShowsSSDUsage = true
+        }
+        if isMemoryUITest {
+            settings.showMenuBarItem = true
+            settings.menuBarShowsTemperature = true
+            settings.menuBarShowsFanSpeed = true
+        }
         return settings
     }
 
@@ -62,11 +127,11 @@ enum DemoMode {
     static func history() -> CleanHistory {
         let history = CleanHistory(inMemory: true)
         let now = Date()
-        history.insert(CleanRecord(date: now.addingTimeInterval(-41 * 86_400), freedBytes: 6_420_000_000, wasMeasured: true,
+        history.insert(CleanHistoryEntry(date: now.addingTimeInterval(-41 * 86_400), freedBytes: 6_420_000_000, wasMeasured: true,
                                    itemCount: 9, trashBytes: 0, titles: ["Derived data", "Unavailable simulators", "npm cache"]))
-        history.insert(CleanRecord(date: now.addingTimeInterval(-17 * 86_400), freedBytes: 2_180_000_000, wasMeasured: true,
+        history.insert(CleanHistoryEntry(date: now.addingTimeInterval(-17 * 86_400), freedBytes: 2_180_000_000, wasMeasured: true,
                                    itemCount: 6, trashBytes: 312_000_000, titles: ["iOS 26.0 runtime", "App caches", "Installers in Downloads"]))
-        history.insert(CleanRecord(date: now.addingTimeInterval(-3 * 86_400), freedBytes: 845_000_000, wasMeasured: true,
+        history.insert(CleanHistoryEntry(date: now.addingTimeInterval(-3 * 86_400), freedBytes: 845_000_000, wasMeasured: true,
                                    itemCount: 5, trashBytes: 0, titles: ["Derived data", "Xcode caches", "Old logs and crash reports"]))
         return history
     }
@@ -170,6 +235,18 @@ nonisolated private enum FixtureBuilder {
         try file("Library/Preferences/com.sketchup.SketchUp.2021.plist", mb: 0.02)
         try file("Library/Preferences/net.whatsapp.WhatsApp.plist", mb: 0.01)
         try spread("Library/Application Support/com.spotify.client/Users", totalMB: 3, files: 1)
+        // Miniature bundles keep Applications scans inside the fixture home.
+        for (name, identifier, megabytes) in [("Spotify", "com.spotify.client", 3.0), ("Demo Editor", "com.cachepop.demoeditor", 5.0), ("Demo Notes", "com.cachepop.demonotes", 2.0)] {
+            let contents = "Applications/\(name).app/Contents"
+            try file("\(contents)/Resources/demo.dat", mb: megabytes)
+            let info: NSDictionary = ["CFBundleIdentifier": identifier, "CFBundleName": name,
+                                      "CFBundleShortVersionString": "1.0", "CFBundlePackageType": "APPL"]
+            info.write(to: home.appendingPathComponent("\(contents)/Info.plist"), atomically: true)
+        }
+        for (name, level, date) in [("Retake 1", -1, "2026:07:14 13:02:05"), ("Retake 2", -1, "2026:07:14 13:02:40"),
+                                   ("Fog", 128, "2026:07:14 18:00:00"), ("Night", 4, "2026:07:14 20:00:00"), ("Bright", 252, "2026:07:15 12:00:00")] {
+            try cameraPhoto(home.appendingPathComponent("Pictures/\(name).jpg"), level: level, date: date)
+        }
         for path in ["Library/Application Support/com.figma.Desktop", "Library/Containers/com.figma.Desktop",
                      "Library/Preferences/com.figma.Desktop.plist", "Library/Application Support/com.electron.zoomus",
                      "Library/Preferences/com.sketchup.SketchUp.2021.plist", "Library/Preferences/net.whatsapp.WhatsApp.plist"] {
@@ -185,6 +262,29 @@ nonisolated private enum FixtureBuilder {
             .write(to: home.appendingPathComponent("\(avd)/config.ini"), atomically: true, encoding: .utf8)
         try file("Library/Android/sdk/system-images/android-34/google_apis_playstore/arm64-v8a/system.img", mb: 22)
         try file("Library/Android/sdk/system-images/android-30/google_apis/x86_64/system.img", mb: 31)
+    }
+
+    /// Valid camera images make the Photos review grid testable without the real library.
+    private static func cameraPhoto(_ url: URL, level: Int, date: String) throws {
+        let width = 800, height = 600
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        for y in 0..<height { for x in 0..<width {
+            let offset = (y * width + x) * 4
+            let value = UInt8(level >= 0 ? level : ((x / 10 + y / 10) % 2 == 0 ? 25 : 230))
+            pixels[offset] = value
+            pixels[offset + 1] = level >= 0 ? value : UInt8(x * 255 / width)
+            pixels[offset + 2] = value
+        } }
+        guard let image = pixels.withUnsafeMutableBytes({ buffer in
+            CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)?.makeImage()
+        }), let destination = CGImageDestinationCreateWithURL(url as CFURL, "public.jpeg" as CFString, 1, nil) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        let metadata: [CFString: Any] = [kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFMake: "Demo", kCGImagePropertyTIFFModel: "Camera"],
+                                       kCGImagePropertyExifDictionary: [kCGImagePropertyExifDateTimeOriginal: date]]
+        CGImageDestinationAddImage(destination, image, metadata as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { throw CocoaError(.fileWriteUnknown) }
     }
 
     /// Back-dates a file or folder and everything in it.

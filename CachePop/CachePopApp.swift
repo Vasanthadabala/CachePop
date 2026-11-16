@@ -27,10 +27,18 @@ struct CachePopApp: App {
             RootView(model: model)
                 .tint(AppTheme.Colors.accent)
         }
-        .defaultSize(width: 1120, height: 760)
+        .defaultSize(width: AppTheme.Layout.defaultWindowSize.width, height: AppTheme.Layout.defaultWindowSize.height)
         .windowResizability(.contentMinSize)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands { AppCommands(model: model) }
+
+        // Default visual order is CachePop, then Temperature. macOS preserves manual dragging.
+        MenuBarExtra(isInserted: setting(\.menuBarShowsTemperature)) {
+            TemperatureMenuContent(model: model)
+        } label: {
+            TemperatureMenuBarLabel(model: model)
+        }
+        .menuBarExtraStyle(.window)
 
         MenuBarExtra(isInserted: cachePopItemShown) {
             MenuBarContent(model: model)
@@ -39,27 +47,14 @@ struct CachePopApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        // The temperature and the fan speed, each in a menu bar item of its own. The temperature
-        // opens the CPU, SSD and memory temperatures; the fan speed, CachePop's own panel.
-        MenuBarExtra(isInserted: setting(\.menuBarShowsTemperature)) {
-            TemperatureMenuContent(model: model)
-        } label: {
-            MenuBarReadingLabel(model: model, reading: .temperature)
-        }
-        .menuBarExtraStyle(.window)
-
-        MenuBarExtra(isInserted: setting(\.menuBarShowsFanSpeed)) {
-            MenuBarContent(model: model)
-        } label: {
-            MenuBarReadingLabel(model: model, reading: .fanSpeed)
-        }
-        .menuBarExtraStyle(.window)
     }
 
     /// A menu bar item's place in Settings. Removing the item from the menu bar (⌘-drag) turns
     /// its setting off.
     private func setting(_ keyPath: ReferenceWritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {
-        Binding(get: { model.settings[keyPath: keyPath] }, set: { model.settings[keyPath: keyPath] = $0 })
+        Binding(get: { model.settings[keyPath: keyPath] }, set: { isShown in
+            model.settings[keyPath: keyPath] = isShown
+        })
     }
 
     /// CachePop's own item: it stays while CachePop opens at login, starting hidden.
@@ -104,6 +99,8 @@ struct CachePopApp: App {
 /// from a low-space alert.
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
     static var model: AppModel?
+    private var fanMenuBar: FanMenuBarController?
+    private var usageMenuBar: UsageMenuBarController?
     /// True while a login launch closes its window: CachePop stays running, menu bar item or not.
     private var isStartingHidden = false
 
@@ -125,6 +122,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             }
         }
         Self.model?.startMonitoring()
+        if let model = Self.model {
+            #if DEBUG
+            if !Self.isRunningTests || DemoMode.isRequested {
+                fanMenuBar = FanMenuBarController(model: model)
+                usageMenuBar = UsageMenuBarController(model: model)
+                if DemoMode.isMemoryUITest { MemoryDiagnostics.start(model) }
+            }
+            #else
+            fanMenuBar = FanMenuBarController(model: model)
+            usageMenuBar = UsageMenuBarController(model: model)
+            #endif
+        }
     }
 
     /// macOS opened CachePop as a login item, rather than someone opening it. Read while the
@@ -156,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// Custom fan speeds return to macOS before terminating. ⌘Q enters menu-bar-only mode
     /// directly, without asking the application to terminate.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let fanControl = Self.model?.fanControl, fanControl.isCustom else { return .terminateNow }
+        guard let fanControl = Self.model?.fanControl, fanControl.needsMonitoring else { return .terminateNow }
         // Whichever comes first: the fans are released, or three seconds pass.
         let reply = ReplyOnce { sender.reply(toApplicationShouldTerminate: true) }
         Task { @MainActor in
@@ -182,6 +191,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     /// does closing it to start hidden at login.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         !isStartingHidden && !(Self.model?.settings.showsAnyMenuBarItem ?? false)
+            && !(Self.model?.monitor.isRecording ?? false)
     }
 
     nonisolated func userNotificationCenter(

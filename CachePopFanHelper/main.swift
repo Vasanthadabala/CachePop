@@ -48,7 +48,7 @@ final class FanService: NSObject, FanHelperProtocol {
 
     private func applyManual(fan: Int, rpm: Double) -> String? {
         guard smc.isAvailable else { return "The fan controller couldn't be opened." }
-        guard fan >= 0, fan < smc.fanCount else { return "This Mac has no fan \(fan + 1)." }
+        guard fan >= 0, fan < smc.fanCount else { return "This Mac has no fan with index \(fan)." }
         guard ProcessInfo.processInfo.thermalState.rawValue < ProcessInfo.ThermalState.serious.rawValue else {
             return "The Mac is hot, so its fans stay under macOS's control."
         }
@@ -81,6 +81,7 @@ final class FanService: NSObject, FanHelperProtocol {
     /// `othersManual` overrides whether other fans still need the SMC unlocked.
     private func applyAutomatic(fan: Int, othersManual: Bool? = nil) -> String? {
         guard smc.isAvailable else { return "The fan controller couldn't be opened." }
+        guard fan >= 0, fan < smc.fanCount || manualFans.contains(fan) else { return "This Mac has no fan with index \(fan)." }
         let others = othersManual ?? !manualFans.subtracting([fan]).isEmpty
         let mask = smc.number("FS! ").map { UInt16($0) }
         let writes = FanWritePlan.automatic(fan: fan, othersManual: others,

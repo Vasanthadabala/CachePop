@@ -8,19 +8,21 @@ struct PageBar: View {
 
     var body: some View {
         HStack(spacing: AppTheme.Spacing.m) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(section.title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(AppTheme.Colors.textSecondary)
-                        .contentTransition(.opacity)
-                        .lineLimit(1)
-                }
+            Text(section.title)
+                .font(.system(size: 16, weight: .semibold))
+                .tracking(-0.3)
+                .fixedSize()
+                .accessibilityAddTraits(.isHeader)
+            if !subtitle.isEmpty {
+                Rectangle().fill(AppTheme.Colors.separator)
+                    .frame(width: 1, height: 15)
+                    .accessibilityHidden(true)
+                Text(subtitle)
+                    .font(AppTheme.Typography.callout)
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            .animation(AppTheme.Motion.quick, value: subtitle)
 
             Spacer(minLength: 0)
         }

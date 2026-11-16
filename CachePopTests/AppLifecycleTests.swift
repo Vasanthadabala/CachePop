@@ -5,6 +5,25 @@ import Testing
 @Suite("Menu bar lifecycle")
 struct AppLifecycleTests {
     @MainActor
+    @Test func closingTheWindowKeepsAnActiveRecordingAlive() throws {
+        let fixture = try Fixture()
+        let suite = "CachePop.tests.\(UUID().uuidString)"
+        defer { UserDefaults().removePersistentDomain(forName: suite) }
+        let settings = AppSettings(defaults: try #require(UserDefaults(suiteName: suite)), canChangeLoginItem: false)
+        settings.showMenuBarItem = false
+        let model = AppModel(environment: fixture.environment(), settings: settings,
+                             history: CleanHistory(inMemory: true), notifications: SilentNotifications(),
+                             fanController: InertFanController(), startupControl: DemoStartupControl())
+        let previous = AppDelegate.model
+        defer { AppDelegate.model = previous; model.monitor.stopRecording() }
+        AppDelegate.model = model
+        model.monitor.startRecording()
+        #expect(!AppDelegate().applicationShouldTerminateAfterLastWindowClosed(NSApplication.shared))
+        model.monitor.stopRecording()
+        #expect(AppDelegate().applicationShouldTerminateAfterLastWindowClosed(NSApplication.shared))
+    }
+
+    @MainActor
     @Test func menuBarOnlyModeKeepsReadingsAndReopeningRestoresTheApp() throws {
         let fixture = try Fixture()
         let suite = "CachePop.tests.\(UUID().uuidString)"
@@ -24,19 +43,23 @@ struct AppLifecycleTests {
             if wasHidden { NSApp.hide(nil) } else { NSApp.unhide(nil) }
         }
 
-        for (temperature, fan) in [(true, false), (false, true), (true, true)] {
-            settings.menuBarShowsTemperature = temperature
-            settings.menuBarShowsFanSpeed = fan
+        let readings: [ReferenceWritableKeyPath<AppSettings, Bool>] = [
+            \.menuBarShowsCPUUsage, \.menuBarShowsMemoryUsage, \.menuBarShowsSSDUsage,
+            \.menuBarShowsTemperature, \.menuBarShowsFanSpeed
+        ]
+        for enabled in readings {
+            for key in readings { settings[keyPath: key] = key == enabled }
             model.keepRunningInMenuBar()
             #expect(NSApp.activationPolicy() == .accessory)
-            #expect(settings.menuBarShowsTemperature == temperature)
-            #expect(settings.menuBarShowsFanSpeed == fan)
+            #expect(!model.isMainWindowContentActive)
+            #expect(settings[keyPath: enabled])
 
             model.show(.systemMonitor)
             #expect(NSApp.activationPolicy() == .regular)
+            #expect(model.isMainWindowContentActive)
             #expect(model.section == .systemMonitor)
         }
-        #expect(windowOpened == 3)
+        #expect(windowOpened == readings.count)
     }
 
     @MainActor
@@ -45,6 +68,9 @@ struct AppLifecycleTests {
         let suite = "CachePop.tests.\(UUID().uuidString)"
         defer { UserDefaults().removePersistentDomain(forName: suite) }
         let settings = AppSettings(defaults: try #require(UserDefaults(suiteName: suite)), canChangeLoginItem: false)
+        settings.menuBarShowsCPUUsage = true
+        settings.menuBarShowsMemoryUsage = true
+        settings.menuBarShowsSSDUsage = true
         settings.menuBarShowsTemperature = true
         settings.menuBarShowsFanSpeed = true
         let model = AppModel(environment: fixture.environment(), settings: settings,

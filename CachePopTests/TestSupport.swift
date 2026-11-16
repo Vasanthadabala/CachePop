@@ -1,6 +1,36 @@
 import Foundation
 @testable import CachePop
 
+/// The original batch grouping algorithm, retained only as an independent test oracle.
+enum PhotoGroupingReference {
+    static func similarGroups(dates: [Date?], distance: (Int, Int) -> Float?) -> [[Int]] {
+        let order = dates.indices.filter { dates[$0] != nil }.sorted { dates[$0]! < dates[$1]! }
+        var parent = Array(dates.indices)
+        func root(_ index: Int) -> Int {
+            var index = index
+            while parent[index] != index {
+                parent[index] = parent[parent[index]]
+                index = parent[index]
+            }
+            return index
+        }
+
+        for (position, first) in order.enumerated() {
+            let start = dates[first]!
+            for second in order.dropFirst(position + 1).prefix(PhotoAnalyzer.neighbours) {
+                guard dates[second]!.timeIntervalSince(start) <= PhotoAnalyzer.similarWindow else { break }
+                if let value = distance(first, second), value < PhotoAnalyzer.similarDistance {
+                    parent[root(second)] = root(first)
+                }
+            }
+        }
+
+        var groups: [Int: [Int]] = [:]
+        for index in order { groups[root(index), default: []].append(index) }
+        return groups.values.filter { $0.count > 1 }.sorted { $0[0] < $1[0] }
+    }
+}
+
 /// A throwaway home folder in the temporary directory. Every scanner and cleaner test points
 /// `CleanupEnvironment.home` here, so nothing on the real Mac is read for cleaning or removed.
 final class Fixture {

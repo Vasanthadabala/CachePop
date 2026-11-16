@@ -15,14 +15,14 @@ enum DemoTour {
         let folder = URL(fileURLWithPath: arguments[index + 1], isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
-        await run(model: model, folder: folder, readOnly: arguments.contains("-CachePopTourReadOnly"))
+        await run(model: model, folder: folder, readOnly: arguments.contains("-CachePopTourReadOnly") || !DemoMode.isRequested)
         NSApp.terminate(nil)
     }
 
     private static func run(model: AppModel, folder: URL, readOnly: Bool) async {
         NSApp.appearance = NSAppearance(named: .darkAqua)
         NSApp.activate()
-        mainWindow?.setFrame(NSRect(x: 80, y: 80, width: 1180, height: 860), display: true)
+        mainWindow?.setContentSize(AppTheme.Layout.defaultWindowSize)
         await pause(0.2)
         snap("00-launch-dark", folder)
         NSApp.appearance = NSAppearance(named: .aqua)
@@ -102,13 +102,32 @@ enum DemoTour {
             snap("08-duplicates", folder)
         }
 
+        model.section = .photos
+        await pause(0.7)
+        snap("08b-photos-start", folder)
+        if DemoMode.isRequested {
+            model.photos.scan()
+            await waitUntil(timeout: 120) { model.photos.phase == .results }
+            await pause(1)
+            snap("08c-photos-similar", folder)
+            model.photos.tab = .blurry
+            await pause(0.6)
+            snap("08d-photos-blurry", folder)
+        }
+
         model.section = .apps
+        await pause(1)
+        snap("09-applications-start", folder)
+        model.apps.scan()
         await waitUntil(timeout: 300) { model.apps.hasScanned }
         await waitUntil(timeout: 120) { !model.apps.isMeasuringLibraries }
         await pause(1.5)
         snap("09-applications", folder)
 
         model.section = .loginItems
+        await pause(1)
+        snap("10-login-items-start", folder)
+        model.loginItems.scan()
         await waitUntil(timeout: 120) { model.loginItems.hasScanned }
         await pause(1)
         snap("10-login-items", folder)
@@ -250,6 +269,14 @@ enum DemoTour {
     }
 
     private static func save(_ window: NSWindow, to url: URL) {
+        let content = window.contentView?.bounds.size ?? .zero
+        let geometry: [String: Double] = [
+            "windowWidth": window.frame.width, "windowHeight": window.frame.height,
+            "contentWidth": content.width, "contentHeight": content.height
+        ]
+        if let data = try? JSONSerialization.data(withJSONObject: geometry, options: [.prettyPrinted, .sortedKeys]) {
+            try? data.write(to: url.deletingPathExtension().appendingPathExtension("geometry.json"))
+        }
         if let image = windowImage(window), image.width > 10 {
             let representation = NSBitmapImageRep(cgImage: image)
             try? representation.representation(using: .png, properties: [:])?.write(to: url)
