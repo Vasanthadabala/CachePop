@@ -1,47 +1,109 @@
+import AppKit
 import SwiftUI
 
-// Which category colour each section and Clean Up group wears. Kept in the UI layer so the
-// cleanup engine stays free of presentation. See `AppTheme.Palette` for where colour is used.
-
-extension AppSection {
-    /// The section's icon colour in the sidebar.
-    var hue: Hue {
+extension PhotoIssue {
+    var symbolName: String {
         switch self {
-        case .cleanUp:       AppTheme.Palette.blue
-        case .largeFiles:    AppTheme.Palette.sky
-        case .photos:        AppTheme.Palette.violet
-        case .systemMonitor: AppTheme.Palette.green
-        case .diskUsage:     AppTheme.Palette.rose
-        case .apps:          AppTheme.Palette.teal
-        case .loginItems:    AppTheme.Palette.graphite
-        case .settings:      AppTheme.Palette.graphite
+        case .blurry: "camera.aperture"
+        case .dark: "moon"
+        case .overexposed: "sun.max"
         }
     }
 }
 
-extension CleanupGroupKind {
-    /// One colour per category, shared by the scan, the breakdown bar and the group headers.
-    var hue: Hue {
+extension MemoryPressure {
+    @MainActor var color: Color {
         switch self {
-        case .xcode:           AppTheme.Palette.blue
-        case .simulators:      AppTheme.Palette.sky
-        case .developerCaches: AppTheme.Palette.teal
-        case .devices:         AppTheme.Palette.green
-        case .leftovers:       AppTheme.Palette.graphite
-        case .general:         AppTheme.Palette.rose
-        case .browsers:        AppTheme.Palette.violet
+        case .normal: AppTheme.Status.success
+        case .warning: AppTheme.Status.warning
+        case .critical: AppTheme.Palette.red.solid
         }
     }
 }
 
-/// One colour per System Monitor measurement, the same in its header stat, its card's chart and
-/// the menu bar panel, so a glance matches them. Incoming and outgoing share one pair across
-/// Disk and Network.
+extension MonitorStatus.Level {
+    @MainActor var color: Color {
+        switch self {
+        case .normal: AppTheme.Status.success
+        case .warning: AppTheme.Status.warning
+        case .unavailable: AppTheme.Colors.textSecondary
+        }
+    }
+}
+
+/// Shared data colors keep each metric consistent between main pages and popup charts.
+/// Menu bar labels remain monochrome; gray also identifies inactive and unavailable data.
 enum Metric {
     static let cpu = AppTheme.Palette.blue
-    static let memory = AppTheme.Palette.teal
-    static let temperature = AppTheme.Palette.rose
-    static let fans = AppTheme.Palette.sky
+    static let gpu = AppTheme.Palette.violet
+    static let memory = AppTheme.Palette.turquoise
+    static let drive = AppTheme.Palette.blue
+    static let battery = AppTheme.Palette.green
+    static let temperature = AppTheme.Palette.orange
+    static let fans = AppTheme.Palette.turquoise
+    static let power = AppTheme.Palette.orange
     static let incoming = AppTheme.Palette.blue
-    static let outgoing = AppTheme.Palette.teal
+    static let outgoing = AppTheme.Palette.red
+    static let cpuSystem = AppTheme.Palette.red
+    static let idle = Hue(.lightGray)
+    // Core types use the turquoise and violet-blue from the reference chart.
+    static let efficiency = AppTheme.Palette.turquoise
+    static let performance = AppTheme.Palette.violet
+    static let wired = AppTheme.Palette.orange
+    static let compressed = AppTheme.Palette.violet
+    static let cached = Hue(.lightGray)
+
+    static let renderer = AppTheme.Palette.blue
+    static let tiler = AppTheme.Palette.turquoise
+
+    static func core(_ kind: CPUCoreKind?) -> Hue {
+        switch kind {
+        case .efficiency: efficiency
+        case .performance: performance
+        case nil: cpu
+        }
+    }
+
+    static func batteryCharge(percent: Int, isCharging: Bool) -> Color {
+        if isCharging || percent > 20 { return battery.solid }
+        return percent > 10 ? AppTheme.Status.warning : AppTheme.Palette.red.solid
+    }
+}
+
+/// Shared category colours for the scan ring, results bar and legend.
+extension CleanupGroupKind {
+    @MainActor var hue: Hue {
+        switch self {
+        case .xcode: AppTheme.Palette.blue
+        case .simulators: AppTheme.Palette.red
+        case .browsers: AppTheme.Palette.graphite
+        case .developerCaches: AppTheme.Palette.orange
+        case .devices: AppTheme.Palette.graphite
+        case .general: AppTheme.Palette.green
+        case .leftovers: AppTheme.Palette.violet
+        }
+    }
+}
+
+extension SensorGroup {
+    @MainActor var hue: Hue {
+        switch self {
+        case .cpu: Metric.cpu
+        case .gpu: Metric.gpu
+        case .memory: Metric.memory
+        case .drive: Metric.drive
+        case .battery: Metric.battery
+        case .other: Metric.temperature
+        }
+    }
+}
+
+extension PhotoIssue {
+    @MainActor var hue: Hue {
+        switch self {
+        case .blurry: AppTheme.Palette.turquoise
+        case .dark: AppTheme.Palette.violet
+        case .overexposed: AppTheme.Palette.orange
+        }
+    }
 }

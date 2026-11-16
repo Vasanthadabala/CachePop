@@ -187,10 +187,17 @@ struct PhotoAnalysisTests {
         let dates: [Date?] = [base, base.addingTimeInterval(30), base.addingTimeInterval(60), base.addingTimeInterval(3_600), nil]
         // 0, 1 and 3 look alike; 2 doesn't; 3 is an hour later; 4 has no date.
         let looks = [0, 0, 9, 0, 0]
-        let groups = PhotoAnalyzer.similarGroups(dates: dates) { first, second in
-            looks[first] == looks[second] ? 0.1 : 1.0
+        var builder = PhotoGroupBuilder<Int>()
+        for index in dates.indices.sorted(by: { (dates[$0] ?? .distantPast) < (dates[$1] ?? .distantPast) }) {
+            let photo = AnalyzedPhoto(id: String(index), location: .library(String(index)), name: String(index),
+                                      date: dates[index], pixelWidth: 100, pixelHeight: 100, bytes: nil,
+                                      isFavorite: false,
+                                      metrics: PhotoMetrics(sharpness: 1, brightness: 0.5, shadows: 0, highlights: 0),
+                                      issue: nil)
+            builder.append(photo, feature: looks[index]) { $0 == $1 ? 0.1 : 1.0 }
         }
-        #expect(groups == [[0, 1]])
+        let groups = builder.finish().similar.map { Set($0.photos.map(\.id)) }
+        #expect(groups == [Set(["0", "1"])])
     }
 
     @Test func favouritesAndCleanShotsAreKept() {

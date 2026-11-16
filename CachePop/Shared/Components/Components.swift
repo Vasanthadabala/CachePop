@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // The small set of building blocks every screen is made from. If a screen needs something
 // that isn't here, add it here rather than styling it inline.
@@ -17,13 +18,13 @@ struct RevealOnAppear: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isShown ? 1 : 0)
-            .offset(y: isShown || reduceMotion ? 0 : 12)
+            .offset(y: isShown || reduceMotion ? 0 : 5)
             .onAppear {
                 guard !isShown else { return }
                 if reduceMotion {
                     isShown = true
                 } else {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.88).delay(Double(min(order, 8)) * 0.05)) {
+                    withAnimation(.easeOut(duration: 0.18).delay(Double(min(order, 4)) * 0.025)) {
                         isShown = true
                     }
                 }
@@ -71,7 +72,7 @@ struct CardHeader<Trailing: View>: View {
                 }
             }
             Spacer(minLength: AppTheme.Spacing.s)
-            trailing
+            trailing.fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, AppTheme.Spacing.m)
         .padding(.vertical, 10)
@@ -87,8 +88,7 @@ struct IconTile: View {
     let symbolName: String
     var size: CGFloat = 28
     var tone: Tone = .neutral
-    /// A category colour: fills the tile and turns the glyph white. Only for things told
-    /// apart by colour (sidebar sections, Clean Up categories).
+    /// A category glyph on a soft tint, shared with its chart and legend.
     var hue: Hue?
 
     private var foreground: Color {
@@ -114,9 +114,9 @@ struct IconTile: View {
         if let hue {
             Image(systemName: symbolName)
                 .font(.system(size: size * 0.46, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(hue.solid)
                 .frame(width: size, height: size)
-                .background(shape.fill(hue.solid))
+                .background(shape.fill(hue.wash))
         } else {
             Image(systemName: symbolName)
                 .font(.system(size: size * 0.44, weight: .medium))
@@ -131,12 +131,28 @@ struct IconTile: View {
 struct FinderIcon: View {
     let path: String
     var size: CGFloat = 28
+    var fallback: UTType = .item
+    @State private var image: NSImage?
 
     var body: some View {
-        Image(nsImage: IconCache.icon(forFile: path, points: size))
-            .resizable()
-            .interpolation(.high)
-            .frame(width: size, height: size)
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+            } else {
+                Image(systemName: fallback == .applicationBundle ? "app" : "doc")
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+            }
+        }
+        .frame(width: size, height: size)
+        .task(id: "\(path)|\(size)|\(fallback.identifier)") {
+            image = nil
+            let loaded = await IconCache.load(forFile: path, points: size, fallback: fallback)
+            guard !Task.isCancelled else { return }
+            image = loaded
+        }
+        .onDisappear { image = nil }
     }
 }
 
@@ -150,6 +166,7 @@ struct Pill: View {
     let text: String
     var symbolName: String?
     var tone: Tone = .neutral
+    var symbolColor: Color?
 
     private var foreground: Color {
         switch tone {
@@ -172,6 +189,7 @@ struct Pill: View {
             if let symbolName {
                 Image(systemName: symbolName)
                     .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(symbolColor ?? foreground)
             }
             Text(text)
                 .font(.system(size: 10.5, weight: .medium))
@@ -317,24 +335,34 @@ struct BreakdownSegment: Identifiable {
     let selected: Int64
 }
 
+/// Keeps tiny categories visible without making the whole bar wider than its container.
+nonisolated enum BreakdownGeometry {
+    static func widths(for bytes: [Int64], availableWidth: CGFloat, gap: CGFloat = 3) -> [CGFloat] {
+        guard !bytes.isEmpty else { return [] }
+        let width = max(availableWidth - gap * CGFloat(bytes.count - 1), 0)
+        let minimum = min(6, width / CGFloat(bytes.count))
+        let remainder = max(width - minimum * CGFloat(bytes.count), 0)
+        let total = bytes.reduce(0.0) { $0 + Double(max($1, 0)) }
+        return bytes.map { minimum + (total > 0 ? remainder * CGFloat(Double(max($0, 0)) / total) : remainder / CGFloat(bytes.count)) }
+    }
+}
+
 /// What was found, by category: each segment's width is its share, its colour where selected
 /// and plain track where not.
 struct BreakdownBar: View {
     let segments: [BreakdownSegment]
-
-    private var grandTotal: Int64 { max(segments.reduce(0) { $0 + $1.total }, 1) }
+    var showsUnselectedColors = false
 
     var body: some View {
         GeometryReader { proxy in
             let visible = segments.filter { $0.total > 0 }
-            let gaps = CGFloat(max(visible.count - 1, 0)) * 3
-            let width = max(proxy.size.width - gaps, 0)
+            let widths = BreakdownGeometry.widths(for: visible.map(\.total), availableWidth: proxy.size.width)
             HStack(spacing: 3) {
-                ForEach(visible) { segment in
-                    let segmentWidth = max(width * CGFloat(Double(segment.total) / Double(grandTotal)), 6)
-                    let selectedFraction = segment.total > 0 ? Double(segment.selected) / Double(segment.total) : 0
+                ForEach(Array(visible.enumerated()), id: \.element.id) { index, segment in
+                    let segmentWidth = widths[index]
+                    let selectedFraction = segment.total > 0 ? min(max(Double(segment.selected) / Double(segment.total), 0), 1) : 0
                     ZStack(alignment: .leading) {
-                        Rectangle().fill(AppTheme.Colors.track)
+                        Rectangle().fill(showsUnselectedColors ? segment.color.opacity(0.25) : AppTheme.Colors.track)
                         Rectangle()
                             .fill(segment.color)
                             .frame(width: segmentWidth * CGFloat(selectedFraction))
@@ -409,7 +437,7 @@ struct FloatingActionBar<Actions: View>: View {
                 }
             }
             Spacer(minLength: AppTheme.Spacing.m)
-            actions
+            actions.fixedSize(horizontal: true, vertical: false)
         }
         .padding(.leading, AppTheme.Spacing.l)
         .padding(.trailing, AppTheme.Spacing.s)
@@ -480,31 +508,14 @@ struct NoticeBanner: View {
 struct ProgressPanel: View {
     let title: String
     var detail: String?
-    /// nil shows an indeterminate spinner.
+    /// nil shows an indeterminate circular arc.
     var progress: Double?
     var cancelTitle = "Stop"
     var onCancel: (() -> Void)?
 
     var body: some View {
         VStack(spacing: AppTheme.Spacing.l) {
-            if let progress {
-                ZStack {
-                    Circle().stroke(AppTheme.Colors.track, lineWidth: 5)
-                    Circle()
-                        .trim(from: 0, to: max(progress, 0.02))
-                        .stroke(AppTheme.Colors.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(AppTheme.Motion.standard, value: progress)
-                    Text("\(Int(progress * 100))%")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                }
-                .frame(width: 60, height: 60)
-            } else {
-                ProgressView()
-                    .controlSize(.large)
-            }
+            ProgressRing(progress: progress)
 
             VStack(spacing: 6) {
                 Text(title)
@@ -527,6 +538,41 @@ struct ProgressPanel: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// The same ring for measured progress and scans whose total is not known yet.
+private struct ProgressRing: View {
+    let progress: Double?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(AppTheme.Colors.track, lineWidth: 5)
+            if let progress {
+                let fraction = min(max(progress, 0), 1)
+                Circle()
+                    .trim(from: 0, to: max(fraction, 0.02))
+                    .stroke(AppTheme.Colors.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(AppTheme.Motion.standard, value: fraction)
+                Text("\(Int(fraction * 100))%")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            } else {
+                TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
+                    Circle()
+                        .trim(from: 0, to: 0.25)
+                        .stroke(AppTheme.Colors.accent, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                        .rotationEffect(.degrees(reduceMotion ? -90 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2) / 1.2 * 360 - 90))
+                }
+            }
+        }
+        .frame(width: 60, height: 60)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Progress")
+        .accessibilityValue(progress.map { "\(Int(min(max($0, 0), 1) * 100)) percent" } ?? "In progress")
     }
 }
 
@@ -660,7 +706,7 @@ struct FlowLayout: Layout {
 
 // MARK: - Charts
 
-/// A small line chart of recent values, newest on the right, with a faint flat fill below.
+/// A small line chart of recent values, newest on the right.
 struct Sparkline: View {
     let values: [Double]
     var minimum: Double = 0
@@ -668,6 +714,7 @@ struct Sparkline: View {
     var maximum: Double?
     var color: Color
     var capacity = SystemMonitorViewModel.historyLength
+    var showsBackground = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -680,7 +727,8 @@ struct Sparkline: View {
                         path.addLine(to: CGPoint(x: last.x, y: proxy.size.height))
                         path.closeSubpath()
                     }
-                    .fill(color.opacity(0.12))
+                    .fill(LinearGradient(colors: [color.opacity(0.21), color.opacity(0.025)],
+                                         startPoint: .top, endPoint: .bottom))
                     Path { path in
                         path.move(to: first)
                         points.dropFirst().forEach { path.addLine(to: $0) }
@@ -689,7 +737,7 @@ struct Sparkline: View {
                 }
             }
         }
-        .background(RoundedRectangle(cornerRadius: 6).fill(AppTheme.Colors.tile.opacity(0.5)))
+        .background(showsBackground ? AppTheme.Colors.tile.opacity(0.5) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .accessibilityHidden(true)
     }
@@ -706,8 +754,7 @@ struct DualSparkline: View {
         let top = max((first + second).max() ?? 0, 1)
         ZStack {
             Sparkline(values: first, maximum: top, color: firstColor)
-            Sparkline(values: second, maximum: top, color: secondColor)
-                .background(Color.clear)
+            Sparkline(values: second, maximum: top, color: secondColor, showsBackground: false)
         }
     }
 }

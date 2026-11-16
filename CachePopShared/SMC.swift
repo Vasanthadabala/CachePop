@@ -1,21 +1,6 @@
 import Foundation
 import IOKit
 
-// Shared by the app (reads) and CachePopFanHelper (reads and, as root, writes fan keys).
-
-/// One fan: its current speed and the range macOS allows.
-nonisolated struct FanSample: Sendable, Equatable, Identifiable {
-    let index: Int
-    var rpm: Double
-    var minimum: Double
-    var maximum: Double
-
-    var id: Int { index }
-    var fraction: Double {
-        maximum > minimum ? min(max((rpm - minimum) / (maximum - minimum), 0), 1) : 0
-    }
-}
-
 /// Talks to the System Management Controller. Anyone can read keys; only root can write them.
 nonisolated final class SMC: @unchecked Sendable {
     private struct Version { var major: UInt8 = 0, minor: UInt8 = 0, build: UInt8 = 0, reserved: UInt8 = 0; var release: UInt16 = 0 }
@@ -121,7 +106,10 @@ nonisolated final class SMC: @unchecked Sendable {
         }
     }
 
-    var fanCount: Int { Int(number("FNum") ?? 0) }
+    var fanCount: Int {
+        guard let count = number("FNum"), count.isFinite, count > 0 else { return 0 }
+        return Int(min(count, 8))
+    }
 
     /// Fans with their current, minimum and maximum speeds. Empty on Macs without fans.
     func fans() -> [FanSample] {
@@ -168,8 +156,11 @@ nonisolated final class SMC: @unchecked Sendable {
     /// Little-endian floats on Apple silicon, fixed point on Intel.
     static func decode(type: String, bytes: [UInt8]) -> Double? {
         switch type {
+        case "sp78" where bytes.count >= 2:
+            return Double(Int16(bitPattern: UInt16(bytes[0]) << 8 | UInt16(bytes[1]))) / 256
         case "flt " where bytes.count >= 4:
-            return Double(Float(bitPattern: UInt32(bytes[0]) | UInt32(bytes[1]) << 8 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 24))
+            let value = Double(Float(bitPattern: UInt32(bytes[0]) | UInt32(bytes[1]) << 8 | UInt32(bytes[2]) << 16 | UInt32(bytes[3]) << 24))
+            return value.isFinite ? value : nil
         case "fpe2" where bytes.count >= 2:
             return Double(UInt16(bytes[0]) << 8 | UInt16(bytes[1])) / 4
         case "ui8 " where bytes.count >= 1:
@@ -184,17 +175,20 @@ nonisolated final class SMC: @unchecked Sendable {
     }
 
     static func encode(_ value: Double, type: String) -> [UInt8]? {
+        guard value.isFinite else { return nil }
         switch type {
         case "flt ":
+            guard Float(value).isFinite else { return nil }
             let bits = Float(value).bitPattern
             return [UInt8(bits & 0xFF), UInt8(bits >> 8 & 0xFF), UInt8(bits >> 16 & 0xFF), UInt8(bits >> 24 & 0xFF)]
         case "fpe2":
-            let fixed = UInt16(clamping: Int((value * 4).rounded()))
+            let bounded = min(max(value, 0), Double(UInt16.max) / 4)
+            let fixed = UInt16((bounded * 4).rounded())
             return [UInt8(fixed >> 8), UInt8(fixed & 0xFF)]
         case "ui8 ":
-            return [UInt8(clamping: Int(value.rounded()))]
+            return [UInt8(min(max(value, 0), Double(UInt8.max)).rounded())]
         case "ui16":
-            let number = UInt16(clamping: Int(value.rounded()))
+            let number = UInt16(min(max(value, 0), Double(UInt16.max)).rounded())
             return [UInt8(number >> 8), UInt8(number & 0xFF)]
         default:
             return nil
@@ -204,11 +198,13 @@ nonisolated final class SMC: @unchecked Sendable {
 
 // MARK: - Fan control plan
 
+
 /// One SMC key write.
 nonisolated struct SMCWrite: Sendable, Equatable {
     let key: String
     let bytes: [UInt8]
 }
+
 
 /// Works out which SMC keys to write to set or release a fan. Pure, so it can be tested on any Mac.
 ///
@@ -223,7 +219,8 @@ nonisolated enum FanWritePlan {
     /// Writes for a fixed speed, or nil when this Mac doesn't expose the keys needed.
     static func manual(fan: Int, rpm: Double, minimum: Double, maximum: Double,
                        keyTypes: [String: String], forcedMask: UInt16? = nil) -> [SMCWrite]? {
-        guard maximum > 0, let targetType = keyTypes["F\(fan)Tg"],
+        guard (0..<16).contains(fan), rpm.isFinite, minimum.isFinite, maximum.isFinite,
+              minimum >= 0, maximum > 0, maximum >= minimum, let targetType = keyTypes["F\(fan)Tg"],
               let target = SMC.encode(clamp(rpm, minimum: minimum, maximum: maximum), type: targetType) else { return nil }
 
         var writes: [SMCWrite] = []
@@ -243,6 +240,7 @@ nonisolated enum FanWritePlan {
     /// Writes that hand the fan back to macOS. `othersManual` keeps the unlock while other fans
     /// are still on a fixed speed.
     static func automatic(fan: Int, othersManual: Bool, keyTypes: [String: String], forcedMask: UInt16? = nil) -> [SMCWrite] {
+        guard (0..<16).contains(fan) else { return [] }
         var writes: [SMCWrite] = []
         if let modeType = keyTypes["F\(fan)Md"], let auto = SMC.encode(0, type: modeType) {
             writes.append(SMCWrite(key: "F\(fan)Md", bytes: auto))

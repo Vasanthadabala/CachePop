@@ -79,7 +79,6 @@ final class RecordingFanController: FanControlling {
         }
         speeds[fan] = rpm
     }
-    func setAutomatic(fan: Int) async throws { speeds[fan] = nil }
     func setAllAutomatic() async throws {
         speeds = [:]
         releasedAll += 1

@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// The sidebar: the app's identity, the four sections grouped by what they do, a live status
-/// line for each, and the disk's free space always in view.
+/// Feature navigation, with live scan status and a persistent disk summary.
 struct AppSidebar: View {
     @Bindable var model: AppModel
 
@@ -10,7 +9,7 @@ struct AppSidebar: View {
             SidebarBrand()
                 .padding(.horizontal, 10)
                 .padding(.top, 2)
-                .padding(.bottom, 14)
+                .padding(.bottom, 18)
 
             SidebarGroupLabel("Clean")
             VStack(spacing: 2) {
@@ -47,7 +46,6 @@ struct AppSidebar: View {
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(AppTheme.Colors.sidebar.ignoresSafeArea())
-        // A hairline down the edge, like the one under the page bar: sidebar and page are both white.
         .overlay(alignment: .trailing) {
             Rectangle()
                 .fill(AppTheme.Colors.separator)
@@ -56,7 +54,7 @@ struct AppSidebar: View {
         }
         // A fixed width: the split view otherwise gives detail screens with wide content
         // part of the sidebar, which cut off its labels.
-        .navigationSplitViewColumnWidth(232)
+        .navigationSplitViewColumnWidth(min: 204, ideal: 204, max: 204)
     }
 
     // ⌘1–⌘5 live in the View menu (AppCommands), so they work from anywhere.
@@ -66,7 +64,7 @@ struct AppSidebar: View {
 }
 
 /// One section's row. It reads its own status, so a live change in one section (a monitor
-/// sample every two seconds, a folder measured, app sizes landing) redraws that row only,
+/// reading, a folder measured, app sizes landing) redraws that row only,
 /// not the whole sidebar.
 private struct SidebarSectionRow: View {
     let model: AppModel
@@ -87,17 +85,13 @@ private struct SidebarSectionRow: View {
 
 private struct SidebarBrand: View {
     var body: some View {
-        HStack(spacing: 8) {
-            BrandMark(height: 26)
-                .frame(width: 21)
-            VStack(alignment: .leading, spacing: 0) {
-                Text("CachePop")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.textPrimary)
-                Text("Free up space on your Mac")
-                    .font(.system(size: 10.5))
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-            }
+        HStack(spacing: 9) {
+            BrandMark(height: 24)
+                .frame(width: 31, height: 31)
+                .card(radius: 9)
+            Text("CachePop")
+                .font(.system(size: 17, weight: .semibold))
+                .tracking(-0.5)
         }
     }
 }
@@ -110,10 +104,9 @@ private struct SidebarGroupLabel: View {
     }
 
     var body: some View {
-        Text(text.uppercased())
-            .font(.system(size: 10, weight: .semibold))
-            .tracking(0.8)
-            .foregroundStyle(AppTheme.Colors.textTertiary)
+        Text(text)
+            .font(AppTheme.Typography.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.Colors.textSecondary)
             .padding(.horizontal, 10)
             .padding(.bottom, 4)
     }
@@ -140,45 +133,38 @@ private struct SidebarRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 9) {
-                // Each section keeps its colour so it's easy to find; the open one is the
-                // grey row.
-                IconTile(symbolName: section.symbolName, size: 26, hue: section.hue)
+                // Neutral navigation keeps attention on the content's categories and data.
+                Image(systemName: section.symbolName)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+                    .frame(width: 22)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(section.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(AppTheme.Colors.textPrimary)
-                        .lineLimit(1)
-                        .fixedSize()
-                    Text(status.subtitle)
-                        .font(.system(size: 11))
-                        .foregroundStyle(AppTheme.Colors.textSecondary)
-                        .lineLimit(1)
-                        .contentTransition(.opacity)
-                }
-                .layoutPriority(1)
+                Text(section.title)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .medium))
+                    .lineLimit(1)
+                    .layoutPriority(1)
 
                 Spacer(minLength: 4)
 
                 if status.isBusy {
                     ProgressView()
                         .controlSize(.mini)
+                        .tint(AppTheme.Colors.textSecondary)
                 } else if let badge = status.badge {
                     Text(badge)
                         .font(.system(size: 10.5, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize()
-                        // Something to review: the section's colour, softly.
-                        .foregroundStyle(section.hue.solid)
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
                         .padding(.horizontal, 7)
                         .padding(.vertical, 3)
-                        .background(Capsule().fill(section.hue.wash))
+                        .background(Capsule().fill(AppTheme.Colors.tile))
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
                 }
             }
             .padding(.horizontal, 7)
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .background { background }
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
@@ -188,6 +174,7 @@ private struct SidebarRow: View {
         }
         .animation(AppTheme.Motion.standard, value: status)
         .accessibilityLabel("\(section.title), \(status.subtitle)")
+        .help(status.subtitle)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
@@ -195,7 +182,6 @@ private struct SidebarRow: View {
     private var background: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         if isSelected {
-            // The card grey on the sidebar, flat like the cards.
             shape.fill(AppTheme.Colors.sidebarSelection)
         } else if isHovered {
             shape.fill(AppTheme.Colors.hover)
@@ -226,7 +212,7 @@ private struct SidebarFooter: View {
     private var settingsCard: some View {
         FooterButton(help: "Open Settings", action: onOpenSettings) { _ in
             HStack(spacing: 9) {
-                IconTile(symbolName: "gearshape", size: 24, hue: AppSection.settings.hue)
+                IconTile(symbolName: "gearshape", size: 24)
                 Text("Settings")
                     .font(.system(size: 12.5, weight: .semibold))
                     .foregroundStyle(AppTheme.Colors.textPrimary)
@@ -321,24 +307,16 @@ struct DiskSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 9) {
-                IconTile(symbolName: "internaldrive", size: 24, tone: .warning, hue: warn ? nil : AppTheme.Palette.graphite)
-                    .overlay(alignment: .topTrailing) {
-                        if warn {
-                            Circle()
-                                .fill(AppTheme.Status.warning)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 2, y: -2)
-                        }
-                    }
+                IconTile(symbolName: "internaldrive", size: 24)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Macintosh HD")
+                    Text(disk.volumeName)
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.textPrimary)
                         .lineLimit(1)
-                        .fixedSize()
+                        .truncationMode(.middle)
                     Text(hasReading ? "\(ByteSize.string(disk.availableBytes)) free" : "Reading…")
                         .font(.system(size: 11))
-                        .foregroundStyle(warn ? AppTheme.Status.warning : AppTheme.Colors.textSecondary)
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .lineLimit(1)
@@ -355,14 +333,14 @@ struct DiskSummary: View {
 
             HStack(spacing: 4) {
                 Text(hasReading ? "\(ByteSize.string(disk.usedBytes)) of \(ByteSize.string(disk.totalBytes)) used" : " ")
-                    .foregroundStyle(AppTheme.Colors.textTertiary)
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                 Spacer(minLength: 4)
                 if hasReading {
                     Text(warn ? "\(percent)% · low" : "\(percent)%")
                         .fontWeight(.semibold)
-                        .foregroundStyle(warn ? AppTheme.Status.warning : AppTheme.Colors.textSecondary)
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
                 }
             }
             .font(.system(size: 10.5))
@@ -370,13 +348,13 @@ struct DiskSummary: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(hasReading
-            ? "Macintosh HD, \(ByteSize.string(disk.availableBytes)) free of \(ByteSize.string(disk.totalBytes)), \(percent) percent used"
-            : "Macintosh HD, reading")
+            ? "\(disk.volumeName), \(ByteSize.string(disk.availableBytes)) free of \(ByteSize.string(disk.totalBytes)), \(percent) percent used"
+            : "\(disk.volumeName), reading")
     }
 }
 
 /// A slim rounded bar: a soft track and a solid fill.
-private struct UsageBar: View {
+struct UsageBar: View {
     let fraction: Double
     let color: Color
 
@@ -434,7 +412,7 @@ extension AppModel {
             case .scanning:
                 return SidebarStatus(subtitle: "Scanning…", isBusy: true)
             case .results:
-                let total = largeFiles.result.largeBytes + largeFiles.result.duplicateExtraBytes
+                let total = largeFiles.reviewBytes
                 return SidebarStatus(subtitle: total > 0 ? "To review" : "Nothing large found",
                                      badge: total > 0 ? ByteSize.string(total) : nil)
             }

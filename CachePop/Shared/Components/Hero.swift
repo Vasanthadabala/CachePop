@@ -91,17 +91,24 @@ struct TapeView: View {
             }
             .frame(height: 7, alignment: .top)
 
-            HStack(spacing: AppTheme.Spacing.s) {
-                Text(tape.leading)
-                Spacer(minLength: 0)
-                if let center = tape.center {
-                    Text(center)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: AppTheme.Spacing.s) {
+                    Text(tape.leading).fixedSize()
                     Spacer(minLength: 0)
+                    if let center = tape.center {
+                        Text(center).fixedSize()
+                        Spacer(minLength: 0)
+                    }
+                    Text(tape.trailing).fixedSize()
                 }
-                Text(tape.trailing)
+                FlowLayout(spacing: AppTheme.Spacing.m, lineSpacing: AppTheme.Spacing.xs) {
+                    Text(tape.leading)
+                    if let center = tape.center { Text(center) }
+                    Text(tape.trailing)
+                }
             }
             .font(.system(size: 11))
-            .foregroundStyle(AppTheme.Colors.textTertiary)
+            .foregroundStyle(AppTheme.Colors.textSecondary)
             .monospacedDigit()
             .lineLimit(1)
         }
@@ -169,8 +176,8 @@ struct TapeHeader<Actions: View, Accessory: View, Visual: View>: View {
 
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(value)
-                            .font(.system(size: 48, weight: .light))
-                            .tracking(-1.5)
+                            .font(.system(size: 40, weight: .semibold))
+                            .tracking(-1)
                             .monospacedDigit()
                             .contentTransition(.numericText())
                             .lineLimit(1)
@@ -192,7 +199,7 @@ struct TapeHeader<Actions: View, Accessory: View, Visual: View>: View {
                     }
                 }
                 Spacer(minLength: 0)
-                accessory
+                accessory.fixedSize(horizontal: true, vertical: false)
             }
 
             if let tape {
@@ -238,8 +245,8 @@ struct TapeFigure: View {
         let parts = ByteSize.parts(bytes)
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(parts.number)
-                .font(.system(size: 44, weight: .light))
-                .tracking(-1.5)
+                .font(.system(size: 36, weight: .semibold))
+                .tracking(-1)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .lineLimit(1)
@@ -248,41 +255,5 @@ struct TapeFigure: View {
                 .font(.system(size: 16))
                 .foregroundStyle(AppTheme.Colors.textSecondary)
         }
-    }
-}
-
-/// A smaller tape for a row of measurements: caption, number, unit and a slim ruler.
-struct TapeStat: View {
-    let caption: String
-    let value: String
-    let unit: String
-    let fraction: Double
-    let color: Color
-    let leading: String
-    let trailing: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(caption)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(AppTheme.Colors.textSecondary)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value)
-                    .font(.system(size: 28, weight: .light))
-                    .tracking(-1)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                Text(unit)
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-            }
-            TapeView(tape: Tape(segments: [Tape.Segment(from: 0, to: fraction, color: color)],
-                                leading: leading, trailing: trailing, height: 6))
-                .padding(.top, 8)
-                .animation(AppTheme.Motion.standard, value: fraction)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

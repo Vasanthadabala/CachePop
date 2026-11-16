@@ -13,39 +13,51 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            NavigationSplitView {
-                AppSidebar(model: model)
-                    // The sidebar is the app's navigation, as in System Settings: no toggle.
-                    .toolbar(removing: .sidebarToggle)
-            } detail: {
-                VStack(spacing: 0) {
-                    let section = model.section ?? .cleanUp
-                    SectionPageBar(model: model, section: section)
-                    detail
-                        .id(section)
-                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if model.isMainWindowContentActive {
+                NavigationSplitView {
+                    AppSidebar(model: model)
+                        // The sidebar is the app's navigation, as in System Settings: no toggle.
+                        .toolbar(removing: .sidebarToggle)
+                } detail: {
+                    VStack(spacing: 0) {
+                        let section = model.section ?? .cleanUp
+                        SectionPageBar(model: model, section: section)
+                        detail
+                            .id(section)
+                            .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    // The bar takes the title-bar row; the window keeps no toolbar of its own.
+                    .ignoresSafeArea(.container, edges: .top)
+                    .background(CanvasBackground())
+                    .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
                 }
-                // The bar takes the title-bar row; the window keeps no toolbar of its own.
-                .ignoresSafeArea(.container, edges: .top)
-                .background(CanvasBackground())
-                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-            }
-            .toolbar(removing: .title)
+                .toolbar(removing: .title)
 
-            if model.isLaunching {
-                LaunchScreen(onFinished: { model.endLaunch(reduceMotion: reduceMotion) })
-                    .transition(.opacity)
-                    .zIndex(1)
+                if model.isLaunching {
+                    LaunchScreen(onFinished: { model.endLaunch(reduceMotion: reduceMotion) })
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
             }
         }
         .frame(minWidth: 940, minHeight: 640)
         .onAppear {
-            model.openMainWindow = { openWindow(id: CachePopApp.mainWindowID) }
+            model.resumeMainWindowContent()
+            model.openMainWindow = { [openWindow] in openWindow(id: CachePopApp.mainWindowID) }
             model.refreshDisk()
             model.monitor.begin("window")
+            #if DEBUG
+            if DemoMode.isMonitorUITest || DemoMode.isAuditUITest {
+                model.endLaunch(reduceMotion: true)
+                DemoMode.prepareMonitorTestWindow()
+            }
+            #endif
         }
-        .onDisappear { model.monitor.end("window") }
+        .onDisappear {
+            model.monitor.end("window")
+            model.suspendMainWindowContent()
+        }
         .onChange(of: model.settings.appearance) { _, mode in mode.apply() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             model.refreshDisk()
