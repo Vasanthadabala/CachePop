@@ -4,6 +4,7 @@ import SwiftUI
 /// battery temperatures, updated live while it's open.
 struct TemperatureMenuContent: View {
     let model: AppModel
+    var onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     private var monitor: SystemMonitorViewModel { model.monitor }
@@ -39,8 +40,7 @@ struct TemperatureMenuContent: View {
         }
         .padding(AppTheme.Spacing.m)
         .frame(width: 256)
-        .onAppear { monitor.begin("menu") }
-        .onDisappear { monitor.end("menu") }
+        .onExitCommand { dismissMenu() }
     }
 
     /// The CPU always (a dash until the first reading), the drive, memory and battery where this
@@ -60,8 +60,12 @@ struct TemperatureMenuContent: View {
         return rows
     }
 
+    private func dismissMenu() {
+        if let onClose { onClose() } else { dismiss() }
+    }
+
     private func close(_ action: @escaping () -> Void) {
-        dismiss()
+        dismissMenu()
         action()
     }
 }

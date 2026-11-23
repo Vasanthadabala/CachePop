@@ -61,8 +61,8 @@ struct SystemMonitorTests {
     @Test func temperaturePanelShowsTheSensorsThisMacHas() {
         #expect(TemperatureMenuContent.rows(nil).map(\.title) == ["CPU"])
         let all = TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39, battery: 34, memory: 40))
-        #expect(all.map(\.title) == ["CPU", "Drive", "Memory", "Battery"])
-        #expect(all.map(\.celsius) == [41, 39, 40, 34])
+        #expect(all.map(\.title) == ["CPU", "Memory", "Drive", "Battery"])
+        #expect(all.map(\.celsius) == [41, 40, 39, 34])
         #expect(TemperatureMenuContent.rows(TemperatureSample(chip: 41, ssd: 39)).map(\.title) == ["CPU", "Drive"])
     }
 

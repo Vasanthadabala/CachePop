@@ -40,7 +40,7 @@ nonisolated enum OldFiles {
 // MARK: - Safari and Mail
 
 extension GeneralScanner {
-    nonisolated static let safariCheck = InUseCheck.runningApp(bundleIDPrefixes: ["com.apple.safari"], name: "Safari")
+    nonisolated static let safariCheck = BrowserDataScanner.safariCheck
     nonisolated static let mailCheck = InUseCheck.runningApp(bundleIDPrefixes: ["com.apple.mail"], name: "Mail")
 
     /// Safari's page cache. macOS hides it without Full Disk Access, so then it's listed
@@ -482,7 +482,17 @@ nonisolated enum TimeMachineScanner {
                 regeneration: .permanent,
                 explanation: "Deletes them with tmutil deletelocalsnapshots. Time Machine makes new ones at its next backup."
             )],
-            isRecommended: false
+            isRecommended: false,
+            entries: dates.sorted().map { date in
+                let formatter = DateFormatter()
+                formatter.locale = Locale(identifier: "en_US_POSIX")
+                formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+                let token = formatter.string(from: date)
+                return CleanupEntry(id: token, title: date.formatted(date: .abbreviated, time: .standard),
+                                    detail: token, sizeBytes: nil,
+                                    operations: ["delete": .command(ToolCommand(executable: tmutil,
+                                                                               arguments: ["deletelocalsnapshots", token]))])
+            }
         )
         return CleanupGroup(kind: .general, items: [item])
     }

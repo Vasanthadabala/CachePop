@@ -11,18 +11,20 @@ nonisolated struct MonitorDemand {
     let processes: Bool
     let processView: Bool
     let preloadsProcesses: Bool
+    let network: Bool
 
     init(clients: Set<String>, visibleWindow: Bool, visibleMainWindow: Bool) {
         let processPopup = !clients.isDisjoint(with: ["cpuMenu", "memoryMenu"])
-        let popup = !clients.isDisjoint(with: ["cpuMenu", "memoryMenu", "driveMenu", "gpuMenu", "batteryMenu", "menu", "temperatureMenu", "fanMenu"])
+        let popup = !clients.isDisjoint(with: ["cpuMenu", "memoryMenu", "driveMenu", "gpuMenu", "batteryMenu", "sensorsMenu", "networkMenu", "menu", "temperatureMenu", "fanMenu"])
         let section = clients.contains("section") && visibleMainWindow
         processView = processPopup || section
         preloadsProcesses = clients.contains(SystemMonitorViewModel.processMenuBarClient)
         processes = processView || preloadsProcesses
         details = clients.contains("recording") || section
             || (clients.contains("monitorDetails") && visibleMainWindow)
-            || !clients.isDisjoint(with: ["driveMenu", "gpuMenu", "batteryMenu", "driveMenuBar", "gpuMenuBar", "batteryMenuBar", "sensorMenuBar"])
-        sampling = popup || preloadsProcesses || !clients.isDisjoint(with: ["fans", "recording", "menuBar", "driveMenuBar", "gpuMenuBar", "batteryMenuBar", "sensorMenuBar"])
+            || !clients.isDisjoint(with: ["driveMenu", "gpuMenu", "batteryMenu", "sensorsMenu", "sensorsMenuBar", "driveMenuBar", "gpuMenuBar", "batteryMenuBar", "sensorMenuBar"])
+        network = details || !clients.isDisjoint(with: ["networkMenu", "networkMenuBar"])
+        sampling = popup || preloadsProcesses || network || !clients.isDisjoint(with: ["fans", "recording", "menuBar", "driveMenuBar", "gpuMenuBar", "batteryMenuBar", "sensorMenuBar", "sensorsMenuBar"])
             || (visibleWindow && !clients.isEmpty)
     }
 }
@@ -57,12 +59,14 @@ final class SystemMonitorViewModel {
     private(set) var diskWriteHistory: [Double] = []
     private(set) var networkInHistory: [Double] = []
     private(set) var networkOutHistory: [Double] = []
+    private(set) var networkUsage: NetworkUsageHistory
     private(set) var gpuHistories: [String: [Double]] = [:]
     private(set) var rendererHistories: [String: [Double]] = [:]
     private(set) var tilerHistories: [String: [Double]] = [:]
     private(set) var memoryPressureHistory: [Double] = []
     private(set) var swapHistory: [Double] = []
     private(set) var batteryHistory: [Double] = []
+    private(set) var chargeHistory: RollingBatteryHistory
     private(set) var powerHistory: [Double] = []
     private(set) var displayFrameHistory: [Double] = []
     private(set) var neuralPowerHistory: [Double] = []
@@ -94,19 +98,41 @@ final class SystemMonitorViewModel {
     @ObservationIgnored private var clients: [String: Int] = [:]
     @ObservationIgnored private var windowObservers: [NSObjectProtocol] = []
     private let processApplications: any ProcessApplicationControlling
+    @ObservationIgnored private let batteryHistoryStore: (any BatteryChargeHistoryStoring)?
+    @ObservationIgnored private let batteryHistoryReader: (any BatteryChargeHistoryReading)?
+    @ObservationIgnored private let networkUsageStore: (any NetworkUsageStoring)?
+    @ObservationIgnored private var lastNetworkUsageSave: Date?
+    @ObservationIgnored private var networkUsageNeedsSave = false
+    @ObservationIgnored private var batteryHistoryTask: Task<Void, Never>?
+    @ObservationIgnored private var lastBatteryHistoryRefresh: Date?
+    @ObservationIgnored private let historyCalendar: Calendar
+    @ObservationIgnored private let historyNow: () -> Date
 
     /// Called with every reading, for the fan heat check.
     var onSnapshot: (SystemSnapshot, ProcessInfo.ThermalState) -> Void = { _, _ in }
 
-    init(sampler: any SystemSampling, processor: ProcessorIdentity, processApplications: any ProcessApplicationControlling) {
+    init(sampler: any SystemSampling, processor: ProcessorIdentity, processApplications: any ProcessApplicationControlling,
+         batteryHistoryStore: (any BatteryChargeHistoryStoring)? = nil,
+         batteryHistoryReader: (any BatteryChargeHistoryReading)? = nil,
+         networkUsageStore: (any NetworkUsageStoring)? = nil,
+         calendar: Calendar = .autoupdatingCurrent, now: @escaping () -> Date = { Date() }) {
         self.processApplications = processApplications
         self.sampler = sampler
+        self.batteryHistoryStore = batteryHistoryStore
+        self.batteryHistoryReader = batteryHistoryReader
+        self.networkUsageStore = networkUsageStore
+        networkUsage = networkUsageStore?.load() ?? NetworkUsageHistory()
+        historyCalendar = calendar
+        historyNow = now
+        chargeHistory = RollingBatteryHistory(now: now(), calendar: calendar, readings: batteryHistoryStore?.load() ?? [])
         chipName = processor.name
         cores = (processor.performanceCores, processor.efficiencyCores)
         coreTopology = processor.topology
     }
     isolated deinit {
         task?.cancel()
+        batteryHistoryTask?.cancel()
+        if networkUsageNeedsSave { networkUsageStore?.save(networkUsage) }
         for observer in windowObservers { NotificationCenter.default.removeObserver(observer) }
     }
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -125,6 +151,7 @@ final class SystemMonitorViewModel {
         guard let count = clients[client] else { return }
         clients[client] = count > 1 ? count - 1 : nil
         updateSampling()
+        if !readingDemand.network { flushNetworkUsage() }
     }
 
     /// Keep the same live cadence for visible readings and menu-bar-only mode. Stop when no
@@ -214,6 +241,10 @@ final class SystemMonitorViewModel {
                 MainActor.assumeIsolated { self?.updateSampling() }
             }
         }
+        windowObservers.append(NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
+                                                                     object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.flushNetworkUsage() }
+        })
     }
 
     private func tick(includeDetails: Bool) async {
@@ -221,7 +252,8 @@ final class SystemMonitorViewModel {
         let request = MonitorReadRequest(processes: readingDemand.processes, details: includeDetails,
                                          gpuProcesses: clients["gpuMenu"] != nil || clients["gpuMenuBar"] != nil || (visible && activePage == .gpu),
                                          driveProcesses: clients["driveMenu"] != nil || clients["driveMenuBar"] != nil || (visible && activePage == .drive),
-                                         energyProcesses: clients["batteryMenu"] != nil || clients["batteryMenuBar"] != nil || (visible && activePage == .battery))
+                                         energyProcesses: clients["batteryMenu"] != nil || clients["batteryMenuBar"] != nil || (visible && activePage == .battery),
+                                         network: readingDemand.network)
         let snapshot = await sampler.sample(request: request)
         guard !Task.isCancelled else { return }
         apply(snapshot)
@@ -229,6 +261,13 @@ final class SystemMonitorViewModel {
 
     func apply(_ snapshot: SystemSnapshot) {
         self.snapshot = snapshot
+        let now = historyNow()
+        var usage = networkUsage
+        if usage.record(snapshot.networkReading, at: now, calendar: historyCalendar) { networkUsageNeedsSave = true }
+        networkUsage = usage
+        if networkUsageNeedsSave, lastNetworkUsageSave.map({ now.timeIntervalSince($0) >= 30 || now < $0 }) ?? true {
+            flushNetworkUsage()
+        }
         if snapshot.cpu.total > peakCPU { peakCPU = snapshot.cpu.total }
         if snapshot.memory.usedFraction > peakMemory { peakMemory = snapshot.memory.usedFraction }
         for sensor in snapshot.temperatures.sensors {
@@ -248,10 +287,20 @@ final class SystemMonitorViewModel {
         append(snapshot.memory.pressureFraction ?? (snapshot.memory.pressure == .normal ? 0 : snapshot.memory.pressure == .warning ? 0.5 : 1), to: &memoryPressureHistory)
         append(Double(snapshot.memory.swapUsed), to: &swapHistory)
         if let battery = snapshot.battery { append(Double(battery.percent) / 100, to: &batteryHistory) }
+        var history = chargeHistory
+        if history.record(percent: snapshot.battery?.percent, at: historyNow(), calendar: historyCalendar) {
+            chargeHistory = history
+            batteryHistoryStore?.save(history.readings)
+        }
+        if snapshot.battery != nil { refreshBatteryHistoryIfNeeded() }
         if let power = snapshot.electricalSensors.first(where: { $0.id == "PSTR" }) { append(power.value, to: &powerHistory) }
         if let frames = snapshot.performance.displayFramesPerSecond { append(frames, to: &displayFrameHistory) }
         if let watts = snapshot.performance.neuralWatts { append(watts, to: &neuralPowerHistory) }
         if let chip = snapshot.temperatures.chip { append(chip, to: &temperatureHistory) }
+        if snapshot.hasNetworkReadings {
+            append(snapshot.network.inPerSecond, to: &networkInHistory)
+            append(snapshot.network.outPerSecond, to: &networkOutHistory)
+        }
         if snapshot.hasDetailedReadings {
             var histories = gpuHistories.filter { id, _ in snapshot.gpus.contains { $0.id == id } }
             for gpu in snapshot.gpus {
@@ -281,8 +330,6 @@ final class SystemMonitorViewModel {
                 append(drive.throughput.inPerSecond, to: &reads); append(drive.throughput.outPerSecond, to: &writes)
                 driveReadHistories[drive.id] = reads; driveWriteHistories[drive.id] = writes
             }
-            append(snapshot.network.inPerSecond, to: &networkInHistory)
-            append(snapshot.network.outPerSecond, to: &networkOutHistory)
         }
         if let processes = snapshot.processes {
             self.processes = processes
@@ -300,6 +347,33 @@ final class SystemMonitorViewModel {
         }
         if readingDemand.preloadsProcesses { releaseUnusedProcessDetails() }
         onSnapshot(snapshot, thermalState)
+    }
+
+    /// Save the pending byte totals when sampling stops or the app exits.
+    func flushNetworkUsage() {
+        guard networkUsageNeedsSave else { return }
+        networkUsageStore?.save(networkUsage)
+        networkUsageNeedsSave = false
+        lastNetworkUsageSave = historyNow()
+    }
+
+    /// One background import per hour, including after wake. Never slows the live sampler.
+    private func refreshBatteryHistoryIfNeeded() {
+        let now = historyNow()
+        guard let batteryHistoryReader, batteryHistoryTask == nil,
+              lastBatteryHistoryRefresh.map({ now.timeIntervalSince($0) >= 3_600 }) ?? true else { return }
+        lastBatteryHistoryRefresh = now
+        let interval = DateInterval(start: now.addingTimeInterval(-86_400), end: now)
+        batteryHistoryTask = Task { [weak self] in
+            let readings = await batteryHistoryReader.readings(in: interval)
+            guard !Task.isCancelled, let self else { return }
+            var restored = self.chargeHistory
+            if restored.merge(readings, at: self.historyNow(), calendar: self.historyCalendar) {
+                self.chargeHistory = restored
+                self.batteryHistoryStore?.save(restored.readings)
+            }
+            self.batteryHistoryTask = nil
+        }
     }
 
     func resetMaximums() {

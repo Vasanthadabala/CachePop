@@ -358,7 +358,7 @@ struct ResourceRegressionTests {
     private static func photo(_ index: Int, date: Date?) -> AnalyzedPhoto {
         AnalyzedPhoto(id: String(index), location: .library(String(index)), name: String(index), date: date,
                       pixelWidth: 1000, pixelHeight: 1000, bytes: nil, isFavorite: false,
-                      metrics: PhotoMetrics(sharpness: 1, brightness: 0.5, shadows: 0, highlights: 0), issue: .blurry)
+                      metrics: PhotoMetrics(sharpness: 1, brightness: 0.5, shadows: 0, highlights: 0, lowTone: 40, highTone: 210), issue: .blurry)
     }
 
     @Test func photoGroupingReleasesFeatureVectorsAsTheWindowAdvances() {
@@ -375,7 +375,7 @@ struct ResourceRegressionTests {
         #expect(result.photos(with: .blurry).count == 5000)
     }
 
-    @Test func streamingPhotoGroupsMatchTheOriginalNeighbourAndTimeWindowRules() {
+    @Test func streamingPhotoGroupsMatchBatchAllPairsWithinTheWindow() {
         let dates: [Date?] = (0..<240).map { index in
             index.isMultiple(of: 17) ? nil : Date(timeIntervalSince1970: Double(max(index - 100, 0) * 30))
         }

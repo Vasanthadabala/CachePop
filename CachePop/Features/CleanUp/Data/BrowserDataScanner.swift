@@ -22,14 +22,10 @@ nonisolated enum BrowserDataScanner {
     ]
 
     /// Inside each profile: visits, typed addresses and the address bar's suggestions from them.
-    static let chromiumHistoryFiles = [
-        "History", "History-journal", "Visited Links", "Top Sites", "Top Sites-journal",
-        "Shortcuts", "Shortcuts-journal", "Network Action Predictor", "Network Action Predictor-journal"
-    ]
-    static let chromiumCookieFiles = [
-        "Cookies", "Cookies-journal", "Network/Cookies", "Network/Cookies-journal",
-        "Extension Cookies", "Extension Cookies-journal"
-    ]
+    static let chromiumHistoryFiles = ["History", "Visited Links", "Top Sites", "Shortcuts", "Network Action Predictor"]
+        .flatMap { database in [database, database + "-journal", database + "-wal", database + "-shm"] }
+    static let chromiumCookieFiles = ["Cookies", "Network/Cookies", "Extension Cookies"]
+        .flatMap { database in [database, database + "-journal", database + "-wal", database + "-shm"] }
 
     /// Inside ~/Library/Safari.
     static let safariHistoryFiles = ["History.db", "History.db-shm", "History.db-wal", "History.db-lock"]
@@ -208,7 +204,7 @@ nonisolated enum BrowserDataScanner {
         guard !files.isEmpty else { return nil }
         let size = DirectorySizer.size(ofAll: files)
         guard size.bytes > 0 else { return nil }
-        return CleanupItem(
+        var item = CleanupItem(
             id: id,
             group: .browsers,
             title: "\(browser) \(kind == .history ? "history" : "cookies")",
@@ -230,6 +226,8 @@ nonisolated enum BrowserDataScanner {
             blockedReason: inUseReason(for: check, processes: context.processes),
             inUseCheck: check
         )
+        item.entries = CleanupEntryBuilder.entries(for: item, neverClean: NeverCleanList())
+        return item
     }
 
     static func blockedForFullDiskAccess(id: String, title: String, kind: Kind, browser: String) -> CleanupItem {

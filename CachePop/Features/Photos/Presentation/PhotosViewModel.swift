@@ -180,7 +180,7 @@ final class PhotosViewModel {
     /// Ticks every shot but the best in each similar group. Favourites stay unticked.
     func selectAllButBest() {
         for group in result.similar {
-            for photo in group.photos.dropFirst() where !photo.isFavorite { selectedIDs.insert(photo.id) }
+            selectedIDs.formUnion(group.suggestedExtras.map(\.id))
         }
     }
 

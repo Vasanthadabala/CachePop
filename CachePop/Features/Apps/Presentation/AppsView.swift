@@ -6,7 +6,7 @@ struct AppsView: View {
     var body: some View {
         ZStack {
             if model.isScanning {
-                ProgressPanel(title: "Measuring your apps…", detail: "/Applications and ~/Applications")
+                ProgressPanel(title: "Measuring your apps…", detail: "/Applications and ~/Applications", progress: model.scanProgress)
             } else if !model.hasScanned {
                 AppsStartView(onScan: model.scan)
             } else if model.applications.isEmpty {
@@ -250,7 +250,7 @@ private struct AppDetailPane: View {
             TapeView(tape: Tape(
                 segments: [
                     Tape.Segment(from: 0, to: appEnd, color: AppTheme.Palette.blue.solid),
-                    Tape.Segment(from: appEnd, to: totalEnd, color: AppTheme.Palette.violet.solid, striped: true)
+                    Tape.Segment(from: appEnd, to: totalEnd, color: AppTheme.Palette.graphite.solid, striped: true)
                 ],
                 leading: app.isProtected && app.sizeBytes == 0 ? "App: part of macOS" : "App \(app.formattedSize)",
                 center: libraryBytes(app).map { "Library \(ByteSize.string($0))" },
@@ -271,8 +271,7 @@ private struct AppDetailPane: View {
             CardHeader(
                 "Files in your Library",
                 subtitle: leftoverSubtitle,
-                symbolName: "folder",
-                hue: AppTheme.Palette.violet
+                symbolName: "folder"
             ) {
                 if !model.relatedFiles.isEmpty && !app.isProtected {
                     Button(model.selectedRelatedFileIDs.count == model.relatedFiles.count ? "Deselect All" : "Select All",

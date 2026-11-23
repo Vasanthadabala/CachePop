@@ -81,7 +81,7 @@ final class AppModel {
     /// Set by views that have SwiftUI's window actions, so the menu bar item, notifications
     /// and menu commands can bring the main window or Settings back.
     @ObservationIgnored var openMainWindow: () -> Void = {}
-    @ObservationIgnored var openUsagePanel: (UsageMenuKind) -> Void = { _ in }
+    @ObservationIgnored var openMenuBarPanel: (StatusMenuKind) -> Void = { _ in }
 
     private let diskURL: URL
     private let diskReader: @Sendable (URL) async -> DiskInfo

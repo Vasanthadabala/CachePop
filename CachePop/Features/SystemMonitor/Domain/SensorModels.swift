@@ -96,7 +96,7 @@ nonisolated struct MemorySample: Sendable, Equatable {
 }
 
 
-nonisolated struct ByteCounters: Sendable, Equatable {
+nonisolated struct ByteCounters: Codable, Sendable, Equatable {
     var read: UInt64 = 0
     var written: UInt64 = 0
 }

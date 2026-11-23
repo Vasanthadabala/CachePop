@@ -105,7 +105,7 @@ struct FullResourceAuditTests {
         let candidate = PhotoScanner.Candidate(location: .file(file), name: "photo.jpg", date: nil,
                                                pixelWidth: 1_000, pixelHeight: 1_000, bytes: 4_096,
                                                isFavorite: false, identity: found.identity)
-        let photo = PhotoScanner.photo(candidate, metrics: PhotoMetrics(sharpness: 100, brightness: 0.5, shadows: 0, highlights: 0))
+        let photo = PhotoScanner.photo(candidate, metrics: PhotoMetrics(sharpness: 100, brightness: 0.5, shadows: 0, highlights: 0, lowTone: 40, highTone: 210))
         #expect(photo.identity == found.identity)
     }
 
@@ -127,7 +127,7 @@ struct FullResourceAuditTests {
         let original = try #require(FileReviewIdentity.read(file))
         let photo = AnalyzedPhoto(id: "file:" + file.path, location: .file(file), name: "reviewed.jpg", date: nil,
                                   pixelWidth: 1_000, pixelHeight: 1_000, bytes: 64, isFavorite: false,
-                                  metrics: PhotoMetrics(sharpness: 0, brightness: 0.5, shadows: 0, highlights: 0),
+                                  metrics: PhotoMetrics(sharpness: 0, brightness: 0.5, shadows: 0, highlights: 0, lowTone: 40, highTone: 210),
                                   issue: .blurry, identity: original)
         let trashed = fixture.userTrash.appendingPathComponent("reviewed.jpg")
         try await Task.sleep(for: .milliseconds(5))

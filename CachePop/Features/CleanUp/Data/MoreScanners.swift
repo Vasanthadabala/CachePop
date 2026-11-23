@@ -438,7 +438,12 @@ nonisolated enum LeftoversScanner {
                 detail: listed,
                 sizeBytes: small.reduce(0) { $0 + $1.bytes },
                 actions: [trashAction(small.flatMap(\.urls))],
-                isRecommended: false
+                isRecommended: false,
+                entries: small.map { app in
+                    CleanupEntry(id: app.appID, title: displayName(app.appID),
+                                 detail: app.urls.map(\.path).joined(separator: "\n"), sizeBytes: app.bytes,
+                                 operations: ["trash": .moveToTrash(app.urls)], location: app.urls.first)
+                }
             ))
         }
 

@@ -91,17 +91,17 @@ struct ScannerTests {
         let env = fixture.environment(simctl: simctl)
         let group = await SimulatorScanner.scan(await fixture.context(env))
 
-        // Bulk items are recommended and use simctl, never direct file deletion.
-        let clones = try #require(group.item("simulators.testingClones"))
+        // Each clone is recommended and uses its own simctl target, never direct deletion.
+        let clones = try #require(group.item("simulators.testingClones.CLONE-1"))
         #expect(clones.isRecommended && clones.sizeIsUpperBound)
-        #expect(clones.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["--set", "testing", "delete", "all"])))
+        #expect(clones.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["--set", "testing", "delete", "CLONE-1"])))
 
-        let unavailable = try #require(group.item("simulators.unavailable"))
+        let unavailable = try #require(group.item("simulators.unavailable.GONE"))
         #expect(unavailable.sizeBytes == 500_000_000)
-        #expect(unavailable.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["delete", "unavailable"])))
+        #expect(unavailable.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["delete", "GONE"])))
 
-        let previews = try #require(group.item("simulators.previews"))
-        #expect(previews.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["--set", "previews", "delete", "all"])))
+        let previews = try #require(group.item("simulators.previews.P1"))
+        #expect(previews.defaultAction.operation == .command(ToolCommand(executable: FakeSimctl.simctlURL, arguments: ["--set", "previews", "delete", "P1"])))
 
         // A simulator is booted, so its shared caches must wait.
         let caches = try #require(group.item("simulators.caches"))
@@ -147,7 +147,7 @@ struct ScannerTests {
 
         let group = await SimulatorScanner.scan(await fixture.context(fixture.environment(simctl: simctl)))
 
-        #expect(group.item("simulators.testingClones")?.isBlocked == true)
+        #expect(group.item("simulators.testingClones.C")?.isBlocked == true)
     }
 
     // MARK: Developer caches
@@ -279,7 +279,7 @@ struct ScannerEdgeCaseTests {
 
         let group = await SimulatorScanner.scan(await fixture.context(fixture.environment(simctl: FakeSimctl())))
 
-        #expect(group.item("simulators.testingClones") == nil)
+        #expect(group.item("simulators.testingClones.CLONE-1") == nil)
     }
 }
 

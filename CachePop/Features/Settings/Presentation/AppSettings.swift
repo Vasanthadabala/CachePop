@@ -26,6 +26,8 @@ final class AppSettings: LargeFilePreferencesProviding {
     var showMenuBarItem: Bool { didSet { save(showMenuBarItem, "showMenuBarItem") } }
     var menuBarShowsCPUUsage: Bool { didSet { save(menuBarShowsCPUUsage, "menuBarShowsCPUUsage") } }
     var menuBarShowsGPUUsage: Bool { didSet { save(menuBarShowsGPUUsage, "menuBarShowsGPUUsage") } }
+    var menuBarShowsSensors: Bool { didSet { save(menuBarShowsSensors, "menuBarShowsSensors") } }
+    var menuBarShowsNetwork: Bool { didSet { save(menuBarShowsNetwork, "menuBarShowsNetwork") } }
     var menuBarShowsBattery: Bool { didSet { save(menuBarShowsBattery, "menuBarShowsBattery") } }
     var menuBarShowsMemoryUsage: Bool { didSet { save(menuBarShowsMemoryUsage, "menuBarShowsMemoryUsage") } }
     var menuBarShowsSSDUsage: Bool { didSet { save(menuBarShowsSSDUsage, "menuBarShowsSSDUsage") } }
@@ -63,6 +65,8 @@ final class AppSettings: LargeFilePreferencesProviding {
         showMenuBarItem = defaults.object(forKey: "showMenuBarItem") as? Bool ?? true
         menuBarShowsCPUUsage = defaults.object(forKey: "menuBarShowsCPUUsage") as? Bool ?? false
         menuBarShowsGPUUsage = defaults.object(forKey: "menuBarShowsGPUUsage") as? Bool ?? false
+        menuBarShowsSensors = defaults.object(forKey: "menuBarShowsSensors") as? Bool ?? false
+        menuBarShowsNetwork = defaults.object(forKey: "menuBarShowsNetwork") as? Bool ?? false
         menuBarShowsBattery = defaults.object(forKey: "menuBarShowsBattery") as? Bool ?? false
         menuBarShowsMemoryUsage = defaults.object(forKey: "menuBarShowsMemoryUsage") as? Bool ?? false
         menuBarShowsSSDUsage = defaults.object(forKey: "menuBarShowsSSDUsage") as? Bool ?? false
@@ -127,7 +131,7 @@ final class AppSettings: LargeFilePreferencesProviding {
     /// Live readings stay available when ⌘Q dismisses the main app into the menu bar.
     var showsMenuBarReadings: Bool {
         menuBarShowsCPUUsage || menuBarShowsGPUUsage || menuBarShowsBattery || menuBarShowsMemoryUsage || menuBarShowsSSDUsage
-            || menuBarShowsTemperature || menuBarShowsFanSpeed
+            || menuBarShowsTemperature || menuBarShowsFanSpeed || menuBarShowsSensors || menuBarShowsNetwork
     }
 
     /// Whether CachePop's icon or any live reading shows in the menu bar.

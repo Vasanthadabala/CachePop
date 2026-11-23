@@ -13,7 +13,8 @@ final class AppUninstallerEngine: ApplicationManaging, Sendable {
         self.appDirectories = appDirectories ?? ["/Applications", "/Applications/Utilities", home.appendingPathComponent("Applications").path]
     }
 
-    func scanApplications() async -> [ApplicationDetails] {
+    func scanApplications(onProgress: @escaping @MainActor @Sendable (Double) -> Void) async -> [ApplicationDetails] {
+        onProgress(0)
         let work = Task.detached(priority: .userInitiated) {
             let fileManager = FileManager.default
 
@@ -42,13 +43,17 @@ final class AppUninstallerEngine: ApplicationManaging, Sendable {
                 }
                 for _ in 0..<width { addNext() }
                 var found: [ApplicationDetails] = []
+                var completed = 0
                 for await app in group {
                     if Task.isCancelled { group.cancelAll(); break }
                     if let app { found.append(app) }
+                    completed += 1
+                    await onProgress(Double(completed) / Double(max(paths.count, 1)))
                     addNext()
                 }
                 return found
             }
+            if !Task.isCancelled { await onProgress(1) }
 
             // Order by footprint; ties by path, so the list keeps its order from scan to scan.
             return apps.sorted { $0.sizeBytes != $1.sizeBytes ? $0.sizeBytes > $1.sizeBytes : $0.path < $1.path }

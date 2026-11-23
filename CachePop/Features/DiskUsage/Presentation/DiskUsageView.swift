@@ -68,16 +68,25 @@ private struct DiskUsageBrowser: View {
                 }
 
                 if model.hasUnreadableParts && !PermissionsManager.shared.hasFullDiskAccess {
-                    PermissionPromptView(reason: "Some folders are private to macOS, so their sizes may show lower than they are.")
+                    PermissionPromptView(reason: "Some folders are private to macOS, so their sizes may show lower than they are.", showsDetails: false)
                 }
 
                 // Lazy: a folder can hold thousands of items, and each row loads a Finder icon.
                 LazyVStack(spacing: 0) {
-                    CardHeader(
-                        model.path.isEmpty ? "Largest folders" : "Inside \(model.path.last?.lastPathComponent ?? "")",
-                        subtitle: model.isMeasuringCurrent ? "Measuring…" : "\(entries.count) items · largest first",
-                        symbolName: "list.bullet.indent"
-                    )
+                    HStack(spacing: AppTheme.Spacing.s) {
+                        Image(systemName: "list.bullet.indent")
+                            .foregroundStyle(AppTheme.Colors.textSecondary)
+                        Text(model.path.isEmpty ? "Largest folders" : "Inside \(model.path.last?.lastPathComponent ?? "")")
+                            .font(AppTheme.Typography.title2)
+                        Spacer(minLength: AppTheme.Spacing.s)
+                        if !model.isMeasuringCurrent {
+                            Text("\(entries.count) items · largest first")
+                                .font(AppTheme.Typography.caption)
+                                .foregroundStyle(AppTheme.Colors.textSecondary)
+                        }
+                    }
+                    .padding(.horizontal, AppTheme.Spacing.m)
+                    .padding(.vertical, AppTheme.Spacing.s)
                     RowDivider(leadingInset: 0)
 
                     // Not while it's still being listed.
@@ -207,10 +216,6 @@ private struct DiskOverviewCard: View {
                     }
                 }
 
-                Text("“macOS & other” is everything outside your home folder and Applications: macOS itself, other users and system data.")
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

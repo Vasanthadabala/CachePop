@@ -55,7 +55,7 @@ final class FanMenuBarController: NSObject, NSPopoverDelegate {
     }
 
     private func insert() {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let item = NSStatusBar.system.statusItem(withLength: MenuBarItemLayout.nativeLength(for: MenuBarItemLayout.width))
         self.item = item
         item.autosaveName = "CachePopFanSpeed"
         item.behavior = .removalAllowed
@@ -101,8 +101,6 @@ final class FanMenuBarController: NSObject, NSPopoverDelegate {
         content.reading.textColor = tint
         content.rotor.setTint(tint)
         content.rotor.update(rpm: rpm, reduceMotion: reduceMotion)
-        let length = ceil(content.reading.intrinsicContentSize.width) + 36
-        if item.length != length { item.length = length }
         button.setAccessibilityLabel("Fan speed, \(value)")
         button.setAccessibilityValue(rpm > 0 ? "Spinning" : "Stopped")
         button.toolTip = "Fan speed: \(value). Click for fan controls."
@@ -131,7 +129,7 @@ final class FanMenuBarController: NSObject, NSPopoverDelegate {
 }
 
 @MainActor
-private final class FanStatusContent: NSView {
+final class FanStatusContent: NSView {
     let rotor = FanRotorImageView(frame: .zero)
     let reading = NSTextField(labelWithString: "—")
 
@@ -139,6 +137,7 @@ private final class FanStatusContent: NSView {
         super.init(frame: frame)
         reading.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         reading.textColor = .labelColor
+        reading.usesSingleLineMode = true
         reading.setAccessibilityElement(false)
         rotor.setAccessibilityElement(false)
         addSubview(rotor)
@@ -151,6 +150,9 @@ private final class FanStatusContent: NSView {
     override func layout() {
         super.layout()
         rotor.frame = NSRect(x: 6, y: (bounds.height - 16) / 2, width: 16, height: 16)
+        let width = max(bounds.width - 30, 1)
+        let size = MenuBarItemLayout.fittedFontSize(reading.stringValue, preferred: 13, width: max(width - 4, 1))
+        if reading.font?.pointSize != size { reading.font = .monospacedDigitSystemFont(ofSize: size, weight: .regular) }
         let height = reading.intrinsicContentSize.height
         reading.frame = NSRect(x: 26, y: (bounds.height - height) / 2,
                                width: max(bounds.width - 30, 0), height: height)

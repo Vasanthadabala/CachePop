@@ -53,8 +53,8 @@ struct AppCommands: Commands {
 
         CommandGroup(after: .sidebar) {
             Menu("Monitoring Panels") {
-                ForEach(UsageMenuKind.allCases, id: \.rawValue) { kind in
-                    Button("\(kind.title) panel") { model.openUsagePanel(kind) }
+                ForEach(StatusMenuKind.all, id: \.self) { kind in
+                    Button("\(kind.title) panel") { model.openMenuBarPanel(kind) }
                         .keyboardShortcut(KeyEquivalent(Character(kind.shortcut)), modifiers: [.command, .control])
                         .disabled(!model.settings[keyPath: kind.setting])
                 }

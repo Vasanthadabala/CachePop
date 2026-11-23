@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum MonitorPage: String, CaseIterable, Identifiable {
-    case battery = "Battery", cpu = "CPU", gpu = "GPU", drive = "Drive", memory = "Memory", sensors = "Sensors"
+    case cpu = "CPU", gpu = "GPU", memory = "Memory", drive = "Drive", battery = "Battery", sensors = "Sensors"
     var id: String { rawValue }
 }
 

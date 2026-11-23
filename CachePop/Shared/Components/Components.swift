@@ -727,7 +727,7 @@ struct Sparkline: View {
                         path.addLine(to: CGPoint(x: last.x, y: proxy.size.height))
                         path.closeSubpath()
                     }
-                    .fill(LinearGradient(colors: [color.opacity(0.21), color.opacity(0.025)],
+                    .fill(LinearGradient(colors: [color.opacity(0.7), color.opacity(0.35)],
                                          startPoint: .top, endPoint: .bottom))
                     Path { path in
                         path.move(to: first)

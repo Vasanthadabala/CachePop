@@ -74,7 +74,12 @@ nonisolated enum XcodeScanner {
                 )],
                 isRecommended: true,
                 blockedReason: context.processes.runningBuildTool.map { "A build is running (\($0)). Clean again when it finishes." },
-                inUseCheck: .buildTools
+                inUseCheck: .buildTools,
+                entries: projects.map { project in
+                    CleanupEntry(id: project.url.path, title: projectName(project.url.lastPathComponent),
+                                 detail: project.url.path, sizeBytes: project.size.bytes,
+                                 operations: ["delete": .delete([project.url])], location: project.url)
+                }.sorted { ($0.sizeBytes ?? 0) > ($1.sizeBytes ?? 0) }
             ))
         }
 
@@ -159,7 +164,8 @@ nonisolated enum XcodeScanner {
             ))
         }
 
-        return CleanupGroup(kind: .xcode, items: recommendedFirst(items))
+        let extraBuilds = AppBuildScanner.scan(context)
+        return CleanupGroup(kind: .xcode, items: recommendedFirst(items + extraBuilds.items), notes: extraBuilds.notes)
     }
 
     /// "CachePop-aszqbgiyscwhnvbbvpxkjsuycqlx" → "CachePop".
@@ -248,80 +254,30 @@ nonisolated enum SimulatorScanner {
             return CleanupGroup(kind: .simulators, items: bulk, notes: notes)
         }
 
-        // Parallel-testing clones
-        let testingFolder = env.path("Library/Developer/XCTestDevices")
-        let testingSize = DirectorySizer.size(of: testingFolder)
-        let clones = testingSize.bytes > 0 ? ((try? await control.devices(in: .testing)) ?? []) : []
-        // An empty set still holds a few-KB device_set.plist; only offer real clones.
-        if !clones.isEmpty || testingSize.bytes > 1_048_576 {
-            bulk.append(CleanupItem(
-                id: "simulators.testingClones",
-                group: .simulators,
-                title: "Parallel-testing clones",
-                explanation: "Copies of simulators Xcode makes to run tests in parallel. Xcode makes fresh ones the next time it tests in parallel.",
-                detail: clones.isEmpty ? nil : ScanFormatting.count(clones.count, "clone"),
-                sizeBytes: testingSize.bytes,
-                sizeIsUpperBound: true,
-                actions: [CleanupAction(
-                    id: "delete",
-                    title: "Delete",
-                    operation: .command(control.command(["delete", "all"], set: .testing)),
-                    regeneration: .automatic,
-                    explanation: "Deletes every clone with simctl --set testing delete all."
-                )],
-                isRecommended: true,
-                blockedReason: clones.contains(where: \.isBooted) ? "Tests are running on these clones." : nil,
-                inUseCheck: .simulatorSet(.testing)
-            ))
+        // Every clone has its own card and a command targeting only its scanned UDID.
+        for (set, relative, parentID, label) in [
+            (SimulatorDeviceSet.testing, "Library/Developer/XCTestDevices", "simulators.testingClones", "Test clone"),
+            (.previews, "Library/Developer/Xcode/UserData/Previews/Simulator Devices", "simulators.previews", "SwiftUI preview")
+        ] {
+            let folder = env.path(relative)
+            guard context.exists(folder) else { continue }
+            guard let listed = try? await control.devices(in: set) else {
+                notes.append("Couldn't list \(label.lowercased()) simulators. Scan again to include them.")
+                continue
+            }
+            for device in listed {
+                bulk.append(individualClone(device, control: control, set: set, parentID: parentID,
+                                            label: label, folder: folder, now: env.now(),
+                                            setIsBooted: listed.contains(where: \.isBooted)))
+            }
         }
 
-        // SwiftUI preview simulators
-        let previewsFolder = env.path("Library/Developer/Xcode/UserData/Previews")
-        let previewsSize = DirectorySizer.size(of: previewsFolder)
-        let previews = previewsSize.bytes > 0 ? ((try? await control.devices(in: .previews)) ?? []) : []
-        if !previews.isEmpty || previewsSize.bytes > 1_048_576 {
-            bulk.append(CleanupItem(
-                id: "simulators.previews",
-                group: .simulators,
-                title: "SwiftUI preview simulators",
-                explanation: "Simulators Xcode creates to render SwiftUI previews. Re-created the next time you open a preview.",
-                detail: previews.isEmpty ? nil : ScanFormatting.count(previews.count, "simulator"),
-                sizeBytes: previewsSize.bytes,
-                sizeIsUpperBound: true,
-                actions: [CleanupAction(
-                    id: "delete",
-                    title: "Delete",
-                    operation: .command(control.command(["delete", "all"], set: .previews)),
-                    regeneration: .automatic,
-                    explanation: "Deletes them with simctl --set previews delete all."
-                )],
-                isRecommended: true,
-                blockedReason: previews.contains(where: \.isBooted) ? "A SwiftUI preview is running." : nil,
-                inUseCheck: .simulatorSet(.previews)
-            ))
-        }
-
-        // Unavailable simulators
-        let unavailable = devices.filter { !$0.available }
-        if !unavailable.isEmpty {
-            let size = unavailable.reduce(Int64(0)) { $0 + deviceSize($1) }
-            bulk.append(CleanupItem(
-                id: "simulators.unavailable",
-                group: .simulators,
-                title: "Unavailable simulators",
-                explanation: "Simulators whose runtime is no longer installed. They can't boot, so nothing usable is lost.",
-                detail: ScanFormatting.count(unavailable.count, "simulator"),
-                sizeBytes: size,
-                sizeIsUpperBound: true,
-                actions: [CleanupAction(
-                    id: "delete",
-                    title: "Delete",
-                    operation: .command(control.command(["delete", "unavailable"])),
-                    regeneration: .unusable,
-                    explanation: "Deletes them with simctl delete unavailable."
-                )],
-                isRecommended: true
-            ))
+        // Unavailable simulators are individual targets too, never `delete unavailable`.
+        for device in devices where !device.available {
+            bulk.append(individualClone(device, control: control, set: .standard,
+                                        parentID: "simulators.unavailable", label: "Runtime unavailable",
+                                        folder: env.path("Library/Developer/CoreSimulator/Devices"),
+                                        now: env.now(), setIsBooted: device.isBooted))
         }
 
         // Runtimes no simulator uses
@@ -401,6 +357,32 @@ nonisolated enum SimulatorScanner {
         guard let path = device.dataPath else { return 0 }
         return DirectorySizer.size(of: URL(fileURLWithPath: path)).bytes
     }
+
+    private static func individualClone(_ device: SimulatorDevice, control: SimulatorControl,
+                                         set: SimulatorDeviceSet, parentID: String, label: String,
+                                         folder: URL, now: Date, setIsBooted: Bool) -> CleanupItem {
+        let measured = device.dataPathSize ?? device.dataPath.map {
+            DirectorySizer.size(of: URL(fileURLWithPath: $0)).bytes
+        } ?? DirectorySizer.size(of: folder.appendingPathComponent(device.udid)).bytes
+        let runtime = SimulatorControl.runtimeName(device.runtimeIdentifier)
+        let used = ScanFormatting.relative(SimulatorControl.date(device.lastUsedAt), now: now)
+        return CleanupItem(
+            id: parentID + "." + device.udid, group: .simulators, title: device.name,
+            explanation: set == .standard ? "Its runtime is no longer available." : "A simulator Xcode re-creates when it needs it.",
+            detail: [runtime, label, device.isBooted ? "Booted" : "Shut down", used.map { "Used \($0)" }]
+                .compactMap { $0 }.joined(separator: " · "),
+            sizeBytes: measured, sizeIsUpperBound: true,
+            actions: [CleanupAction(id: "delete", title: "Delete",
+                                    operation: .command(control.command(["delete", device.udid], set: set)),
+                                    regeneration: set == .standard ? .unusable : .automatic,
+                                    explanation: "Deletes only this simulator.")],
+            isRecommended: true,
+            blockedReason: setIsBooted ? "A simulator in this set is running. Shut it down before cleaning." : nil,
+            inUseCheck: set == .standard ? .simulator(udid: device.udid) : .simulatorSet(set),
+            parentID: parentID
+        )
+    }
+
 }
 
 // MARK: - Developer caches
@@ -466,10 +448,6 @@ nonisolated enum DeveloperCacheScanner {
         Spec(id: "playwright", title: "Playwright browsers", relativePath: "Library/Caches/ms-playwright",
              explanation: "Browsers Playwright installed for testing. Reinstall them with npx playwright install.",
              recommended: false),
-        Spec(id: "jetbrains", title: "JetBrains IDE caches", relativePath: "Library/Caches/JetBrains",
-             explanation: "Indexes and caches for IntelliJ-based IDEs. Rebuilt when the IDE next opens a project.",
-             regeneration: .automatic,
-             inUseCheck: .runningApp(bundleIDPrefixes: ["com.jetbrains."], name: "A JetBrains IDE")),
         Spec(id: "deno", title: "Deno cache", relativePath: "Library/Caches/deno",
              explanation: "Modules Deno downloaded. Fetched again when a script needs them."),
         // Only Codex's caches. Its conversations (sessions), thread history and generated
@@ -486,7 +464,7 @@ nonisolated enum DeveloperCacheScanner {
             spec.relativePath.hasPrefix("Library/Caches/")
                 ? String(spec.relativePath.dropFirst("Library/Caches/".count)).lowercased()
                 : nil
-        } + ["homebrew"])
+        } + ["homebrew", "jetbrains"])
     }
 
     /// `~/.cache` folders that are pure caches. Anything else there is offered unticked,
@@ -632,31 +610,51 @@ nonisolated enum GeneralScanner {
         let ownBundleID = (Bundle.main.bundleIdentifier ?? "").lowercased()
         let excluded = DeveloperCacheScanner.libraryCacheFolderNames.union(appleCacheFolders)
 
-        var eligible: [(url: URL, bytes: Int64)] = []
+        var eligible: [(url: URL, bytes: Int64, app: String)] = []
         var unreadable = 0
 
-        for folder in FileManager.default.children(of: caches) where FileManager.default.isDirectory(folder) {
+        // Shared vendor folders need one owner per app. Never offer Google's parent, which
+        // would also erase Android Studio's Local History when Chrome is closed.
+        let folders = FileManager.default.children(of: caches).flatMap { folder -> [URL] in
+            guard folder.lastPathComponent.lowercased() == "google" else { return [folder] }
+            return FileManager.default.children(of: folder).filter {
+                !$0.lastPathComponent.lowercased().hasPrefix("androidstudio")
+            }
+        } + IDECacheScanner.cacheFolders(
+            home: context.env.home,
+            includesJetBrains: !context.settings.neverClean.itemIDs.contains("dev.jetbrains"),
+            includesAndroidStudio: !context.settings.neverClean.itemIDs.contains("general.androidStudioCaches")
+        ) + AppCacheDiscovery.sandboxCaches(context)
+        for folder in folders where FileManager.default.isDirectory(folder) {
             let name = folder.lastPathComponent.lowercased()
             if excluded.contains(name) || name.hasPrefix("com.apple.") || name == ownBundleID { continue }
-            if let owner = AppCacheOwnership.runningOwner(ofFolder: folder.lastPathComponent, processes: context.processes) {
+            let ownerFolder = AppCacheOwnership.ownerFolderName(of: folder)
+            if let owner = AppCacheOwnership.runningOwner(ofFolder: ownerFolder, processes: context.processes) {
                 openApps.insert(owner)
                 continue
             }
             let size = DirectorySizer.size(of: folder)
             if size.hasUnreadableParts && size.bytes == 0 { unreadable += 1 }
-            if size.bytes > 0 { eligible.append((folder, size.bytes)) }
+            if size.bytes > 0 {
+                eligible.append((folder, size.bytes, IDECachePolicy.displayName(for: ownerFolder) ?? (folder.lastPathComponent == "Caches" ? ownerFolder : folder.lastPathComponent)))
+            }
         }
 
         let total = eligible.reduce(Int64(0)) { $0 + $1.bytes }
         guard total > 0 else { return nil }
 
-        let largest = ScanFormatting.largest(eligible.map { ($0.url.lastPathComponent, $0.bytes) })
+        let apps = Dictionary(grouping: eligible, by: \.app).map { name, entries in
+            (name, entries.reduce(Int64(0)) { $0 + $1.bytes })
+        }
+        let largest = ScanFormatting.largest(apps)
+        let studioNote = eligible.contains { IDECachePolicy.displayName(for: AppCacheOwnership.ownerFolderName(of: $0.url)) != nil }
+            ? " IDE Local History, settings and plugins are kept; indexes rebuild afterwards." : ""
         return CleanupItem(
             id: "general.appCaches",
             group: .general,
             title: "App caches",
-            explanation: "Temporary files apps keep so they load faster. Apps re-create what they need; the first launch afterwards may be a little slower.",
-            detail: [ScanFormatting.count(eligible.count, "app"), largest].compactMap { $0 }.joined(separator: " · "),
+            explanation: "Temporary files apps keep so they load faster. Apps re-create what they need; the first launch afterwards may be a little slower." + studioNote,
+            detail: [ScanFormatting.count(apps.count, "app"), largest].compactMap { $0 }.joined(separator: " · "),
             sizeBytes: total,
             actions: [CleanupAction(
                 id: "delete",
@@ -666,35 +664,31 @@ nonisolated enum GeneralScanner {
                 explanation: "Deleted. Apps re-create their caches."
             )],
             isRecommended: true,
-            inUseCheck: .appCacheOwners
+            inUseCheck: .appCacheOwners,
+            entries: Dictionary(grouping: eligible, by: \.app).map { app, caches in
+                CleanupEntry(id: app, title: app, detail: caches.map { $0.url.path }.joined(separator: "\n"),
+                             sizeBytes: caches.reduce(0) { $0 + $1.bytes },
+                             operations: ["delete": .deleteContents(caches.map(\.url))],
+                             location: caches.count == 1 ? caches.first?.url : nil)
+            }.sorted { ($0.sizeBytes ?? 0) > ($1.sizeBytes ?? 0) }
         )
     }
 
     /// Files Chromium leaves in an app's folder. An app folder needs one of these before its
     /// "Cache" folder counts as a web cache; a folder merely named Cache isn't enough.
-    static let chromiumMarkers: Set<String> = [
-        "local storage", "local state", "network persistent state", "preferences", "session storage"
-    ]
+    static let chromiumMarkers = PathSafety.chromiumMarkers
 
     /// Page, script and graphics caches that apps built on web technology (Electron and
     /// Chromium: Claude, VS Code, Obsidian, Slack…) keep in Application Support rather than in
     /// ~/Library/Caches. Skipped for apps that are open.
     static func appWebCaches(_ context: ScanContext, openApps: inout Set<String>) -> CleanupItem? {
-        let support = context.env.path("Library/Application Support")
         let ownName = (Bundle.main.infoDictionary?["CFBundleName"] as? String ?? "CachePop").lowercased()
         var eligible: [(app: String, caches: [URL], bytes: Int64)] = []
 
-        for app in FileManager.default.children(of: support) where FileManager.default.isDirectory(app) {
-            let name = app.lastPathComponent
-            let lower = name.lowercased()
-            guard !lower.hasPrefix("com.apple"), !lower.hasPrefix("apple"), lower != ownName else { continue }
-            let entries = FileManager.default.children(of: app)
-            let isEditor = PathSafety.codeEditorFolderNames.contains(lower)
-            guard isEditor || !Set(entries.map { $0.lastPathComponent.lowercased() }).isDisjoint(with: chromiumMarkers) else { continue }
-
-            let cacheNames = PathSafety.appWebCacheFolderNames.union(isEditor ? PathSafety.codeEditorCacheFolderNames : [])
-            let caches = entries.filter { cacheNames.contains($0.lastPathComponent.lowercased()) && FileManager.default.isDirectory($0) }
-            guard !caches.isEmpty else { continue }
+        for app in AppCacheDiscovery.webApps(home: context.env.home, excluding: ownName) {
+            let caches = app.folders
+            guard let first = caches.first else { continue }
+            let name = AppCacheOwnership.ownerFolderName(of: first)
             if let owner = AppCacheOwnership.runningOwner(ofFolder: name, processes: context.processes) {
                 openApps.insert(owner)
                 continue
@@ -721,7 +715,13 @@ nonisolated enum GeneralScanner {
                 explanation: "Deleted. Apps re-create their caches."
             )],
             isRecommended: true,
-            inUseCheck: .appCacheOwners
+            inUseCheck: .appCacheOwners,
+            entries: eligible.map { app in
+                CleanupEntry(id: app.app, title: app.app,
+                             detail: app.caches.map(\.path).joined(separator: "\n"), sizeBytes: app.bytes,
+                             operations: ["delete": .deleteContents(app.caches)],
+                             location: app.caches.first?.deletingLastPathComponent())
+            }.sorted { ($0.sizeBytes ?? 0) > ($1.sizeBytes ?? 0) }
         )
     }
 
@@ -862,7 +862,25 @@ nonisolated enum AppCacheOwnership {
     /// The folder that names a cache's app: the cache folder itself in ~/Library/Caches, or
     /// the app's folder for a cache inside Application Support ("Claude/Cache" → "Claude").
     static func ownerFolderName(of cache: URL) -> String {
+        let parts = cache.pathComponents
+        if let index = parts.firstIndex(of: "Containers"), parts.count > index + 4,
+           Array(parts[(index + 2)...(index + 4)]) == ["Data", "Library", "Caches"] {
+            return parts[index + 1]
+        }
         let parent = cache.deletingLastPathComponent()
+        if parent.lastPathComponent.lowercased().hasPrefix("androidstudio"),
+           parent.deletingLastPathComponent().lastPathComponent.lowercased() == "google" {
+            return "com.google.android.studio"
+        }
+        if parent.deletingLastPathComponent().lastPathComponent.lowercased() == "jetbrains",
+           let product = IDECachePolicy.product(for: parent.lastPathComponent) {
+            return product.bundleID
+        }
+        if let index = parts.firstIndex(of: "Application Support"), parts.count > index + 1 {
+            let app = parts[index + 1]
+            if ["google", "bravesoftware"].contains(app.lowercased()), parts.count > index + 2 { return parts[index + 2] }
+            return app
+        }
         return parent.deletingLastPathComponent().lastPathComponent == "Application Support"
             ? parent.lastPathComponent
             : cache.lastPathComponent
@@ -876,7 +894,7 @@ nonisolated enum AppCacheOwnership {
 
     /// First labels that mark a folder name as a reverse-domain identifier.
     static let reverseDomainPrefixes: Set<String> = [
-        "com", "org", "net", "io", "co", "app", "company", "us", "de", "uk", "dev", "me", "ai"
+        "com", "org", "net", "io", "co", "app", "company", "us", "de", "uk", "dev", "me", "ai", "eu"
     ]
 
     /// Cache folders whose names don't follow their app's bundle identifier. Browsers matter
@@ -900,6 +918,9 @@ nonisolated enum AppCacheOwnership {
     /// running app can make it misbehave.
     static func runningOwner(ofFolder folder: String, processes: ProcessSnapshot) -> String? {
         let lower = folder.lowercased()
+        if lower == "com.google.android.studio" {
+            return inUseReason(for: IDECacheScanner.inUseCheck, processes: processes) == nil ? nil : "Android Studio"
+        }
         let running = processes.runningAppBundleIDs
         func name(_ bundleID: String) -> String { processes.runningAppNames[bundleID] ?? bundleID }
 
@@ -953,6 +974,26 @@ nonisolated func inUseReason(for check: InUseCheck, processes: ProcessSnapshot) 
     case .buildTools:
         guard processes.executableListAvailable else { return unknown }
         return processes.runningBuildTool.map { "A build is running (\($0)). Clean again when it finishes." }
+    case .appBuild(let bundleID, let path):
+        if let reason = inUseReason(for: .buildTools, processes: processes) { return reason }
+        guard processes.commandLinesAvailable else { return unknown }
+        if processes.runningAppPaths.values.contains(where: { paths in
+            paths.contains { $0 == path || $0.hasPrefix(path + "/") }
+        }) {
+            return "This app build is running. Quit it before cleaning this copy."
+        }
+        if processes.runningAppBundleIDs.contains(bundleID) {
+            guard let paths = processes.runningAppPaths[bundleID], !paths.isEmpty, !paths.contains("") else {
+                return "This app is open and its location couldn't be checked. Quit it first."
+            }
+            if paths.contains(where: { $0.contains("/AppTranslocation/") }) {
+                return "This app build is running. Quit it before cleaning this copy."
+            }
+        }
+        if processes.commandLines.contains(where: { $0.contains(path + "/") }) {
+            return "This app build is running. Quit it before cleaning this copy."
+        }
+        return nil
     case .gradleDaemon:
         guard processes.commandLinesAvailable else { return unknown }
         return processes.isGradleDaemonRunning
@@ -960,9 +1001,16 @@ nonisolated func inUseReason(for check: InUseCheck, processes: ProcessSnapshot) 
             : nil
     case .runningApp(let prefixes, let executables, let name):
         guard executables.isEmpty || processes.executableListAvailable else { return unknown }
-        let open = processes.runningAppBundleIDs.contains { id in prefixes.contains { id.hasPrefix($0) } }
-            || !processes.executableNames.isDisjoint(with: executables)
-        return open ? "\(name) is open. Quit it to clean this." : nil
+        if !processes.executableNames.isDisjoint(with: executables)
+            || !processes.runningAppBundleIDs.isDisjoint(with: prefixes) {
+            return "\(name) is open. Quit it to clean this."
+        }
+        // A bundle identifier is a component hierarchy, not an arbitrary text prefix.
+        // SafariPlatformSupport.Helper can run for other apps while Safari is closed.
+        let background = processes.runningAppBundleIDs.contains { id in
+            prefixes.contains { id.hasPrefix($0 + ".") }
+        }
+        return background ? "\(name) background processes are running. Quit \(name) completely to clean this." : nil
     case .androidEmulator(let name):
         guard processes.commandLinesAvailable else { return unknown }
         return AndroidScanner.isRunning(avd: name, processes: processes)

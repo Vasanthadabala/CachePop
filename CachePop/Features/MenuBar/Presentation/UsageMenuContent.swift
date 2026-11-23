@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 
 enum UsageMenuKind: String, CaseIterable {
-    case cpu, gpu, memory, drive, battery
+    case cpu, gpu, memory, drive, battery, sensors, network
     var title: String {
-        switch self { case .cpu: "CPU"; case .gpu: "GPU"; case .memory: "Memory"; case .drive: "Drive"; case .battery: "Battery" }
+        switch self { case .cpu: "CPU"; case .gpu: "GPU"; case .memory: "Memory"; case .drive: "Drive"; case .battery: "Battery"; case .sensors: "Sensors"; case .network: "Network" }
     }
     var hue: Hue {
         switch self {
@@ -13,11 +13,13 @@ enum UsageMenuKind: String, CaseIterable {
         case .memory: Metric.memory
         case .drive: Metric.drive
         case .battery: Metric.battery
+        case .sensors: Metric.temperature
+        case .network: Metric.incoming
         }
     }
     var client: String { "\(rawValue)Menu" }
     var shortcut: String {
-        switch self { case .cpu: "c"; case .gpu: "g"; case .memory: "m"; case .drive: "d"; case .battery: "b" }
+        switch self { case .cpu: "c"; case .gpu: "g"; case .memory: "m"; case .drive: "d"; case .battery: "b"; case .sensors: "s"; case .network: "n" }
     }
     var setting: ReferenceWritableKeyPath<AppSettings, Bool> {
         switch self {
@@ -26,6 +28,8 @@ enum UsageMenuKind: String, CaseIterable {
         case .memory: \.menuBarShowsMemoryUsage
         case .drive: \.menuBarShowsSSDUsage
         case .battery: \.menuBarShowsBattery
+        case .sensors: \.menuBarShowsSensors
+        case .network: \.menuBarShowsNetwork
         }
     }
     var backgroundClient: String {
@@ -34,6 +38,8 @@ enum UsageMenuKind: String, CaseIterable {
         case .gpu: "gpuMenuBar"
         case .drive: "driveMenuBar"
         case .battery: "batteryMenuBar"
+        case .sensors: "sensorsMenuBar"
+        case .network: "networkMenuBar"
         }
     }
 
@@ -52,6 +58,7 @@ struct UsageMenuContent: View {
     let model: AppModel
     let kind: UsageMenuKind
     var onClose: (() -> Void)?
+    var availableHeight: CGFloat = 900
     @Environment(\.dismiss) private var dismiss
     private var monitor: SystemMonitorViewModel { model.monitor }
 
@@ -70,6 +77,12 @@ struct UsageMenuContent: View {
             case .memory: memory
             case .drive: drive
             case .battery: battery
+            case .sensors: SensorsMenuReadings(snapshot: monitor.snapshot, availableHeight: availableHeight)
+            case .network:
+                NetworkMenuReadings(reading: monitor.snapshot?.networkReading,
+                                    throughput: monitor.snapshot?.hasNetworkReadings == true ? monitor.snapshot?.network : nil,
+                                    incoming: monitor.networkInHistory, outgoing: monitor.networkOutHistory,
+                                    usage: monitor.networkUsage)
             }
             if kind == .cpu || kind == .memory { processList }
             Divider()
@@ -84,7 +97,7 @@ struct UsageMenuContent: View {
         switch kind {
         case .cpu:
             Pill(text: monitor.thermalTitle, tone: monitor.isHot ? .warning : .neutral)
-        case .gpu, .battery:
+        case .gpu, .battery, .sensors, .network:
             EmptyView()
         case .memory:
             if let memory = monitor.snapshot?.memory, memory.total > 0 {
@@ -198,10 +211,9 @@ struct UsageMenuContent: View {
                 Spacer()
                 Text("All drives").font(AppTheme.Typography.caption).foregroundStyle(AppTheme.Colors.textSecondary)
             }
-            DualSparkline(first: monitor.diskReadHistory, second: monitor.diskWriteHistory,
-                          firstColor: Metric.incoming.solid, secondColor: Metric.outgoing.solid).frame(height: 42)
-            UsageMenuRow("Read", SystemMonitorViewModel.rate(snapshot.disk.inPerSecond), color: Metric.incoming.solid)
-            UsageMenuRow("Write", SystemMonitorViewModel.rate(snapshot.disk.outPerSecond), color: Metric.outgoing.solid)
+            TrafficHistoryChart(incoming: monitor.diskReadHistory, outgoing: monitor.diskWriteHistory).frame(height: 64)
+            UsageMenuRow("↑ Write", SystemMonitorViewModel.rate(snapshot.disk.outPerSecond), color: Metric.outgoing.solid)
+            UsageMenuRow("↓ Read", SystemMonitorViewModel.rate(snapshot.disk.inPerSecond), color: Metric.incoming.solid)
             if let health = snapshot.environment.hardware.compactMap(\.health).first {
                 UsageMenuRow("Drive health", "\(health.remainingLife)% remaining life")
             }
@@ -264,11 +276,19 @@ struct UsageMenuContent: View {
                         }
                     }
                 }
+            } else if kind == .network {
+                MenuRow(title: "Network Settings", symbol: "network") {
+                    close {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.Network-Settings.extension") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                }
             } else {
                 MenuRow(title: "System Monitor", symbol: "chart.xyaxis.line") {
                     close {
                         model.show(.systemMonitor)
-                        monitor.activePage = kind == .gpu ? .gpu : .battery
+                        monitor.activePage = kind == .gpu ? .gpu : kind == .sensors ? .sensors : .battery
                     }
                 }
             }

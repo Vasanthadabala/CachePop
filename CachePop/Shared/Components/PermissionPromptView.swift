@@ -7,23 +7,26 @@ import SwiftUI
 /// when a scan actually ran into one of those folders.
 struct PermissionPromptView: View {
     let reason: String
+    var showsDetails = true
     var onOpenSettings: () -> Void = { PermissionsManager.shared.requestFullDiskAccess() }
 
     var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.s) {
+        HStack(alignment: showsDetails ? .top : .center, spacing: AppTheme.Spacing.s) {
             IconTile(symbolName: "lock", size: AppTheme.Layout.rowIcon)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Full Disk Access needed for some items")
                     .font(AppTheme.Typography.headline)
-                Text(reason)
-                    .font(AppTheme.Typography.callout)
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("System Settings › Privacy & Security › Full Disk Access › CachePop, then scan again.")
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if showsDetails {
+                    Text(reason)
+                        .font(AppTheme.Typography.callout)
+                        .foregroundStyle(AppTheme.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("System Settings › Privacy & Security › Full Disk Access › CachePop, then scan again.")
+                        .font(AppTheme.Typography.caption)
+                        .foregroundStyle(AppTheme.Colors.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer(minLength: AppTheme.Spacing.xs)

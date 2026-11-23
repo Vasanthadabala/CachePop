@@ -9,6 +9,7 @@ struct PageBar: View {
     var body: some View {
         HStack(spacing: AppTheme.Spacing.m) {
             Text(section.title)
+                .accessibilityIdentifier("pageTitle")
                 .font(.system(size: 16, weight: .semibold))
                 .tracking(-0.3)
                 .fixedSize()

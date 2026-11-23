@@ -186,13 +186,17 @@ nonisolated struct LiveProcessInspector: ProcessInspecting {
         }
 
         let apps = await MainActor.run {
-            NSWorkspace.shared.runningApplications.compactMap { app -> (String, String)? in
-                guard let id = app.bundleIdentifier?.lowercased() else { return nil }
-                return (id, app.localizedName ?? id)
+            NSWorkspace.shared.runningApplications.compactMap { app -> (String, String, String?)? in
+                guard !app.isTerminated, let id = app.bundleIdentifier?.lowercased() else { return nil }
+                return (id, app.localizedName ?? id, app.bundleURL?.resolvingSymlinksInPath().path)
             }
         }
         snapshot.runningAppBundleIDs = Set(apps.map(\.0))
-        snapshot.runningAppNames = Dictionary(apps, uniquingKeysWith: { first, _ in first })
+        snapshot.runningAppNames = Dictionary(apps.map { ($0.0, $0.1) }, uniquingKeysWith: { first, _ in first })
+        for app in apps {
+            // A missing path must keep the identifier blocked, even if another copy has a path.
+            snapshot.runningAppPaths[app.0, default: []].insert(app.2 ?? "")
+        }
         return snapshot
     }
 }
@@ -306,10 +310,11 @@ nonisolated struct LiveAppCatalog: AppCataloging {
     }
 
     func isKnown(bundleID: String) -> Bool {
-        guard let urls = LSCopyApplicationURLsForBundleIdentifier(bundleID as CFString, nil)?.takeRetainedValue() as? [URL] else {
-            return false
-        }
-        return urls.contains { FileManager.default.fileExists(atPath: $0.path) && !$0.path.contains("/.Trash/") }
+        applicationURLs(bundleID: bundleID).contains { FileManager.default.fileExists(atPath: $0.path) && !$0.path.contains("/.Trash/") }
+    }
+
+    func applicationURLs(bundleID: String) -> [URL] {
+        LSCopyApplicationURLsForBundleIdentifier(bundleID as CFString, nil)?.takeRetainedValue() as? [URL] ?? []
     }
 }
 

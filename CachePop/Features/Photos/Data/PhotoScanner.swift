@@ -31,6 +31,8 @@ nonisolated enum PhotoScanner {
         /// Position in the library fetch, for loading the image.
         var libraryIndex: Int?
         var identity: FileReviewIdentity? = nil
+        /// Display fallback only. Files can be copied together long after capture.
+        var fileCreationDate: Date? = nil
     }
 
     /// A Photos fetch, read from the analysis tasks. Fetch results are immutable.
@@ -66,7 +68,9 @@ nonisolated enum PhotoScanner {
         // feature prints is needed, rather than a vector for every photo in the library.
         candidates.sort {
             let lhs = $0.date ?? .distantPast, rhs = $1.date ?? .distantPast
-            return lhs == rhs ? $0.name < $1.name : lhs < rhs
+            if lhs != rhs { return lhs < rhs }
+            if $0.name != $1.name { return $0.name < $1.name }
+            return $0.location.photoID < $1.location.photoID
         }
         let total = candidates.count
         progress(0, total)
@@ -113,23 +117,27 @@ nonisolated enum PhotoScanner {
         let result: (Candidate, PhotoMetrics, FeaturePrint?)?
     }
 
-    /// Which of two shots to keep: a favourite, then one without an issue, then the sharper,
-    /// then the larger.
+    /// Favourites come first. For comparable focus, preserve the more detailed original.
     static func isBetter(_ first: AnalyzedPhoto, _ second: AnalyzedPhoto) -> Bool {
         if first.isFavorite != second.isFavorite { return first.isFavorite }
-        if (first.issue == nil) != (second.issue == nil) { return first.issue == nil }
+        // Favourites hide quality labels in review, but their measurements still inform the keeper.
+        let firstIssue = first.isFavorite ? PhotoAnalyzer.issue(for: first.metrics) : first.issue
+        let secondIssue = second.isFavorite ? PhotoAnalyzer.issue(for: second.metrics) : second.issue
+        if (firstIssue == nil) != (secondIssue == nil) { return firstIssue == nil }
+        let firstBand = first.metrics.sharpnessBand
+        let secondBand = second.metrics.sharpnessBand
+        if firstBand != secondBand { return firstBand > secondBand }
+        let firstArea = first.pixelWidth * first.pixelHeight
+        let secondArea = second.pixelWidth * second.pixelHeight
+        if firstArea != secondArea { return firstArea > secondArea }
         if first.metrics.sharpness != second.metrics.sharpness { return first.metrics.sharpness > second.metrics.sharpness }
-        return first.pixelWidth * first.pixelHeight > second.pixelWidth * second.pixelHeight
+        return first.id < second.id
     }
 
     static func photo(_ candidate: Candidate, metrics: PhotoMetrics) -> AnalyzedPhoto {
-        let id: String
-        switch candidate.location {
-        case .file(let url): id = "file:" + url.path
-        case .library(let identifier): id = "library:" + identifier
-        }
-        return AnalyzedPhoto(
-            id: id, location: candidate.location, name: candidate.name, date: candidate.date,
+        AnalyzedPhoto(
+            id: candidate.location.photoID, location: candidate.location, name: candidate.name,
+            date: candidate.date ?? candidate.fileCreationDate,
             pixelWidth: candidate.pixelWidth, pixelHeight: candidate.pixelHeight, bytes: candidate.bytes,
             isFavorite: candidate.isFavorite, metrics: metrics,
             issue: candidate.isFavorite ? nil : PhotoAnalyzer.issue(for: metrics), identity: candidate.identity
@@ -140,7 +148,8 @@ nonisolated enum PhotoScanner {
         autoreleasepool {
             guard let image = image(for: candidate, library: library, side: PhotoAnalyzer.side),
                   let metrics = PhotoAnalyzer.metrics(of: image) else { return nil }
-            return (candidate, metrics, PhotoAnalyzer.featurePrint(of: image).map(FeaturePrint.init))
+            let feature = candidate.date == nil ? nil : PhotoAnalyzer.featurePrint(of: image).map(FeaturePrint.init)
+            return (candidate, metrics, feature)
         }
     }
 
@@ -194,9 +203,10 @@ nonisolated enum PhotoScanner {
                     url.removeAllCachedResourceValues()
                     candidates.append(Candidate(
                         location: .file(url), name: url.lastPathComponent,
-                        date: captureDate(properties) ?? values?.creationDate,
+                        date: captureDate(properties),
                         pixelWidth: width, pixelHeight: height,
-                        bytes: values?.fileSize.map(Int64.init), isFavorite: false, identity: identity
+                        bytes: values?.fileSize.map(Int64.init), isFavorite: false, identity: identity,
+                        fileCreationDate: values?.creationDate
                     ))
                 }
             }
@@ -216,6 +226,8 @@ nonisolated enum PhotoScanner {
     static func captureDate(_ properties: [CFString: Any]) -> Date? {
         let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any] ?? [:]
         guard let text = exif[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }
+        if let offset = exif[kCGImagePropertyExifOffsetTimeOriginal] as? String,
+           let date = offsetCaptureDateFormatter.date(from: text + offset) { return date }
         return captureDateFormatter.date(from: text)
     }
 
@@ -224,6 +236,13 @@ nonisolated enum PhotoScanner {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
         formatter.timeZone = .autoupdatingCurrent
+        return formatter
+    }()
+
+    private static let offsetCaptureDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ssXXXXX"
         return formatter
     }()
 

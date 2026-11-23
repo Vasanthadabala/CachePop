@@ -62,54 +62,34 @@ struct LoginItemsView: View {
     private var agentsSection: some View {
         StartupSection(
             title: "Agents",
-            subtitle: "Helpers and updaters that start with your Mac. Daemons run for every user, so switching one asks for your password.",
             symbol: "gearshape.2",
-            hue: Self.agentsHue,
             items: model.agents,
             model: model
-        ) {
-            if model.hiddenCount > 0 {
-                InlineNote(text: "\(model.hiddenCount) more \(model.hiddenCount == 1 ? "helper isn't" : "helpers aren't") shown: they only run when their app needs them, or the app can't work without them.")
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, AppTheme.Spacing.m)
-                    .padding(.vertical, AppTheme.Spacing.s)
-            }
-        }
+        )
     }
 
     private var appsSection: some View {
         StartupSection(
             title: "Applications",
-            subtitle: "Apps that open when you log in.",
             symbol: "macwindow",
-            hue: Self.appsHue,
             items: model.apps,
             model: model
         ) {
-            VStack(alignment: .leading, spacing: AppTheme.Spacing.xs) {
-                if model.appsAccess == .denied {
-                    HStack(spacing: AppTheme.Spacing.s) {
-                        InlineNote(text: "CachePop needs permission to read and change your Open at Login apps.",
-                                   symbolName: "exclamationmark.triangle", tone: .warning)
-                        Spacer(minLength: AppTheme.Spacing.s)
-                        Button("Allow in Settings…") {
-                            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }
-                        .controlSize(.small)
-                    }
-                }
+            if model.appsAccess == .denied {
                 HStack(spacing: AppTheme.Spacing.s) {
-                    InlineNote(text: "Some apps add themselves in a way only System Settings can switch off.")
+                    InlineNote(text: "CachePop needs permission to read and change your Open at Login apps.",
+                               symbolName: "exclamationmark.triangle", tone: .warning)
                     Spacer(minLength: AppTheme.Spacing.s)
-                    Button("Login Items Settings") { SystemInfoService.openLoginItemsSettings() }
-                        .buttonStyle(.link)
-                        .font(AppTheme.Typography.callout)
+                    Button("Allow in Settings…") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .controlSize(.small)
                 }
+                .padding(.horizontal, AppTheme.Spacing.m)
+                .padding(.vertical, AppTheme.Spacing.s)
             }
-            .padding(.horizontal, AppTheme.Spacing.m)
-            .padding(.vertical, AppTheme.Spacing.s)
         }
     }
 }
@@ -145,7 +125,7 @@ private struct LoginItemsStartView: View {
 // MARK: - Header
 
 private extension LoginItemsView {
-    // Agents and apps keep these colours in the header tape and on their sections.
+    // The summary tape distinguishes agents from applications; section icons stay neutral.
     static let agentsHue = AppTheme.Palette.blue
     static let appsHue = AppTheme.Palette.violet
 
@@ -169,37 +149,34 @@ private extension LoginItemsView {
                 leading: "\(agentsOn) \(agentsOn == 1 ? "agent" : "agents") on",
                 center: "\(appsOn) \(appsOn == 1 ? "app" : "apps") on",
                 trailing: "\(off) off"
-            )
-        ) {
-            Button {
-                SystemInfoService.openLoginItemsSettings()
-            } label: {
-                Label("Login Items Settings", systemImage: "gearshape")
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-        }
+            ),
+            accessory: {
+                Button {
+                    SystemInfoService.openLoginItemsSettings()
+                } label: {
+                    Label("Login Items Settings", systemImage: "gearshape")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+            }, visual: { EmptyView() }
+        )
     }
 }
 
 // MARK: - Section
 
-/// One card: a heading, column titles, then a row per item with its switch.
+/// One card: a heading, then a row per item with its switch.
 private struct StartupSection<Footer: View>: View {
     let title: String
-    let subtitle: String
     let symbol: String
-    let hue: Hue
     let items: [LoginItem]
     let model: LoginItemsViewModel
     @ViewBuilder var footer: Footer
 
-    init(title: String, subtitle: String, symbol: String, hue: Hue, items: [LoginItem], model: LoginItemsViewModel,
+    init(title: String, symbol: String, items: [LoginItem], model: LoginItemsViewModel,
          @ViewBuilder footer: () -> Footer = { EmptyView() }) {
         self.title = title
-        self.subtitle = subtitle
         self.symbol = symbol
-        self.hue = hue
         self.items = items
         self.model = model
         self.footer = footer()
@@ -207,7 +184,7 @@ private struct StartupSection<Footer: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            CardHeader(title, subtitle: subtitle, symbolName: symbol, hue: hue) {
+            CardHeader(title, symbolName: symbol) {
                 Text("\(items.filter(\.isOn).count) of \(items.count) on")
                     .font(.system(size: 11.5, weight: .semibold, design: .rounded))
                     .monospacedDigit()
@@ -226,7 +203,6 @@ private struct StartupSection<Footer: View>: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(AppTheme.Spacing.m)
             } else {
-                ColumnTitles()
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 { RowDivider(leadingInset: 48) }
                     StartupRow(item: item, isBusy: model.busyIDs.contains(item.id), isLocked: model.isScanning,
@@ -245,22 +221,6 @@ private enum StartupColumns {
     static let control: CGFloat = 104
 }
 
-private struct ColumnTitles: View {
-    var body: some View {
-        HStack(spacing: AppTheme.Spacing.s) {
-            Text("Name").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 36)
-            Text("Type").frame(width: StartupColumns.type, alignment: .leading)
-            Text("Starts").frame(width: StartupColumns.control, alignment: .trailing)
-            Color.clear.frame(width: 20, height: 1)
-        }
-        .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(AppTheme.Colors.textTertiary)
-        .padding(.horizontal, AppTheme.Spacing.m)
-        .padding(.top, 8)
-        .padding(.bottom, 4)
-    }
-}
-
 // MARK: - Row
 
 private struct StartupRow: View {
@@ -276,18 +236,12 @@ private struct StartupRow: View {
             StartupIcon(path: item.iconPath, isApp: item.appPath != nil, size: 28)
                 .opacity(item.isOn ? 1 : 0.55)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(AppTheme.Typography.headline)
-                    .foregroundStyle(item.isOn ? AppTheme.Colors.textPrimary : AppTheme.Colors.textSecondary)
-                    .lineLimit(1)
-                Text(detail)
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(item.title)
+                .font(AppTheme.Typography.headline)
+                .foregroundStyle(item.isOn ? AppTheme.Colors.textPrimary : AppTheme.Colors.textSecondary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .help(detail)
 
             Text(item.typeLabel)
                 .font(AppTheme.Typography.callout)

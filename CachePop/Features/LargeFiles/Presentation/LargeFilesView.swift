@@ -192,7 +192,7 @@ private struct LargeFilesResultsView: View {
         return [
             BreakdownSegment(id: "large", title: "Large files", color: AppTheme.Palette.blue.solid,
                              total: largeTotal, selected: largeSelected),
-            BreakdownSegment(id: "copies", title: "Extra copies", color: AppTheme.Palette.violet.solid,
+            BreakdownSegment(id: "copies", title: "Extra copies", color: AppTheme.Palette.blue.solid,
                              total: model.result.duplicateExtraBytes, selected: min(copiesSelected, model.result.duplicateExtraBytes))
         ]
     }
@@ -285,15 +285,11 @@ private struct LargeFilesResultsView: View {
                     VStack(spacing: 0) {
                         CardHeader(
                             set.files.first?.name ?? "File",
-                            subtitle: "\(set.files.count) identical copies · \(ByteSize.string(set.fileSize)) each",
-                            symbolName: "doc.on.doc",
-                            hue: AppTheme.Palette.violet  // "Extra copies" in the breakdown above
+                            symbolName: "doc.on.doc"
                         ) {
-                            VStack(alignment: .trailing, spacing: 1) {
+                            HStack(spacing: AppTheme.Spacing.s) {
+                                Pill(text: "\(set.files.count) copies")
                                 SizeText(bytes: set.extraBytes, emphasized: true)
-                                Text("in extra copies")
-                                    .font(AppTheme.Typography.caption)
-                                    .foregroundStyle(AppTheme.Colors.textTertiary)
                             }
                         }
                         RowDivider(leadingInset: 0)
@@ -340,17 +336,11 @@ private struct FileRow: View {
                         .font(AppTheme.Typography.headline)
                         .lineLimit(1)
                         .truncationMode(.middle)
+                        .help(abbreviate(file.url.path, home: home))
                     if let tag {
                         Pill(text: tag)
                     }
                 }
-                Text([abbreviate(file.url.deletingLastPathComponent().path, home: home), file.modified?.formatted(date: .abbreviated, time: .omitted)]
-                        .compactMap { $0 }
-                        .joined(separator: " · "))
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onToggle)

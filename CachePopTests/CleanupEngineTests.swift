@@ -59,7 +59,7 @@ struct CleanupEngineTests {
         let recommended = Set(result.allItems.filter(\.isRecommended).map(\.id))
         #expect(recommended.isSuperset(of: [
             "xcode.derivedData", "xcode.deviceSupport.iOS DeviceSupport", "simulators.caches",
-            "simulators.testingClones", "simulators.unavailable", "general.appCaches", "general.logs"
+            "simulators.testingClones.CLONE", "simulators.unavailable.GONE", "general.appCaches", "general.logs"
         ]))
         #expect(result.allItems.filter { $0.group == .developerCaches }.allSatisfy { !$0.isRecommended })
         #expect(!recommended.contains("general.trash"))
@@ -86,8 +86,8 @@ struct CleanupEngineTests {
         #expect(fixture.exists("Projects/App/Sources/main.swift"))
 
         // Simulators go through simctl only.
-        #expect(runner.mutatingCalls.contains(["--set", "testing", "delete", "all"]))
-        #expect(runner.mutatingCalls.contains(["delete", "unavailable"]))
+        #expect(runner.mutatingCalls.contains(["--set", "testing", "delete", "CLONE"]))
+        #expect(runner.mutatingCalls.contains(["delete", "GONE"]))
         #expect(!runner.mutatingCalls.contains { $0.contains("IPHONE16") })
 
         // Every selection succeeded, and the headline number is the measured one.
@@ -227,9 +227,9 @@ struct CleanupEngineTests {
     @Test func failedSimctlCommandIsReported() async throws {
         let fixture = try Fixture()
         var simctl = developerSimctl()
-        simctl.failingArguments = ["delete", "unavailable"]
+        simctl.failingArguments = ["delete", "GONE"]
         let engine = CleanupEngine(env: fixture.environment(simctl: simctl))
-        let item = try #require(await engine.scan().item("simulators.unavailable"))
+        let item = try #require(await engine.scan().item("simulators.unavailable.GONE"))
 
         let report = await engine.clean([.init(item: item, action: item.defaultAction)])
 
@@ -237,7 +237,7 @@ struct CleanupEngineTests {
             Issue.record("Expected a failure")
             return
         }
-        #expect(message.contains("simctl delete unavailable"))
+        #expect(message.contains("simctl delete GONE"))
     }
 
     @Test func freedSpaceIsMeasuredAfterAPFSSettles() async throws {

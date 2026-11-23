@@ -49,7 +49,7 @@ nonisolated struct CleanupEngine: CleanupServicing {
 
             for await scanned in taskGroup {
                 let tuned = RecommendationPolicy.apply(to: scanned, threshold: settings.largeDownloadThreshold)
-                let group = settings.neverClean.apply(to: tuned)
+                let group = CleanupEntryBuilder.populate(settings.neverClean.apply(to: tuned), neverClean: settings.neverClean)
                 groups.append(group)
                 // A cancelled scan's partial groups must not show up in the next scan's list.
                 if !Task.isCancelled { await onGroup(group) }
@@ -60,6 +60,25 @@ nonisolated struct CleanupEngine: CleanupServicing {
         return CleanupScanResult(groups: groups.sorted {
             order.firstIndex(of: $0.kind)! < order.firstIndex(of: $1.kind)!
         })
+    }
+
+    /// Refresh only process-dependent availability; retain the exact scanned paths and sizes.
+    @concurrent
+    func refreshRunningApps(in result: CleanupScanResult) async -> CleanupScanResult {
+        guard result.allItems.contains(where: {
+            if case .runningApp = $0.inUseCheck { return !$0.needsFullDiskAccess }
+            return false
+        }) else { return result }
+        let processes = await env.processes.snapshot()
+        var refreshed = result
+        for group in refreshed.groups.indices {
+            for index in refreshed.groups[group].items.indices {
+                let item = refreshed.groups[group].items[index]
+                guard !item.needsFullDiskAccess, case .runningApp = item.inUseCheck else { continue }
+                refreshed.groups[group].items[index].blockedReason = inUseReason(for: item.inUseCheck, processes: processes)
+            }
+        }
+        return refreshed
     }
 
     // MARK: Clean
@@ -100,7 +119,8 @@ nonisolated struct CleanupEngine: CleanupServicing {
 
             if let reason = liveBlockReason(for: selection.item, processes: processes, simulators: simulators) {
                 entries.append(CleanupItemReport(item: selection.item, action: selection.action, outcome: .skipped(reason: reason)))
-            } else if neverClean.itemIDs.contains(selection.item.id) {
+            } else if neverClean.itemIDs.contains(selection.item.id)
+                        || selection.item.parentID.map(neverClean.itemIDs.contains) == true {
                 entries.append(CleanupItemReport(item: selection.item, action: selection.action,
                                                  outcome: .skipped(reason: "It's on your Never Clean list.")))
             } else {
@@ -181,11 +201,26 @@ nonisolated struct CleanupEngine: CleanupServicing {
 
         switch selection.action.operation {
         case .delete(let urls):
-            let failures = urls.flatMap { removeSkipping(neverClean, $0) }
+            let protectedEntryPaths = Set(item.entries.flatMap { entry -> [URL] in
+                guard case .delete(let paths) = entry.operations[selection.action.id], paths.count > 1,
+                      paths.contains(where: neverClean.protects) else { return [] }
+                return paths
+            })
+            let eligible = urls.filter { !protectedEntryPaths.contains($0) }
+            if eligible.isEmpty, !protectedEntryPaths.isEmpty {
+                return (.skipped(reason: "An entry contains files on your Never Clean list."), [])
+            }
+            let failures = eligible.flatMap { removeSkipping(neverClean, $0) }
+            if !protectedEntryPaths.isEmpty, failures.isEmpty {
+                let kept = DirectorySizer.size(ofAll: Array(protectedEntryPaths)).bytes
+                return (.failed(message: "Skipped entries containing files on your Never Clean list.",
+                                removedBytes: max(item.sizeBytes - kept, 0)), [])
+            }
             // Re-measuring is only needed to report a partial failure.
             if failures.isEmpty { return (.removed(bytes: item.sizeBytes), []) }
-            let remaining = DirectorySizer.size(ofAll: urls.filter { exists($0) && !neverClean.protects($0) }).bytes
-                - DirectorySizer.size(ofAll: urls.flatMap(neverClean.protectedFolders(inside:))).bytes
+            let remaining = DirectorySizer.size(ofAll: eligible.filter { exists($0) && !neverClean.protects($0) }).bytes
+                - DirectorySizer.size(ofAll: eligible.flatMap(neverClean.protectedFolders(inside:))).bytes
+                + DirectorySizer.size(ofAll: Array(protectedEntryPaths)).bytes
             return (outcome(for: item, failures: failures, remaining: SizeInfo(bytes: max(remaining, 0))), [])
 
         case .deleteContents(let folders):
@@ -230,7 +265,15 @@ nonisolated struct CleanupEngine: CleanupServicing {
             for url in urls {
                 // A folder can't be half moved, so anything holding a protected folder stays.
                 if neverClean.protects(url) || !neverClean.protectedFolders(inside: url).isEmpty { continue }
-                if let violation = PathSafety.violation(for: url, mode: .trash, home: env.home) {
+                var appBuildBundleID: String?
+                if case .appBuild(let bundleID, let path) = item.inUseCheck {
+                    guard url.resolvingSymlinksInPath().path == path else {
+                        failures.append("The app build's location changed. Scan again before cleaning it.")
+                        continue
+                    }
+                    appBuildBundleID = bundleID
+                }
+                if let violation = PathSafety.violation(for: url, mode: .trash, home: env.home, appBuildBundleID: appBuildBundleID) {
                     failures.append(violation)
                     continue
                 }

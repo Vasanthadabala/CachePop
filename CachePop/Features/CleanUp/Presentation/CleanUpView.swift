@@ -273,15 +273,10 @@ struct CleanUpResultView: View {
                 }
                 .card()
 
-                Button(action: onDone) {
-                    Text("Done").frame(minWidth: 120)
-                }
-                .primaryAction()
-                .keyboardShortcut(.defaultAction)
-                .padding(.bottom, AppTheme.Spacing.xl)
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, AppTheme.Spacing.xl)
+            .padding(.bottom, AppTheme.Spacing.xl)
         }
     }
 
@@ -300,7 +295,15 @@ struct CleanUpResultView: View {
                 leading: report.availableBefore.map { "Before: \(ByteSize.string($0)) free" } ?? "0",
                 center: report.movedToTrashBytes > 0 ? "\(ByteSize.string(report.movedToTrashBytes)) in the Trash" : nil,
                 trailing: "Now: \(ByteSize.string(disk.availableBytes)) free"
-            ) : nil
+            ) : nil,
+            accessory: {
+                Button(action: onDone) {
+                    Text("Done").frame(minWidth: 120)
+                }
+                .primaryAction()
+                .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("cleanUpDone")
+            }, visual: { EmptyView() }
         )
     }
 

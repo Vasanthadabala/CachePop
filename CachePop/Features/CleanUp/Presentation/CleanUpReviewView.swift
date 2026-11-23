@@ -1,8 +1,10 @@
+import AppKit
 import SwiftUI
 
-/// The list of everything that can be freed, grouped, with sizes and plain explanations.
+/// The list of everything that can be freed, grouped, with sizes and recovery labels.
 struct CleanUpReviewView: View {
     @Bindable var model: CleanUpViewModel
+    @State private var inspectingItem: CleanupItem?
 
     var body: some View {
         Group {
@@ -18,41 +20,51 @@ struct CleanUpReviewView: View {
             } else {
                 ZStack(alignment: .bottom) {
                     ScrollView {
-                        VStack(alignment: .leading, spacing: AppTheme.Spacing.m) {
+                        VStack(alignment: .leading, spacing: AppTheme.Spacing.l) {
                             ReviewSummary(model: model)
 
                             if model.result.needsFullDiskAccess && !PermissionsManager.shared.hasFullDiskAccess {
-                                PermissionPromptView(reason: "macOS keeps the Trash and device backups private, so CachePop can't see or clean them without access.")
+                                PermissionPromptView(
+                                    reason: "macOS keeps the Trash and device backups private, so CachePop can't see or clean them without access.",
+                                    showsDetails: false
+                                )
                             }
 
                             ForEach(model.visibleGroups) { group in
-                                GroupCard(model: model, group: group)
+                                CleanupGroupSection(model: model, group: group) { inspectingItem = $0 }
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, AppTheme.Spacing.xl)
                         .padding(.top, AppTheme.Spacing.m)
-                        .clearsActionBar()
+                        .padding(.bottom, 76)
                     }
 
-                    FloatingActionBar(
-                        summary: model.selectionSummary,
-                        detail: model.selections.isEmpty
-                            ? "Tick what you want to remove."
-                            : "You'll see exactly what happens before anything is removed."
-                    ) {
-                        Button(action: model.requestClean) {
-                            Text("Clean…").frame(minWidth: 72)
-                        }
-                        .primaryAction()
-                        .keyboardShortcut(.defaultAction)
-                        .disabled(model.selections.isEmpty)
-                    }
+                    CleanupSelectionBar(model: model)
                 }
             }
         }
         .sheet(isPresented: $model.isConfirming) {
             ConfirmCleanSheet(model: model)
+        }
+        .sheet(item: $inspectingItem) { item in
+            CleanupItemDetailsSheet(model: model, item: item)
+        }
+        .onChange(of: model.phase) { _, phase in
+            if phase != .review { inspectingItem = nil }
+        }
+        .onChange(of: model.result) { _, result in
+            if let item = inspectingItem { inspectingItem = result.allItems.first { $0.id == item.id } }
+        }
+        .task { await model.refreshRunningApps() }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didLaunchApplicationNotification)) { _ in
+            Task { await model.refreshRunningApps() }
+        }
+        .onReceive(NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didTerminateApplicationNotification)) { _ in
+            Task { await model.refreshRunningApps() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await model.refreshRunningApps() }
         }
     }
 }
@@ -63,35 +75,41 @@ private struct ReviewSummary: View {
     let model: CleanUpViewModel
 
     var body: some View {
-        let selected = ByteSize.parts(model.selectedBytes)
-        TapeHeader(
-            caption: "Selected to clean",
-            value: selected.number,
-            unit: selected.unit,
-            detail: "of \(ByteSize.string(model.result.reclaimableBytes)) found in \(model.result.allItems.count) places"
-        ) {
-            Button {
-                model.scan()
-            } label: {
-                Label("Scan Again", systemImage: "arrow.clockwise")
+        VStack(alignment: .leading, spacing: AppTheme.Spacing.l) {
+            HStack(spacing: AppTheme.Spacing.m) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Choose what to clean")
+                        .font(.system(size: 21, weight: .semibold))
+                        .accessibilityAddTraits(.isHeader)
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(ByteSize.string(model.result.reclaimableBytes))
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.accent)
+                        Text("found across \(model.result.allItems.count) cleanup items")
+                            .font(AppTheme.Typography.callout)
+                            .foregroundStyle(AppTheme.Colors.textSecondary)
+                    }
+                }
+                Spacer(minLength: 8)
+                Button(action: model.scan) {
+                    Label("Scan Again", systemImage: "arrow.clockwise")
+                }
+                .secondaryAction()
             }
-            .controlSize(.regular)
-        } visual: {
+
             VStack(alignment: .leading, spacing: AppTheme.Spacing.s) {
                 BreakdownBar(segments: segments, showsUnselectedColors: true)
-                FlowLayout(spacing: AppTheme.Spacing.m, lineSpacing: AppTheme.Spacing.xs) {
+                FlowLayout(spacing: AppTheme.Spacing.l, lineSpacing: AppTheme.Spacing.xs) {
                     ForEach(segments.filter { $0.total > 0 }) { segment in
                         LegendItem(segment: segment)
                             .accessibilityElement(children: .combine)
                             .help("\(ByteSize.string(segment.selected)) selected in \(segment.title)")
                     }
                 }
-                Text("Solid color shows selected space.")
-                    .font(AppTheme.Typography.caption)
-                    .foregroundStyle(AppTheme.Colors.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(AppTheme.Spacing.l)
+        .card(radius: 12)
         .animation(AppTheme.Motion.standard, value: model.selectedBytes)
     }
 
@@ -106,26 +124,89 @@ private struct ReviewSummary: View {
 
 }
 
+private struct CleanupSelectionBar: View {
+    let model: CleanUpViewModel
+
+    var body: some View {
+        let parts = ByteSize.parts(model.selectedBytes)
+        let unknown = model.selectionHasUnknownSizes && model.selectedBytes == 0
+        HStack(spacing: AppTheme.Spacing.m) {
+            HStack(spacing: AppTheme.Spacing.m) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(unknown ? "—" : parts.number)
+                        .font(.system(size: 22, weight: .semibold, design: .rounded))
+                        .tracking(-0.5)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    if !unknown {
+                        Text(parts.unit)
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                }
+                .foregroundStyle(model.selections.isEmpty ? AppTheme.Colors.textSecondary : AppTheme.Colors.accent)
+                Rectangle()
+                    .fill(AppTheme.Colors.separator)
+                    .frame(width: 1, height: 20)
+                Text(model.selections.isEmpty ? "Nothing selected" : "\(model.selections.count) selected")
+                    .font(AppTheme.Typography.caption)
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+                    .monospacedDigit()
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(model.selectionSummary)
+            Spacer(minLength: 8)
+            if model.selectionHasUpperBound || model.selectionHasUnknownSizes {
+                Text(unknown ? "Size unavailable" : "Estimated")
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(AppTheme.Colors.textSecondary)
+            }
+            Button(action: model.requestClean) {
+                HStack(spacing: 8) {
+                    Text("Clean…")
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .font(.system(size: 12, weight: .semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+            }
+            .primaryAction()
+            .accessibilityLabel("Clean…")
+            .keyboardShortcut(.defaultAction)
+            .disabled(model.selections.isEmpty)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .card(radius: 12, raised: true)
+        .padding(.horizontal, AppTheme.Spacing.xl)
+        .padding(.bottom, AppTheme.Spacing.m)
+        .animation(AppTheme.Motion.quick, value: model.selectedBytes)
+    }
+}
+
 // MARK: - Group
 
-private struct GroupCard: View {
+private struct CleanupGroupSection: View {
     let model: CleanUpViewModel
     let group: CleanupGroup
+    let onViewAll: (CleanupItem) -> Void
 
     private var isCollapsed: Bool { model.collapsedGroups.contains(group.kind) }
     private var selectableCount: Int { model.selectableItems(in: group).count }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             header
 
             if !isCollapsed {
                 if !group.items.isEmpty {
                     RowDivider(leadingInset: 0)
-                }
-                ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
-                    if index > 0 { RowDivider(leadingInset: 36) }
-                    CleanupItemRow(model: model, item: item)
+                    VStack(spacing: 0) {
+                        ForEach(Array(group.items.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 { RowDivider(leadingInset: 90) }
+                            CleanupItemRow(model: model, item: item) { onViewAll(item) }
+                        }
+                    }
                 }
                 if !group.notes.isEmpty {
                     RowDivider(leadingInset: 0)
@@ -135,12 +216,12 @@ private struct GroupCard: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, AppTheme.Spacing.m)
-                    .padding(.vertical, AppTheme.Spacing.s)
+                    .padding(14)
                 }
             }
         }
-        .card()
+        .card(radius: 12)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var header: some View {
@@ -150,11 +231,15 @@ private struct GroupCard: View {
             }
             .help("Select or deselect everything in \(group.kind.title)")
 
-            IconTile(symbolName: group.kind.symbolName, size: 28)
+            Image(systemName: group.kind.symbolName)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(AppTheme.Colors.textSecondary)
+                .frame(width: 16)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(group.kind.title)
-                    .font(AppTheme.Typography.title2)
+                    .font(.system(size: 12, weight: .semibold))
+                    .accessibilityAddTraits(.isHeader)
                 Text(subtitle)
                     .font(AppTheme.Typography.caption)
                     .foregroundStyle(AppTheme.Colors.textSecondary)
@@ -180,9 +265,13 @@ private struct GroupCard: View {
             }
             .buttonStyle(.plain)
             .help(isCollapsed ? "Show items" : "Hide items")
+            .accessibilityIdentifier("cleanupGroupDisclosure.\(group.kind.id)")
+            .accessibilityLabel("\(isCollapsed ? "Show" : "Hide") \(group.kind.title) items")
+            .accessibilityValue(isCollapsed ? "Collapsed" : "Expanded")
         }
-        .padding(.horizontal, AppTheme.Spacing.m)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(AppTheme.Colors.hover)
         .contentShape(Rectangle())
     }
 
@@ -195,108 +284,13 @@ private struct GroupCard: View {
     }
 }
 
-// MARK: - Row
-
-private struct CleanupItemRow: View {
-    let model: CleanUpViewModel
-    let item: CleanupItem
-
-    private var isSelected: Bool { model.isSelected(item) }
-
-    private var actionID: Binding<String> {
-        Binding(
-            get: { model.action(for: item).id },
-            set: { id in
-                model.choose(item.action(withID: id), for: item)
-                model.setSelected(item, true)
-            }
-        )
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: AppTheme.Spacing.s) {
-            SelectionBox(state: isSelected ? .on : .off, isDisabled: item.isBlocked) {
-                model.setSelected(item, !isSelected)
-            }
-            .padding(.top, 1)
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: AppTheme.Spacing.xs) {
-                    Text(item.title)
-                        .font(AppTheme.Typography.headline)
-                        .lineLimit(1)
-
-                    if item.actions.count > 1 {
-                        Picker("Action", selection: actionID) {
-                            ForEach(item.actions) { action in
-                                Text(action.title).tag(action.id)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .controlSize(.small)
-                        .fixedSize()
-                        .disabled(item.isBlocked)
-                    }
-
-                    Spacer(minLength: AppTheme.Spacing.s)
-
-                    SizeText(bytes: item.sizeBytes, isUpperBound: item.sizeIsUpperBound, emphasized: isSelected)
-                }
-
-                Text(item.actions.count > 1 ? model.action(for: item).explanation : item.explanation)
-                    .font(AppTheme.Typography.callout)
-                    .foregroundStyle(AppTheme.Colors.textSecondary)
-                    .lineSpacing(1)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: AppTheme.Spacing.xs) {
-                    RegenerationTag(regeneration: model.action(for: item).regeneration)
-                    if let detail = item.detail, !detail.isEmpty {
-                        Text(detail)
-                            .font(AppTheme.Typography.caption)
-                            .foregroundStyle(AppTheme.Colors.textTertiary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
-                .padding(.top, 1)
-
-                if let note = item.note, !item.isBlocked {
-                    InlineNote(text: note, symbolName: "arrow.down.circle")
-                }
-                if let warning = item.warning, !item.isBlocked {
-                    InlineNote(text: warning, symbolName: "exclamationmark.triangle", tone: .warning)
-                }
-                if let blocked = item.blockedReason {
-                    InlineNote(text: blocked, symbolName: item.needsFullDiskAccess ? "lock" : "pause.circle")
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard !item.isBlocked else { return }
-                model.setSelected(item, !isSelected)
-            }
-        }
-        .padding(.horizontal, AppTheme.Spacing.m)
-        .padding(.vertical, 10)
-        .opacity(item.isBlocked ? 0.6 : 1)
-        .hoverHighlight()
-        .contextMenu {
-            Button("Always Skip “\(item.title)”") { model.alwaysSkip(item) }
-            Text("You can undo this in Settings › Never Clean.")
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityAction(named: "Always Skip") { model.alwaysSkip(item) }
-    }
-}
-
 // MARK: - Confirmation
 
 /// Says exactly what will happen, grouped by whether it comes back, before anything runs.
 struct ConfirmCleanSheet: View {
     let model: CleanUpViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var listHeight: CGFloat = 380
 
     private var buckets: [(Regeneration, [CleanupEngine.Selection])] {
         let order: [Regeneration] = [.permanent, .movedToTrash, .automatic, .redownloaded, .onDeviceConnect, .unusable]
@@ -344,8 +338,9 @@ struct ConfirmCleanSheet: View {
                     }
                 }
                 .padding(AppTheme.Spacing.l)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { listHeight = $0 }
             }
-            .frame(maxHeight: 380)
+            .frame(height: min(listHeight, 380))
 
             RowDivider(leadingInset: 0)
 
@@ -368,7 +363,12 @@ struct ConfirmCleanSheet: View {
     }
 
     private var summary: String {
-        var parts = ["\(model.selectionHasUpperBound ? "Up to " : "About ")\(ByteSize.string(model.selectedFreeingBytes)) will be freed."]
+        var parts = model.selectionHasUnknownSizes && model.selectedBytes == 0
+            ? ["The size of the selected entries is unavailable."]
+            : ["\(model.selectionHasUpperBound ? "Up to " : "About ")\(ByteSize.string(model.selectedFreeingBytes)) will be freed."]
+        if model.selectionHasUnknownSizes && model.selectedBytes > 0 {
+            parts.append("Some selected entries have no individual size estimate.")
+        }
         let trashBytes = model.selectedBytes - model.selectedFreeingBytes
         if trashBytes > 0 {
             parts.append("\(ByteSize.string(trashBytes)) goes to the Trash.")
@@ -383,17 +383,10 @@ private struct ConfirmRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: AppTheme.Spacing.xs) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(selection.item.actions.count > 1 ? "\(selection.action.title) \(selection.item.title)" : selection.item.title)
-                    .font(AppTheme.Typography.body)
-                if case .command(let command) = selection.action.operation {
-                    Text(command.displayString)
-                        .font(.system(size: 10.5, design: .monospaced))
-                        .foregroundStyle(AppTheme.Colors.textTertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
+            Text(selection.item.actions.count > 1 ? "\(selection.action.title) \(selection.item.title)" : selection.item.title)
+                .font(AppTheme.Typography.body)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: AppTheme.Spacing.s)
             SizeText(bytes: selection.item.sizeBytes, isUpperBound: selection.item.sizeIsUpperBound)
         }

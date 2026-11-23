@@ -49,6 +49,7 @@ final class AppsViewModel {
     }
     private(set) var applications: [ApplicationDetails] = []
     private(set) var isScanning = false
+    private(set) var scanProgress: Double = 0
     private(set) var hasScanned = false
 
     var selectedAppID: String? {
@@ -128,6 +129,7 @@ final class AppsViewModel {
         measureTask = nil
         relatedFilesTask = nil
         isScanning = false
+        scanProgress = 0
         isMeasuringLibraries = false
         isLoadingRelatedFiles = false
         isConfirming = false
@@ -152,6 +154,7 @@ final class AppsViewModel {
     func scan() {
         guard !isScanning, !isUninstalling else { return }
         isScanning = true
+        scanProgress = 0
         scanTask?.cancel()
         measureTask?.cancel()
         relatedFilesTask?.cancel()
@@ -160,7 +163,10 @@ final class AppsViewModel {
 
         scanTask = Task { [weak self, engine, catalog] in
             async let catalogIDs = Self.readCatalog(catalog)
-            let scanned = await engine.scanApplications()
+            let scanned = await engine.scanApplications { [weak self] fraction in
+                guard !Task.isCancelled, let self, self.isScanning, fraction.isFinite else { return }
+                self.scanProgress = min(max(fraction, 0), 1)
+            }
             let identifiers = await catalogIDs
             guard let self, !Task.isCancelled else { return }
             let apps = scanned

@@ -32,7 +32,8 @@ extension MonitorStatus.Level {
 }
 
 /// Shared data colors keep each metric consistent between main pages and popup charts.
-/// Menu bar labels remain monochrome; gray also identifies inactive and unavailable data.
+/// Menu bar values stay white; network arrows use their traffic colors.
+/// Gray also identifies inactive and unavailable data.
 enum Metric {
     static let cpu = AppTheme.Palette.blue
     static let gpu = AppTheme.Palette.violet
