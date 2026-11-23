@@ -97,6 +97,8 @@ enum DemoMode {
             settings.menuBarShowsCPUUsage = selected == nil || selected == "cpu"
             settings.menuBarShowsGPUUsage = selected == "gpu"
             settings.menuBarShowsBattery = selected == "battery"
+            settings.menuBarShowsSensors = selected == "sensors"
+            settings.menuBarShowsNetwork = selected == "network"
             settings.menuBarShowsMemoryUsage = selected == nil || selected == "memory"
             settings.menuBarShowsSSDUsage = selected == nil || selected == "drive"
         }
@@ -417,6 +419,13 @@ nonisolated struct DemoTools: CommandRunning {
             }
             return ok("")
         default:
+            if arguments.count == 4, arguments.starts(with: ["--set", "testing", "delete"]) {
+                let root = home.appendingPathComponent("Library/Developer/XCTestDevices")
+                for clone in FileManager.default.children(of: root) where clone.lastPathComponent == arguments[3] {
+                    try? FileManager.default.removeItem(at: clone)
+                }
+                return ok("")
+            }
             if arguments.count == 2, arguments[0] == "erase" {
                 for item in FileManager.default.children(of: devicesFolder.appendingPathComponent("\(arguments[1])/data")) {
                     try? FileManager.default.removeItem(at: item)

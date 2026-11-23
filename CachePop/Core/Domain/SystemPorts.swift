@@ -42,6 +42,8 @@ nonisolated struct ProcessSnapshot: Sendable, Equatable {
     var runningAppBundleIDs: Set<String> = []
     /// Display names of running apps, keyed by lowercased bundle identifier.
     var runningAppNames: [String: String] = [:]
+    /// Canonical bundle paths, so an installed app can stay open while an unused build is trashed.
+    var runningAppPaths: [String: Set<String>] = [:]
     /// Unknown process state must not be treated as an idle Mac during a clean.
     var executableListAvailable = true
     var commandLinesAvailable = true
@@ -109,4 +111,10 @@ nonisolated protocol AppCataloging: Sendable {
     func installedBundleIDs() -> Set<String>
     /// Whether macOS knows an app with this identifier anywhere, including other folders and disks.
     func isKnown(bundleID: String) -> Bool
+    /// Copies registered with macOS, including builds outside the usual app folders.
+    func applicationURLs(bundleID: String) -> [URL]
+}
+
+nonisolated extension AppCataloging {
+    func applicationURLs(bundleID: String) -> [URL] { [] }
 }

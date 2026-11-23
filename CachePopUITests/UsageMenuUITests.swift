@@ -2,6 +2,120 @@ import XCTest
 
 final class UsageMenuUITests: XCTestCase {
     @MainActor
+    func testNetworkShowsTodayAndMonthWithTheMainWindowClosed() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-CachePopDemo", "-CachePopUsageUITest", "-CachePopUsageMenu=network", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        defer { app.terminate() }
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertTrue(app.windows["main"].waitForExistence(timeout: 15))
+        app.windows["main"].coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.9)).click()
+        for appearance in ["Light", "Dark"] {
+            app.typeKey(",", modifierFlags: .command)
+            XCTAssertTrue(app.popUpButtons["Appearance"].waitForExistence(timeout: 5))
+            app.popUpButtons["Appearance"].click()
+            app.menuItems[appearance].click()
+            app.typeKey("w", modifierFlags: .command)
+            XCTAssertTrue(app.windows["main"].waitForNonExistence(timeout: 5))
+            let item = app.menuBars.statusItems.matching(identifier: "networkUsageMenuBarItem").firstMatch
+            XCTAssertTrue(item.waitForExistence(timeout: 5))
+            XCTAssertEqual(item.frame.width, 56, accuracy: 0.5)
+            app.typeKey("n", modifierFlags: [.command, .control])
+            XCTAssertTrue(app.staticTexts["networkMenuTitle"].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Today"].exists)
+            XCTAssertTrue(app.staticTexts["This month"].exists)
+            XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Tracked since' OR value BEGINSWITH 'Tracked since'")).firstMatch.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["Quit CachePop"].isHittable)
+            capture("Daily and monthly network usage \(appearance)")
+            app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+            XCTAssertTrue(app.staticTexts["networkMenuTitle"].waitForNonExistence(timeout: 5))
+        }
+    }
+
+    @MainActor
+    func testSensorsPopupHasTallerReadingsAndAccessibleFooter() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-CachePopDemo", "-CachePopMenuBarOrderUITest", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.windows["main"].waitForExistence(timeout: 15))
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["Menu Bar"].click()
+        let sensors = app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ AND elementType != %d", "Show sensors", XCUIElement.ElementType.staticText.rawValue
+        )).firstMatch
+        XCTAssertTrue(sensors.waitForExistence(timeout: 5))
+        sensors.click()
+        app.typeKey("s", modifierFlags: [.command, .control])
+        XCTAssertTrue(app.staticTexts["sensorsMenuTitle"].waitForExistence(timeout: 5))
+        let readings = app.scrollViews["sensorsMenuReadings"]
+        XCTAssertTrue(readings.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(readings.frame.height, 350)
+        capture("Taller Sensors popup")
+        print("Sensors viewport: \(readings.frame), Quit: \(app.buttons["Quit CachePop"].frame)")
+        XCTAssertTrue(app.buttons["Quit CachePop"].isHittable)
+        app.buttons["Menu Bar Settings"].click()
+        XCTAssertTrue(app.staticTexts["sensorsMenuTitle"].waitForNonExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testStatusCapsulesUseFixedWidthsAndPrimaryMenusDismiss() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-CachePopDemo", "-CachePopMenuBarOrderUITest", "-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.windows["main"].waitForExistence(timeout: 15))
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["Menu Bar"].click()
+        for title in ["Show GPU usage", "Show sensors", "Show battery"] {
+            let control = app.descendants(matching: .any).matching(NSPredicate(
+                format: "label == %@ AND elementType != %d", title, XCUIElement.ElementType.staticText.rawValue
+            )).firstMatch
+            XCTAssertTrue(control.waitForExistence(timeout: 5))
+            control.click()
+        }
+        let names = ["temperatureMenuBarItem", "cpuUsageMenuBarItem", "gpuUsageMenuBarItem", "memoryUsageMenuBarItem", "driveUsageMenuBarItem", "sensorsUsageMenuBarItem"]
+        let items = names.map { app.menuBars.statusItems.matching(identifier: $0).firstMatch }
+        for item in items { XCTAssertTrue(item.waitForExistence(timeout: 10), app.debugDescription) }
+        let battery = app.menuBars.statusItems.matching(identifier: "batteryUsageMenuBarItem").firstMatch
+        XCTAssertTrue(battery.waitForExistence(timeout: 5))
+        XCTAssertEqual(battery.frame.width, 38.8962, accuracy: 0.5)
+        let brand = app.menuBars.statusItems.matching(identifier: "cachePopMenuBarItem").firstMatch
+        XCTAssertTrue(brand.waitForExistence(timeout: 5))
+        for item in items { XCTAssertEqual(item.frame.width, 56, accuracy: 0.5) }
+        XCTAssertEqual(brand.frame.width, 35, accuracy: 0.5)
+        for _ in 0..<3 {
+            Thread.sleep(forTimeInterval: 1)
+            for item in items { XCTAssertEqual(item.frame.width, 56, accuracy: 0.5) }
+            XCTAssertEqual(battery.frame.width, 38.8962, accuracy: 0.5)
+        }
+        // Make room for the primary buttons on a crowded/notched menu bar before clicking.
+        app.typeKey(",", modifierFlags: .command)
+        app.buttons["Menu Bar"].click()
+        for title in ["Show CPU usage", "Show GPU usage", "Show memory usage", "Show drive usage", "Show sensors"] {
+            let control = app.descendants(matching: .any).matching(NSPredicate(
+                format: "label == %@ AND elementType != %d", title, XCUIElement.ElementType.staticText.rawValue
+            )).firstMatch
+            XCTAssertTrue(control.waitForExistence(timeout: 5))
+            control.click()
+        }
+        // Keyboard access also works when macOS's status-item accessibility frames overlap.
+        app.typeKey("t", modifierFlags: [.command, .control])
+        XCTAssertTrue(app.staticTexts["temperatureMenuTitle"].waitForExistence(timeout: 5))
+        app.buttons["Menu Bar Settings"].click()
+        XCTAssertTrue(app.staticTexts["temperatureMenuTitle"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Readings"].waitForExistence(timeout: 5))
+        app.typeKey("p", modifierFlags: [.command, .control])
+        XCTAssertTrue(app.buttons["Open CachePop"].waitForExistence(timeout: 5))
+        app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        XCTAssertTrue(app.buttons["Open CachePop"].waitForNonExistence(timeout: 5))
+        capture("Fixed native status capsules")
+    }
+
+    @MainActor
     func testCPUProcessesLoadWithTheMainWindowClosed() throws { try verifyMenuBarOnlyProcesses("cpu", prefix: "CPU usage") }
 
     @MainActor

@@ -14,11 +14,12 @@ struct RootView: View {
     var body: some View {
         ZStack {
             if model.isMainWindowContentActive {
-                NavigationSplitView {
+                HStack(spacing: 0) {
                     AppSidebar(model: model)
-                        // The sidebar is the app's navigation, as in System Settings: no toggle.
-                        .toolbar(removing: .sidebarToggle)
-                } detail: {
+                        // Navigation is permanent. A restored split-view collapse would put
+                        // the custom page bar underneath the window's traffic lights.
+                        .padding(.top, 36)
+                        .frame(width: 236)
                     VStack(spacing: 0) {
                         let section = model.section ?? .cleanUp
                         SectionPageBar(model: model, section: section)
@@ -27,11 +28,11 @@ struct RootView: View {
                             .transition(reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 8)))
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
-                    // The bar takes the title-bar row; the window keeps no toolbar of its own.
-                    .ignoresSafeArea(.container, edges: .top)
-                    .background(CanvasBackground())
-                    .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
+                .ignoresSafeArea(.container, edges: .top)
+                .background(CanvasBackground())
+                .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
                 .toolbar(removing: .title)
 
                 if model.isLaunching {

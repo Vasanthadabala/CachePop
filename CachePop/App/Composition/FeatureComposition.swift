@@ -34,10 +34,20 @@ extension PhotosViewModel {
 extension SystemMonitorViewModel {
     convenience init(fanSource: (@Sendable () -> [FanSample])? = nil, sampler: (any SystemSampling)? = nil) {
         let counts = CPUReader.coreKinds()
+        let historyStore: (any BatteryChargeHistoryStoring)?
+        let networkStore: (any NetworkUsageStoring)?
+        #if DEBUG
+        historyStore = DemoMode.isRequested || AppDelegate.isRunningTests ? nil : UserDefaultsBatteryHistoryStore()
+        networkStore = DemoMode.isRequested || AppDelegate.isRunningTests ? nil : UserDefaultsNetworkUsageStore()
+        #else
+        historyStore = UserDefaultsBatteryHistoryStore()
+        networkStore = UserDefaultsNetworkUsageStore()
+        #endif
         self.init(sampler: sampler ?? SystemSampler(fanSource: fanSource),
                   processor: ProcessorIdentity(name: CPUReader.name, performanceCores: counts.performance,
                                                efficiencyCores: counts.efficiency, topology: CPUCoreTopology.read()),
-                  processApplications: MacProcessApplicationController())
+                  processApplications: MacProcessApplicationController(), batteryHistoryStore: historyStore,
+                  batteryHistoryReader: historyStore == nil ? nil : PowerLogBatteryHistoryReader(), networkUsageStore: networkStore)
     }
 }
 extension AppSettings {

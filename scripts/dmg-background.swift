@@ -14,10 +14,9 @@ guard let glyph = NSImage(contentsOfFile: arguments[2]) else {
 }
 
 let canvas = NSSize(width: 760, height: 480)
-let blue = NSColor(srgbRed: 0.25, green: 0.52, blue: 1, alpha: 1)
-func white(_ alpha: CGFloat) -> NSColor { NSColor.white.withAlphaComponent(alpha) }
+let ink = NSColor(srgbRed: 0.12, green: 0.12, blue: 0.12, alpha: 1)
 func text(_ value: String, _ rect: NSRect, size: CGFloat, weight: NSFont.Weight = .regular,
-          color: NSColor = .white, alignment: NSTextAlignment = .left, tracking: CGFloat = 0) {
+          color: NSColor = ink, alignment: NSTextAlignment = .left, tracking: CGFloat = 0) {
     let paragraph = NSMutableParagraphStyle()
     paragraph.alignment = alignment
     (value as NSString).draw(in: rect, withAttributes: [
@@ -28,31 +27,24 @@ func text(_ value: String, _ rect: NSRect, size: CGFloat, weight: NSFont.Weight 
     ])
 }
 
-let whiteGlyph = NSImage(size: glyph.size, flipped: false) { rect in
+let brandGlyph = NSImage(size: glyph.size, flipped: false) { rect in
     glyph.draw(in: rect)
-    NSColor.white.setFill()
+    ink.setFill()
     rect.fill(using: .sourceIn)
     return true
 }
 
 func drawBackground() {
     let bounds = NSRect(origin: .zero, size: canvas)
-    NSColor.black.setFill()
+    NSColor.white.setFill()
     bounds.fill()
-    NSGradient(starting: blue.withAlphaComponent(0.16), ending: blue.withAlphaComponent(0))!
-        .draw(in: NSBezierPath(ovalIn: NSRect(x: -180, y: -250, width: 900, height: 420)),
-              relativeCenterPosition: .zero)
 
-    whiteGlyph.draw(in: NSRect(x: 49, y: 32, width: 15, height: 29), from: .zero,
+    brandGlyph.draw(in: NSRect(x: 49, y: 32, width: 15, height: 29), from: .zero,
                     operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
     text("CachePop", NSRect(x: 77, y: 33, width: 190, height: 31), size: 22, weight: .semibold, tracking: -0.4)
 
     text("A little space. A fresh start.", NSRect(x: 40, y: 106, width: 680, height: 44),
          size: 32, weight: .semibold, alignment: .center, tracking: -0.8)
-    text("CachePop", NSRect(x: 126, y: 332, width: 160, height: 24),
-         size: 14, weight: .medium, alignment: .center)
-    text("Applications", NSRect(x: 474, y: 332, width: 160, height: 24),
-         size: 14, weight: .medium, alignment: .center)
 
     let arrow = NSBezierPath()
     arrow.move(to: NSPoint(x: 350, y: 271))
@@ -63,7 +55,7 @@ func drawBackground() {
     arrow.lineWidth = 2.5
     arrow.lineCapStyle = .round
     arrow.lineJoinStyle = .round
-    NSColor.white.setStroke()
+    ink.setStroke()
     arrow.stroke()
     text("Drag to install", NSRect(x: 308, y: 296, width: 144, height: 20), size: 11.5,
          weight: .medium, alignment: .center)
@@ -71,12 +63,12 @@ func drawBackground() {
     divider.move(to: NSPoint(x: 48, y: 414))
     divider.line(to: NSPoint(x: 712, y: 414))
     divider.lineWidth = 1
-    white(0.08).setStroke()
+    ink.withAlphaComponent(0.1).setStroke()
     divider.stroke()
     text("More room for what matters.", NSRect(x: 48, y: 425, width: 300, height: 19),
-         size: 11, color: white(0.48))
+         size: 11, color: ink.withAlphaComponent(0.6))
     text("Eject this disk after installing.", NSRect(x: 410, y: 425, width: 302, height: 19),
-         size: 11, color: white(0.48), alignment: .right)
+         size: 11, color: ink.withAlphaComponent(0.6), alignment: .right)
 }
 
 var representations: [NSBitmapImageRep] = []

@@ -20,6 +20,8 @@ final class CleanUpViewModel {
     private(set) var selectedIDs: Set<String> = []
     /// Remembered per item even while unticked, so switching Erase/Delete isn't lost.
     private(set) var chosenActionIDs: [String: String] = [:]
+    /// Missing means all entries when the parent is selected; an empty set selects none.
+    private(set) var selectedEntryIDs: [String: Set<String>] = [:]
 
     var isConfirming = false
 
@@ -43,6 +45,7 @@ final class CleanUpViewModel {
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var scanRevision = UUID()
     @ObservationIgnored private var resetWhenIdle = false
+    @ObservationIgnored private var isRefreshingRunningApps = false
 
     isolated deinit { task?.cancel() }
 
@@ -86,6 +89,7 @@ final class CleanUpViewModel {
         self.result = result
         selectedIDs = Set(result.allItems.filter { $0.isRecommended && !$0.isBlocked }.map(\.id))
         chosenActionIDs = [:]
+        selectedEntryIDs = [:]
         withAnimation(.easeOut(duration: 0.2)) { phase = .review }
     }
 
@@ -95,6 +99,21 @@ final class CleanUpViewModel {
         task?.cancel()
         task = nil
         withAnimation(.easeOut(duration: 0.2)) { phase = .start }
+    }
+
+    func refreshRunningApps() async {
+        guard phase == .review, !isRefreshingRunningApps else { return }
+        isRefreshingRunningApps = true
+        defer { isRefreshingRunningApps = false }
+        let revision = scanRevision
+        let before = result
+        let updated = await engine.refreshRunningApps(in: before)
+        guard !Task.isCancelled, phase == .review, scanRevision == revision, result == before else { return }
+        guard updated != result else { return }
+        let blocked = Set(updated.allItems.filter(\.isBlocked).map(\.id))
+        if !selectedIDs.isDisjoint(with: blocked) { isConfirming = false }
+        selectedIDs.subtract(blocked)
+        result = updated
     }
 
     // MARK: Selection
@@ -108,8 +127,46 @@ final class CleanUpViewModel {
     }
 
     func setSelected(_ item: CleanupItem, _ selected: Bool) {
-        guard !item.isBlocked else { return }
+        guard phase == .review, result.allItems.first(where: { $0.id == item.id })?.isBlocked == false else { return }
+        selectedEntryIDs.removeValue(forKey: item.id)
         if selected { selectedIDs.insert(item.id) } else { selectedIDs.remove(item.id) }
+    }
+
+    func selectionState(for item: CleanupItem) -> SelectionState {
+        guard isSelected(item) else { return .off }
+        let entries = selectedEntries(for: item)
+        return entries.count == item.inspectionEntries.count ? .on : .mixed
+    }
+
+    func toggle(_ item: CleanupItem) {
+        setSelected(item, selectionState(for: item) != .on)
+    }
+
+    func selectedEntries(for item: CleanupItem) -> [CleanupEntry] {
+        guard isSelected(item) else { return [] }
+        let ids = selectedEntryIDs[item.id]
+        let actionID = action(for: item).id
+        return item.inspectionEntries.filter { (ids?.contains($0.id) ?? true) && $0.operations[actionID] != nil }
+    }
+
+    func isSelected(_ entry: CleanupEntry, in item: CleanupItem) -> Bool {
+        isSelected(item) && (selectedEntryIDs[item.id]?.contains(entry.id) ?? true)
+    }
+
+    func setSelected(_ entry: CleanupEntry, in item: CleanupItem, _ selected: Bool) {
+        guard phase == .review, result.allItems.first(where: { $0.id == item.id })?.isBlocked == false,
+              item.inspectionEntries.contains(where: { $0.id == entry.id }),
+              entry.operations[action(for: item).id] != nil else { return }
+        var ids = Set(selectedEntries(for: item).map(\.id))
+        if selected { ids.insert(entry.id) } else { ids.remove(entry.id) }
+        selectedEntryIDs[item.id] = ids
+        if ids.isEmpty { selectedIDs.remove(item.id) } else { selectedIDs.insert(item.id) }
+    }
+
+    func selectedBytes(for item: CleanupItem) -> Int64 {
+        guard isSelected(item) else { return 0 }
+        if item.entries.isEmpty { return item.sizeBytes }
+        return selectedEntries(for: item).reduce(0) { $0 + ($1.sizeBytes ?? 0) }
     }
 
     func action(for item: CleanupItem) -> CleanupAction {
@@ -134,7 +191,7 @@ final class CleanUpViewModel {
         let items = selectableItems(in: group)
         let selected = items.filter { selectedIDs.contains($0.id) }.count
         if selected == 0 { return .off }
-        return selected == items.count ? .on : .mixed
+        return selected == items.count && items.allSatisfy { selectionState(for: $0) == .on } ? .on : .mixed
     }
 
     func toggleAll(in group: CleanupGroup) {
@@ -146,7 +203,7 @@ final class CleanUpViewModel {
     }
 
     func selectedBytes(in group: CleanupGroup) -> Int64 {
-        selectableItems(in: group).filter { selectedIDs.contains($0.id) }.reduce(0) { $0 + $1.sizeBytes }
+        selectableItems(in: group).reduce(0) { $0 + selectedBytes(for: $1) }
     }
 
     /// Groups the user folded away in the review list.
@@ -159,7 +216,9 @@ final class CleanUpViewModel {
     var selections: [CleanupSelection] {
         result.allItems
             .filter { selectedIDs.contains($0.id) && !$0.isBlocked }
-            .map { CleanupSelection(item: $0, action: action(for: $0)) }
+            .flatMap { item in
+                item.scopedSelections(entryIDs: Set(selectedEntries(for: item).map(\.id)), actionID: action(for: item).id)
+            }
     }
 
     var selectedBytes: Int64 {
@@ -175,10 +234,15 @@ final class CleanUpViewModel {
         selections.contains { $0.item.sizeIsUpperBound }
     }
 
+    var selectionHasUnknownSizes: Bool {
+        selections.contains { $0.item.entries.contains { $0.sizeBytes == nil } }
+    }
+
     var selectionSummary: String {
         let count = selections.count
         guard count > 0 else { return "Nothing selected" }
-        return "\(count) \(count == 1 ? "item" : "items") · \(selectionHasUpperBound ? "up to " : "")\(ByteSize.string(selectedBytes))"
+        let size = selectionHasUnknownSizes && selectedBytes == 0 ? "Size unavailable" : "\(selectionHasUpperBound ? "up to " : "")\(ByteSize.string(selectedBytes))"
+        return "\(count) \(count == 1 ? "item" : "items") · \(size)\(selectionHasUnknownSizes && selectedBytes > 0 ? " + unmeasured" : "")"
     }
 
     // MARK: Clean
@@ -229,6 +293,7 @@ final class CleanUpViewModel {
     func alwaysSkip(_ item: CleanupItem) {
         onAlwaysSkip(item)
         selectedIDs.remove(item.id)
+        selectedEntryIDs.removeValue(forKey: item.id)
         withAnimation(AppTheme.Motion.standard) {
             for index in result.groups.indices {
                 result.groups[index].items.removeAll { $0.id == item.id }
@@ -277,6 +342,7 @@ final class CleanUpViewModel {
         putBackMessage = nil
         selectedIDs = []
         chosenActionIDs = [:]
+        selectedEntryIDs = [:]
         collapsedGroups = []
         isConfirming = false
         cleaningIndex = 0

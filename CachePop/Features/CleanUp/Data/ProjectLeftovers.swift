@@ -184,7 +184,12 @@ nonisolated enum ProjectLeftoversScanner {
                 regeneration: .movedToTrash,
                 explanation: "Moved to the Trash. Put it back if you need it."
             )],
-            isRecommended: false
+            isRecommended: false,
+            entries: sized.map { orphan, bytes in
+                CleanupEntry(id: orphan.project, title: URL(fileURLWithPath: orphan.project).lastPathComponent,
+                             detail: orphan.project, sizeBytes: bytes,
+                             operations: ["trash": .moveToTrash(orphan.urls)], location: orphan.urls.first)
+            }
         )
     }
 

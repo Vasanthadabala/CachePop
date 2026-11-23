@@ -44,8 +44,7 @@ struct FeatureIntroScreen<Header: View>: View {
                 }
             }
             .padding(AppTheme.Spacing.xl)
-            .frame(maxWidth: 1040)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -135,6 +134,8 @@ struct FeatureIntroHeader<Actions: View>: View {
         .padding(.horizontal, 24)
         .padding(.vertical, 22)
         .card()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("featureIntroHeader")
     }
 }
 

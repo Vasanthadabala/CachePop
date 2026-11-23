@@ -19,7 +19,8 @@ actor SystemSampler: SystemSampling {
     private var lastTicks: [CPUTicks] = []
     private var lastDisk: ByteCounters?
     private var lastDriveCounters: [String: ByteCounters] = [:]
-    private var lastNetwork: ByteCounters?
+    private var lastNetwork: NetworkReading?
+    private var lastNetworkTime: Date?
     private var lastTime: Date?
     private var lastIOTime: Date?
     private let runner: any CommandRunning
@@ -93,8 +94,11 @@ actor SystemSampler: SystemSampling {
             lastTicks = CPUReader.ticks()
             if includeDetails {
                 lastDisk = DiskIOReader.counters()
-                lastNetwork = NetworkReader.counters()
                 lastIOTime = Date()
+            }
+            if includeDetails || request.network {
+                lastNetwork = NetworkReader.reading()
+                lastNetworkTime = Date()
             }
             lastTime = Date()
             try? await Task.sleep(for: .seconds(1))
@@ -125,19 +129,29 @@ actor SystemSampler: SystemSampling {
                               throughput: seconds > 0 && seconds <= 10 ? lastDriveCounters[device.id].map { Throughput.between($0, device.counters, seconds: seconds) } ?? Throughput() : Throughput())
             }
             lastDriveCounters = Dictionary(uniqueKeysWithValues: devices.map { ($0.id, $0.counters) })
-            let network = NetworkReader.counters()
             if seconds > 0, seconds <= 10 {
                 if let lastDisk { snapshot.disk = Throughput.between(lastDisk, disk, seconds: seconds) }
-                if let lastNetwork { snapshot.network = Throughput.between(lastNetwork, network, seconds: seconds) }
             }
             lastDisk = disk
-            lastNetwork = network
             lastIOTime = now
             refreshBatteryHealthIfNeeded()
             snapshot.battery = BatteryReader.read(maximumCapacity: batteryHealth)
             snapshot.gpus = GPUReader.read()
             refreshEnvironmentIfNeeded()
             snapshot.environment = environment
+        }
+        if includeDetails || request.network {
+            let reading = NetworkReader.reading()
+            snapshot.networkReading = reading
+            let seconds = lastNetworkTime.map { now.timeIntervalSince($0) } ?? 0
+            if let reading, let lastNetwork, seconds > 0, seconds <= 10 {
+                let delta = reading.bytes(since: lastNetwork)
+                snapshot.network = Throughput(inPerSecond: Double(delta.read) / seconds,
+                                              outPerSecond: Double(delta.written) / seconds)
+                snapshot.hasNetworkReadings = true
+            }
+            lastNetwork = reading
+            lastNetworkTime = now
         }
         if request.gpuProcesses {
             if gpuProcessReader == nil { gpuProcessReader = GPUProcessReader() }

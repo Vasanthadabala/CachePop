@@ -1,119 +1,51 @@
 import AppKit
 import SwiftUI
 
-private enum MenuBarLabelSpacing {
-    /// Split the extra horizontal space equally without stretching the icon or reading.
-    static func padded(_ source: NSImage, horizontalFraction: CGFloat = 0.10) -> NSImage {
-        let inset = source.size.width * horizontalFraction / 2
-        let size = NSSize(width: source.size.width + inset * 2, height: source.size.height)
-        let image = NSImage(size: size, flipped: false) { rect in
-            source.draw(in: rect.insetBy(dx: inset, dy: 0))
-            return true
-        }
-        image.isTemplate = source.isTemplate
-        image.accessibilityDescription = source.accessibilityDescription
-        return image
-    }
-}
-
-/// The menu bar item's icon: CachePop's symbol as a template image. It also hands the app
-/// model SwiftUI's window actions, since it stays alive while the main window is closed.
-struct MenuBarLabel: View {
-    let model: AppModel
-    @Environment(\.openWindow) private var openWindow
-
-    var body: some View {
-        Image(nsImage: Self.glyph)
-            .accessibilityLabel("CachePop")
-            .accessibilityIdentifier("cachePopMenuBarItem")
-            .onAppear {
-                model.openMainWindow = { [openWindow] in openWindow(id: CachePopApp.mainWindowID) }
-            }
-    }
-
+/// Native menu bar images share fixed canvases; only text scales to fit.
+enum MenuBarLabel {
     static let glyph: NSImage = {
         let source = NSImage(named: "BrandGlyph") ?? NSImage()
         let height: CGFloat = 16
         let width = source.size.height > 0 ? (source.size.width / source.size.height * height).rounded(.up) : height
-        let image = NSImage(size: NSSize(width: width, height: height), flipped: false) { rect in
-            source.draw(in: rect)
+        let image = NSImage(size: NSSize(width: 18, height: MenuBarItemLayout.height), flipped: false) { rect in
+            source.draw(in: NSRect(x: (rect.width - width) / 2, y: (rect.height - height) / 2, width: width, height: height))
             return true
         }
         image.isTemplate = true
-        return MenuBarLabelSpacing.padded(image, horizontalFraction: 0.20)
+        return image
     }()
 }
 
-/// Keeps temperature sampling alive while its menu bar item is visible.
-struct TemperatureMenuBarLabel: View {
-    let model: AppModel
-    @Environment(\.openWindow) private var openWindow
-
-    private var value: String {
-        SystemMonitorViewModel.menuBarTemperature(model.monitor.snapshot) ?? "—"
-    }
-
+struct TemperatureStatusReading: View {
+    let value: String
     var body: some View {
-        let value = value
-        HStack(spacing: 3) {
-            Image(systemName: "thermometer.medium")
-                .renderingMode(.template)
-            Text(value)
-                .monospacedDigit()
-        }
-        .accessibilityElement(children: .ignore)
-        .foregroundStyle(.white)
-        .accessibilityLabel("Chip temperature, \(value)")
-        .accessibilityIdentifier("temperatureMenuBarItem")
-        .onAppear {
-            // CachePop's own icon may be hidden: this item can open the window too.
-            model.openMainWindow = { [openWindow] in openWindow(id: CachePopApp.mainWindowID) }
-        }
-        .task {
-            model.monitor.begin("sensorMenuBar")
-            defer { model.monitor.end("sensorMenuBar") }
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3600))
-            }
-        }
+        HStack(spacing: 2) {
+            Image(systemName: "thermometer.medium").font(.system(size: 13)).frame(width: 9)
+            Text(value).font(.system(size: 13, weight: .medium)).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.25)
+        }.frame(width: MenuBarItemLayout.contentWidth(for: MenuBarItemLayout.compactWidth))
     }
 }
 
 enum UsageMenuBarLabel {
-    /// Render both lines together so the menu bar preserves their layout and typography.
-    /// Reserve space for 100% so all three capsules keep the same width as readings change.
-    /// Add 20% horizontal breathing room inside the native status button.
-    /// Keep the user's requested white readings independent of system accent tinting.
-    static func image(title: String, value: String) -> NSImage {
-        let height: CGFloat = 22
-        let renderer = ImageRenderer(content:
+    static func image(title: String, value: String, width: CGFloat = MenuBarItemLayout.width) -> NSImage {
+        let image = MenuBarItemLayout.image(width: width) {
             VStack(spacing: 0) {
-                Text(title)
-                    .font(.system(size: 7, weight: .medium))
-                    .frame(height: 8)
-                ZStack {
-                    Text("100%").hidden()
-                    Text(value)
-                }
-                .font(.system(size: 12, weight: .semibold))
-                .monospacedDigit()
-                .frame(height: 14)
+                Text(title).font(.system(size: 7, weight: .medium))
+                    .lineLimit(1).minimumScaleFactor(0.5).frame(height: 8)
+                Text(value).font(.system(size: 12, weight: .semibold)).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.2).frame(width: MenuBarItemLayout.contentWidth(for: width), height: 14)
             }
-            .foregroundStyle(.white)
-            .fixedSize(horizontal: true, vertical: false)
-            .frame(height: height)
-        )
-        renderer.scale = 2
-        let image = renderer.nsImage ?? NSImage(size: NSSize(width: height, height: height))
-        image.isTemplate = false
+        }
         image.accessibilityDescription = "\(title) usage, \(value)"
-        return MenuBarLabelSpacing.padded(image, horizontalFraction: 0.20)
+        return image
     }
 }
 
 /// The panel that opens from the menu bar: free space, live readings, and a scan.
 struct MenuBarContent: View {
     let model: AppModel
+    var onClose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     private var cleanUp: CleanUpViewModel { model.cleanUp }
@@ -194,9 +126,8 @@ struct MenuBarContent: View {
         .frame(width: 300)
         .onAppear {
             model.refreshDisk()
-            model.monitor.begin("menu")
         }
-        .onDisappear { model.monitor.end("menu") }
+        .onExitCommand { dismissMenu() }
     }
 
     private var status: String? {
@@ -221,8 +152,12 @@ struct MenuBarContent: View {
         cleanUp.phase == .review ? "list.bullet" : "magnifyingglass"
     }
 
+    private func dismissMenu() {
+        if let onClose { onClose() } else { dismiss() }
+    }
+
     private func close(_ action: @escaping () -> Void) {
-        dismiss()
+        dismissMenu()
         action()
     }
 }

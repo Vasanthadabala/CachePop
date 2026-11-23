@@ -6,6 +6,7 @@ import Foundation
 /// known cache locations under the home folder, and never inside a protected one (documents,
 /// Mail, keychains, Photos…). Paths are canonicalised first, so a symlink or `..` can't smuggle
 /// a deletion out of a cache folder.
+/// Reviewed generated app bundles have a separate Trash-only exception for custom build paths.
 nonisolated enum PathSafety {
     nonisolated enum Mode: Sendable {
         case delete
@@ -102,8 +103,15 @@ nonisolated enum PathSafety {
         ".photoslibrary/", ".keychain/", ".keychain-db/", ".git/"
     ]
 
+    /// Android Studio's system directory mixes disposable caches with recovery history.
+    /// Unknown children, plugins and LocalHistory are deliberately absent.
+    static let androidStudioCacheFolderNames: Set<String> = [
+        "caches", "index", "tmp", "compiler", "compile-server", "global-model-cache",
+        "lint", "gmaven.index", "sdk_index"
+    ]
+
     /// Returns nil when `target` may be removed in `mode`, otherwise the reason it may not.
-    static func violation(for target: URL, mode: Mode, home: URL) -> String? {
+    static func violation(for target: URL, mode: Mode, home: URL, appBuildBundleID: String? = nil) -> String? {
         // `standardizedFileURL` drops ".." without following links, but the cleaner removes
         // `target` itself, which the system resolves through them: "cache/link/../x" would be
         // checked as "cache/x" yet remove "<link's target>/../x". Refuse such paths outright.
@@ -114,6 +122,15 @@ nonisolated enum PathSafety {
         let name = standardized.lastPathComponent
         guard !name.isEmpty, name != ".", name != "..", name != "/" else {
             return "Refused an unusual path: \(target.path)"
+        }
+
+        // Only a reviewed app-build item may use this exception. Ordinary cleanup operations
+        // still stay inside the known home-folder roots. Never allow permanent deletion here.
+        if let appBuildBundleID {
+            guard mode == .trash, AppBuildScanner.isDisposableBuild(target, expectedBundleID: appBuildBundleID) else {
+                return "\(name) is no longer a disposable app build. Scan again before cleaning it."
+            }
+            return nil
         }
 
         guard let realHome = canonicalPath(home),
@@ -130,6 +147,33 @@ nonisolated enum PathSafety {
         let relative = String(fullPath.dropFirst(homePrefix.count))
         let relativeLower = relative.lowercased()
 
+        if mode == .delete {
+            let google = "library/caches/google"
+            if relativeLower == google || relativeLower == "library/caches/jetbrains" {
+                return "Shared IDE and vendor cache folders are never removed as a whole."
+            }
+            let parts = relativeLower.split(separator: "/").map(String.init)
+            if parts.count >= 4, parts.prefix(3).joined(separator: "/") == google,
+               parts[3].hasPrefix("androidstudio"),
+               (parts.count < 5 || !androidStudioCacheFolderNames.contains(parts[4])) {
+                return "Android Studio's Local History, settings and plugins are kept."
+            }
+            if parts.count >= 4, parts.prefix(3).joined(separator: "/") == "library/caches/jetbrains",
+               (IDECachePolicy.product(for: parts[3]) == nil || parts.count < 5 || !androidStudioCacheFolderNames.contains(parts[4])) {
+                return "IDE Local History, settings, plugins and unknown data are kept."
+            }
+            // Do not follow a cache parent redirected after scanning, even into another
+            // otherwise eligible cache. The selected app may differ from the new owner.
+            let requestedHome = home.standardizedFileURL.path
+            let requested = standardized.path
+            if requested.lowercased().hasPrefix(requestedHome.lowercased() + "/") {
+                let expected = realHome + requested.dropFirst(requestedHome.count)
+                if fullPath.lowercased() != expected.lowercased() {
+                    return "The cache location changed. Scan again before cleaning it."
+                }
+            }
+        }
+
         for fragment in protectedNameFragments where (relativeLower + "/").contains(fragment) {
             return "\(name) looks like personal data or source code."
         }
@@ -144,7 +188,29 @@ nonisolated enum PathSafety {
         }
 
         if let allowedMode = appSupportException(relativeLower: relativeLower) {
+            let supportParts = relative.split(separator: "/").dropFirst(2).map(String.init)
+            if let layout = nestedWebCacheLayout(supportParts.map { $0.lowercased() }) {
+                let root = URL(fileURLWithPath: realHome).appendingPathComponent(
+                    "Library/Application Support/" + supportParts.prefix(layout.rootLength).joined(separator: "/")
+                )
+                let markers = Set(FileManager.default.children(of: root).map { $0.lastPathComponent.lowercased() })
+                guard codeEditorFolderNames.contains(root.lastPathComponent.lowercased()) || !markers.isDisjoint(with: chromiumMarkers) else {
+                    return "Couldn't confirm this app's web cache. Scan again before cleaning it."
+                }
+                if layout.hasProfile {
+                    let profile = root.appendingPathComponent(supportParts[layout.rootLength])
+                    guard FileManager.default.fileExists(atPath: profile.appendingPathComponent("Preferences").path) else {
+                        return "This browser profile changed. Scan again before cleaning it."
+                    }
+                }
+            }
             return mode == .delete && allowedMode == .trash ? "\(name) is only ever moved to the Trash." : nil
+        }
+
+        let containerParts = relativeLower.split(separator: "/").map(String.init)
+        if containerParts.count >= 7, containerParts[0] == "library", containerParts[1] == "containers",
+           isThirdPartyContainer(containerParts[2]), Array(containerParts[3...5]) == ["data", "library", "caches"] {
+            return nil
         }
 
         if let allowed = trashOnlyException(relativeLower: relativeLower, name: name) {
@@ -173,7 +239,7 @@ nonisolated enum PathSafety {
     /// Chromium's cache folders, which web-technology apps (Claude, VS Code, Slack…) keep in
     /// their Application Support folder. Lowercased.
     static let appWebCacheFolderNames: Set<String> = [
-        "cache", "code cache", "gpucache", "dawngraphitecache", "dawnwebgpucache",
+        "cache", "code cache", "gpucache", "gpupersistentcache", "dawngraphitecache", "dawnwebgpucache",
         "graphitedawncache", "shadercache", "grshadercache"
     ]
 
@@ -182,6 +248,33 @@ nonisolated enum PathSafety {
         "code", "code - insiders", "cursor", "windsurf", "antigravity", "vscodium", "kiro", "trae", "void"
     ]
     static let codeEditorCacheFolderNames: Set<String> = ["cacheddata", "cachedextensionvsixs", "cachedprofilesdata"]
+
+    static let chromiumVendorPaths: Set<String> = [
+        "google/chrome", "google/chrome canary", "bravesoftware/brave-browser", "arc/user data"
+    ]
+
+    static let chromiumMarkers: Set<String> = [
+        "local storage", "local state", "network persistent state", "preferences", "session storage"
+    ]
+
+    static func isChromiumProfile(_ name: String) -> Bool {
+        ["default", "guest profile", "system profile"].contains(name)
+            || name.range(of: "^profile [0-9]+$", options: .regularExpression) != nil
+    }
+
+    static func isThirdPartyContainer(_ id: String) -> Bool {
+        id.split(separator: ".").count >= 3 && !id.hasPrefix("com.apple.") && !id.contains("/")
+    }
+
+    private static func nestedWebCacheLayout(_ parts: [String]) -> (rootLength: Int, hasProfile: Bool)? {
+        for rootLength in [1, 2] where parts.count > rootLength {
+            if rootLength == 2, !chromiumVendorPaths.contains(parts.prefix(2).joined(separator: "/")) { continue }
+            let tail = Array(parts.dropFirst(rootLength))
+            if rootLength == 2, tail.count >= 2, appWebCacheFolderNames.contains(tail[0]) { return (rootLength, false) }
+            if tail.count >= 3, isChromiumProfile(tail[0]), appWebCacheFolderNames.contains(tail[1]) { return (rootLength, true) }
+        }
+        return nil
+    }
 
     /// The few places inside Application Support CachePop may clean, and how:
     /// - inside an app's web cache folder ("Claude/Cache/…"): delete;
@@ -195,6 +288,7 @@ nonisolated enum PathSafety {
         guard let app = parts.first, !app.hasPrefix("com.apple"), !app.hasPrefix("apple") else { return nil }
 
         if parts.count >= 3, appWebCacheFolderNames.contains(parts[1]) { return .delete }
+        if nestedWebCacheLayout(parts) != nil { return .delete }
         if parts.count >= 3, codeEditorFolderNames.contains(app), codeEditorCacheFolderNames.contains(parts[1]) { return .delete }
         if parts.count == 4, codeEditorFolderNames.contains(app), parts[1] == "user", parts[2] == "workspacestorage" { return .trash }
         if parts.count >= 4, app == "google", parts[1] == "googleupdater", parts[2] == "crx_cache" { return .delete }

@@ -29,39 +29,10 @@ struct CachePopApp: App {
         }
         .defaultSize(width: AppTheme.Layout.defaultWindowSize.width, height: AppTheme.Layout.defaultWindowSize.height)
         .windowResizability(.contentMinSize)
+        .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands { AppCommands(model: model) }
 
-        // Default visual order is CachePop, then Temperature. macOS preserves manual dragging.
-        MenuBarExtra(isInserted: setting(\.menuBarShowsTemperature)) {
-            TemperatureMenuContent(model: model)
-        } label: {
-            TemperatureMenuBarLabel(model: model)
-        }
-        .menuBarExtraStyle(.window)
-
-        MenuBarExtra(isInserted: cachePopItemShown) {
-            MenuBarContent(model: model)
-        } label: {
-            MenuBarLabel(model: model)
-        }
-        .menuBarExtraStyle(.window)
-
-    }
-
-    /// A menu bar item's place in Settings. Removing the item from the menu bar (⌘-drag) turns
-    /// its setting off.
-    private func setting(_ keyPath: ReferenceWritableKeyPath<AppSettings, Bool>) -> Binding<Bool> {
-        Binding(get: { model.settings[keyPath: keyPath] }, set: { isShown in
-            model.settings[keyPath: keyPath] = isShown
-        })
-    }
-
-    /// CachePop's own item: it stays while CachePop opens at login, starting hidden.
-    private var cachePopItemShown: Binding<Bool> {
-        Binding(get: { model.settings.showMenuBarItem }, set: { isShown in
-            if isShown || !model.settings.menuBarItemIsRequired { model.settings.showMenuBarItem = isShown }
-        })
     }
 
     @MainActor

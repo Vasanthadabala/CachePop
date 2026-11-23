@@ -205,8 +205,8 @@ struct DriveOverview: View {
         MonitorSummary(title: volume?.id == "/" ? disk.volumeName : volume?.name ?? disk.volumeName,
                        value: "\(ByteSize.string(volume?.available ?? disk.availableBytes)) free",
                        detail: "\(ByteSize.string(volume?.total ?? disk.totalBytes)) capacity", fraction: volume?.usedFraction ?? disk.usedFraction, color: Metric.drive.solid)
-        MonitorChart(title: activity == nil ? "Read / Write history · all drives" : "Read / Write history", values: reads,
-                     maximum: max((reads + writes).max() ?? 1, 1), unit: "B/s", secondary: writes, color: Metric.incoming.solid, secondaryColor: Metric.outgoing.solid)
+        DriveHistoryChart(title: activity == nil ? "Read / Write history · all drives" : "Read / Write history",
+                          reads: reads, writes: writes)
         MonitorGroup(title: "Activity") {
             HStack {
                 StatRow(label: "Read", value: ByteSize.rate(activity?.throughput.inPerSecond ?? snapshot.disk.inPerSecond), color: Metric.incoming.solid)
@@ -297,7 +297,7 @@ struct BatteryOverview: View {
         if let battery = snapshot.battery {
             let chargeColor = Metric.batteryCharge(percent: battery.percent, isCharging: battery.isCharging)
             MonitorSummary(title: "Battery", value: "\(battery.percent)%", detail: battery.isCharging ? "Charging" : battery.isPluggedIn ? "Power adapter" : "On battery", fraction: Double(battery.percent) / 100, ringSymbol: "battery.100percent", color: chargeColor)
-            MonitorChart(title: "Charge history", values: model.batteryHistory, height: 80, color: chargeColor)
+            BatteryChargeChart(history: model.chargeHistory, color: chargeColor)
             MonitorGroup(title: "Battery power") {
                 StatRow(label: "Power source", value: battery.isPluggedIn ? "Power adapter" : "Battery")
                 StatRow(label: battery.isCharging ? "Time to full" : "Time remaining", value: battery.minutesRemaining.map { "\($0 / 60) hr \($0 % 60) min" } ?? "—")
@@ -335,17 +335,13 @@ struct MonitorProcesses: View {
     let model: SystemMonitorViewModel
     var body: some View {
         MonitorGroup(title: "Busiest apps and processes") {
-            ActivityColumnHeader(value: model.processSort == .cpu ? "CPU" : "Memory")
+            ActivityColumnHeader(value: model.processSort == .cpu ? "CPU" : "Memory", showsQuitColumn: true)
             if model.processes.isEmpty { Text(model.processStatus.message).font(AppTheme.Typography.callout).foregroundStyle(AppTheme.Colors.textSecondary) }
             ForEach(model.topProcesses) { process in
-                HStack(spacing: 10) {
-                    ActivityProcessRow(pid: process.pid, name: process.name,
-                                       value: model.processSort == .cpu ? String(format: "%.1f%%", process.cpuPercent) : ByteSize.memory(process.memoryBytes))
-                    if model.canQuit(process) {
-                        Button { model.processToQuit = process } label: { Image(systemName: "xmark.circle") }
-                            .buttonStyle(.plain).foregroundStyle(AppTheme.Colors.textTertiary).accessibilityLabel("Quit \(process.name)")
-                    }
-                }
+                ActivityProcessRow(pid: process.pid, name: process.name,
+                                   value: model.processSort == .cpu ? String(format: "%.1f%%", process.cpuPercent) : ByteSize.memory(process.memoryBytes),
+                                   showsQuitColumn: true,
+                                   onQuit: model.canQuit(process) ? { model.processToQuit = process } : nil)
             }
         }
     }
@@ -353,19 +349,45 @@ struct MonitorProcesses: View {
 
 struct ActivityColumnHeader: View {
     let value: String
-    var body: some View { HStack { Text("Process"); Spacer(); Text("PID").frame(width: 48, alignment: .trailing); Text(value).frame(minWidth: 80, alignment: .trailing) }.font(AppTheme.Typography.caption).foregroundStyle(AppTheme.Colors.textTertiary) }
+    var showsQuitColumn = false
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("Process")
+            Spacer(minLength: 4)
+            Text("PID").frame(width: 48, alignment: .trailing)
+            Text(value).frame(width: showsQuitColumn ? 88 : nil, alignment: .trailing).frame(minWidth: 80, alignment: .trailing)
+            if showsQuitColumn { Text("Quit").frame(width: 28) }
+        }.font(AppTheme.Typography.caption).foregroundStyle(AppTheme.Colors.textTertiary)
+    }
 }
 
 struct ActivityProcessRow: View {
     let pid: Int32
     let name: String
     let value: String
+    var showsQuitColumn = false
+    var onQuit: (() -> Void)? = nil
     var body: some View {
         HStack(spacing: 12) {
             Text(name).lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 4)
             Text(String(pid)).foregroundStyle(AppTheme.Colors.textTertiary).frame(width: 48, alignment: .trailing)
-            Text(value).frame(minWidth: 80, alignment: .trailing)
+                .accessibilityIdentifier("processPID-\(pid)")
+            Text(value).frame(width: showsQuitColumn ? 88 : nil, alignment: .trailing).frame(minWidth: 80, alignment: .trailing)
+                .accessibilityIdentifier("processValue-\(pid)")
+            if showsQuitColumn {
+                Group {
+                    if let onQuit {
+                        Button(action: onQuit) {
+                            Image(systemName: "xmark.circle").frame(width: 28, height: 18).contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain).foregroundStyle(AppTheme.Colors.textTertiary)
+                        .accessibilityLabel("Quit \(name)")
+                    } else {
+                        Color.clear.frame(width: 28, height: 18).accessibilityHidden(true)
+                    }
+                }.frame(width: 28, height: 18)
+            }
         }.font(AppTheme.Typography.callout).monospacedDigit().padding(.vertical, 2)
     }
 }

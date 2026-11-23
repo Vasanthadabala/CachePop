@@ -26,4 +26,5 @@ nonisolated struct MonitorReadRequest: Sendable {
     var gpuProcesses = false
     var driveProcesses = false
     var energyProcesses = false
+    var network = false
 }

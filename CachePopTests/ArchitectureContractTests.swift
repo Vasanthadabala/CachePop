@@ -190,7 +190,10 @@ private final class ContractApplicationManager: ApplicationManaging {
     let application = ApplicationDetails(id: "fixture", name: "Fixture", path: "/fixture/Fixture.app",
                                          bundleIdentifier: "example.fixture", version: "1", sizeBytes: 42, lastUsedDate: nil)
     var uninstallCalls = 0
-    func scanApplications() async -> [ApplicationDetails] { [application] }
+    func scanApplications(onProgress: @escaping @MainActor @Sendable (Double) -> Void) async -> [ApplicationDetails] {
+        onProgress(1)
+        return [application]
+    }
     func findRelatedFiles(for app: ApplicationDetails, installedBundleIDs: Set<String>?, priority: TaskPriority) async -> [ApplicationRelatedFile] { [] }
     func isRunning(_ app: ApplicationDetails) -> Bool { false }
     func quitIfRunning(_ app: ApplicationDetails) async -> Bool { true }

@@ -6,11 +6,11 @@ import SwiftUI
 @MainActor
 final class UsageMenuBarController: NSObject, NSPopoverDelegate {
     private let model: AppModel
-    private var items: [UsageMenuKind: NSStatusItem] = [:]
-    private var visibility: [UsageMenuKind: NSKeyValueObservation] = [:]
-    private var values: [UsageMenuKind: String] = [:]
+    private var items: [StatusMenuKind: NSStatusItem] = [:]
+    private var visibility: [StatusMenuKind: NSKeyValueObservation] = [:]
+    private var values: [StatusMenuKind: String] = [:]
     private let popover = NSPopover()
-    private var presented: UsageMenuKind?
+    private var presented: StatusMenuKind?
     private var samplingClient: String?
     private var driveRefresh: Task<Void, Never>?
     private var localMouseMonitor: Any?
@@ -26,7 +26,7 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
         popover.animates = false
         popover.delegate = self
         trackReadings()
-        model.openUsagePanel = { [weak self] kind in
+        model.openMenuBarPanel = { [weak self] kind in
             guard let self, let button = self.items[kind]?.button else { return }
             self.togglePanel(button)
         }
@@ -42,7 +42,7 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
         popover.contentViewController = nil
         for (kind, item) in items {
             NSStatusBar.system.removeStatusItem(item)
-            model.monitor.end(kind.backgroundClient)
+            if let client = kind.backgroundClient { model.monitor.end(client) }
         }
     }
 
@@ -51,7 +51,7 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
             // A status item's window follows the menu bar, not NSApp.appearance.
             // Set the popover's own appearance, including clearing it for System.
             popover.appearance = model.settings.appearance.nsAppearance
-            for kind in UsageMenuKind.allCases.reversed() {
+            for kind in StatusMenuKind.all.reversed() {
                 let shown = model.settings[keyPath: kind.setting]
                 if shown, items[kind] == nil { insert(kind) }
                 if !shown, items[kind] != nil { remove(kind) }
@@ -63,26 +63,30 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
         }
     }
 
-    private func insert(_ kind: UsageMenuKind) {
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if kind == .battery { item.length = 32 }
+    private func insert(_ kind: StatusMenuKind) {
+        let item = NSStatusBar.system.statusItem(withLength: MenuBarItemLayout.nativeLength(for: kind.width))
         items[kind] = item
-        item.autosaveName = "CachePopUsage.\(kind.rawValue)"
+        item.autosaveName = kind == .cachePop ? "CachePop" : kind == .temperature ? "CachePopTemperature" : "CachePopUsage.\(kind.rawValue)"
         item.behavior = .removalAllowed
         item.isVisible = true
         if let button = item.button {
             button.title = ""
             button.imagePosition = .imageOnly
+            button.imageScaling = .scaleNone
             button.target = self
             button.action = #selector(togglePanel(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.setAccessibilityIdentifier("\(kind.rawValue)UsageMenuBarItem")
+            button.setAccessibilityIdentifier(kind.accessibilityIdentifier)
         }
         visibility[kind] = item.observe(\.isVisible, options: [.new]) { [weak self] _, change in
             guard change.newValue == false, let self else { return }
-            Task { @MainActor in self.model.settings[keyPath: kind.setting] = false }
+            Task { @MainActor in
+                if kind == .cachePop, self.model.settings.menuBarItemIsRequired {
+                    self.items[kind]?.isVisible = true
+                } else { self.model.settings[keyPath: kind.setting] = false }
+            }
         }
-        if kind == .drive {
+        if kind == .usage(.drive) {
             driveRefresh = Task { [weak self] in
                 while !Task.isCancelled {
                     guard self != nil else { return }
@@ -91,23 +95,43 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
                 }
             }
         }
-        model.monitor.begin(kind.backgroundClient)
+        if let client = kind.backgroundClient { model.monitor.begin(client) }
     }
 
-    private func remove(_ kind: UsageMenuKind) {
+    private func remove(_ kind: StatusMenuKind) {
         if presented == kind { popover.performClose(nil) }
         visibility[kind] = nil
         if let item = items.removeValue(forKey: kind) { NSStatusBar.system.removeStatusItem(item) }
         values[kind] = nil
-        if kind == .drive {
+        if kind == .usage(.drive) {
             driveRefresh?.cancel()
             driveRefresh = nil
         }
-        model.monitor.end(kind.backgroundClient)
+        if let client = kind.backgroundClient { model.monitor.end(client) }
     }
 
-    private func update(_ kind: UsageMenuKind) {
-        guard let item = items[kind], let button = item.button else { return }
+    private func update(_ kind: StatusMenuKind) {
+        guard let button = items[kind]?.button else { return }
+        switch kind {
+        case .cachePop:
+            if values[kind] == nil { button.image = MenuBarLabel.glyph; values[kind] = "CachePop" }
+            button.setAccessibilityLabel("CachePop")
+            button.toolTip = "CachePop. Click to open."
+        case .temperature:
+            let value = SystemMonitorViewModel.menuBarTemperature(model.monitor.snapshot) ?? "—"
+            if values[kind] != value {
+                values[kind] = value
+                button.image = MenuBarItemLayout.image(width: kind.width) { TemperatureStatusReading(value: value) }
+            }
+            button.setAccessibilityLabel("Chip temperature, \(value)")
+            button.setAccessibilityValue(value)
+            button.toolTip = "Temperature: \(value). Click for details."
+        case .usage(let usage): updateUsage(usage)
+        }
+    }
+
+    private func updateUsage(_ kind: UsageMenuKind) {
+        guard let button = items[.usage(kind)]?.button else { return }
         let battery = model.monitor.snapshot?.battery
         let value: String
         switch kind {
@@ -116,18 +140,37 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
         case .memory: value = SystemMonitorViewModel.menuBarMemoryUsage(model.monitor.snapshot) ?? "—"
         case .drive: value = SystemMonitorViewModel.menuBarSSDUsage(model.disk) ?? "—"
         case .battery: value = battery.map { "\($0.percent)%" } ?? "—"
+        case .sensors: value = "Sensors"
+        case .network:
+            if let snapshot = model.monitor.snapshot, snapshot.hasNetworkReadings {
+                value = "↑ \(SystemMonitorViewModel.rate(snapshot.network.outPerSecond))|↓ \(SystemMonitorViewModel.rate(snapshot.network.inPerSecond))"
+            } else { value = "↑ —|↓ —" }
         }
         let stateKey = kind == .battery ? "\(value)|\(battery?.isCharging ?? false)|\(battery?.isPluggedIn ?? false)" : value
-        guard values[kind] != stateKey else { return }
-        values[kind] = stateKey
+        guard values[.usage(kind)] != stateKey else { return }
+        values[.usage(kind)] = stateKey
         if kind == .battery {
             let state = battery.map { $0.isCharging ? "Charging" : $0.isPluggedIn ? "Power adapter" : "On battery" } ?? "Reading battery"
-            button.image = BatteryMenuBarIcon.image(percent: battery?.percent, isCharging: battery?.isCharging ?? false)
+            button.image = HardwareMenuBarLabel.batteryImage(
+                percent: battery?.percent,
+                isCharging: battery?.isCharging ?? false,
+                isPluggedIn: battery?.isPluggedIn ?? false
+            )
             button.setAccessibilityLabel("Battery usage, \(value), \(state)")
             button.setAccessibilityValue(value)
             button.toolTip = "Battery: \(value) · \(state). Click for details."
+        } else if kind == .sensors {
+            button.image = HardwareMenuBarLabel.sensorsImage()
+            button.setAccessibilityLabel("Sensors")
+            button.toolTip = "Sensors. Click for temperatures, fan speeds and electrical readings."
+        } else if kind == .network {
+            let lines = value.components(separatedBy: "|")
+            button.image = HardwareMenuBarLabel.networkImage(upload: lines[0], download: lines[1])
+            button.setAccessibilityLabel("Network traffic, upload \(lines[0]), download \(lines[1])")
+            button.setAccessibilityValue(value.replacingOccurrences(of: "|", with: ", "))
+            button.toolTip = "Network traffic · \(lines[0]) · \(lines[1]). Click for details."
         } else {
-            button.image = UsageMenuBarLabel.image(title: kind.title, value: value)
+            button.image = UsageMenuBarLabel.image(title: kind.title, value: value, width: StatusMenuKind.usage(kind).width)
             button.setAccessibilityLabel("\(kind.title) usage, \(value)")
             button.toolTip = "\(kind.title) usage: \(value). Click for details."
         }
@@ -143,21 +186,43 @@ final class UsageMenuBarController: NSObject, NSPopoverDelegate {
         popover.performClose(nil)
         stopSampling()
         presented = kind
-        popover.contentViewController = NSHostingController(rootView:
-            UsageMenuContent(model: model, kind: kind, onClose: { [weak self] in self?.popover.performClose(nil) })
-        )
+        let availableHeight = (sender.window?.screen ?? NSScreen.main)?.visibleFrame.height ?? 900
+        popover.contentViewController = NSHostingController(rootView: panel(kind, availableHeight: availableHeight - 20))
         popover.appearance = model.settings.appearance.nsAppearance
         popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minY)
+        if kind == .usage(.sensors), let screen = sender.window?.screen ?? NSScreen.main {
+            // A keyboard-opened item can have an offscreen proxy in a crowded menu bar.
+            // Keep the enlarged panel and its fixed footer inside the anchor's display.
+            popover.contentViewController?.view.layoutSubtreeIfNeeded()
+            if let window = popover.contentViewController?.view.window {
+                let visible = screen.visibleFrame.insetBy(dx: 8, dy: 8)
+                let origin = NSPoint(x: min(max(window.frame.minX, visible.minX), visible.maxX - window.frame.width),
+                                     y: min(max(window.frame.minY, visible.minY), visible.maxY - window.frame.height))
+                window.setFrameOrigin(origin)
+            }
+        }
         diagnose("show \(kind.rawValue) shown=\(popover.isShown)")
         if popover.isShown {
             samplingClient = kind.client
             model.monitor.begin(kind.client)
-            if kind == .drive { model.refreshDisk() }
+            if kind == .usage(.drive) { model.refreshDisk() }
         }
         popover.contentViewController?.view.window?.makeKey()
         sender.highlight(true)
         update(kind)
         startMonitoringOutsideClicks()
+    }
+
+    @ViewBuilder private func panel(_ kind: StatusMenuKind, availableHeight: CGFloat) -> some View {
+        switch kind {
+        case .cachePop:
+            MenuBarContent(model: model, onClose: { [weak self] in self?.popover.performClose(nil) })
+        case .temperature:
+            TemperatureMenuContent(model: model, onClose: { [weak self] in self?.popover.performClose(nil) })
+        case .usage(let usage):
+            UsageMenuContent(model: model, kind: usage, onClose: { [weak self] in self?.popover.performClose(nil) },
+                             availableHeight: availableHeight)
+        }
     }
 
     private func startMonitoringOutsideClicks() {

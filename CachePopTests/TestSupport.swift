@@ -1,33 +1,28 @@
 import Foundation
 @testable import CachePop
 
-/// The original batch grouping algorithm, retained only as an independent test oracle.
+/// Batch reference for checking bounded, all-pairs retake matching against the streaming builder.
 enum PhotoGroupingReference {
     static func similarGroups(dates: [Date?], distance: (Int, Int) -> Float?) -> [[Int]] {
         let order = dates.indices.filter { dates[$0] != nil }.sorted { dates[$0]! < dates[$1]! }
-        var parent = Array(dates.indices)
-        func root(_ index: Int) -> Int {
-            var index = index
-            while parent[index] != index {
-                parent[index] = parent[parent[index]]
-                index = parent[index]
-            }
-            return index
-        }
-
-        for (position, first) in order.enumerated() {
-            let start = dates[first]!
-            for second in order.dropFirst(position + 1).prefix(PhotoAnalyzer.neighbours) {
-                guard dates[second]!.timeIntervalSince(start) <= PhotoAnalyzer.similarWindow else { break }
-                if let value = distance(first, second), value < PhotoAnalyzer.similarDistance {
-                    parent[root(second)] = root(first)
+        var groups: [[Int]] = []
+        for (position, index) in order.enumerated() {
+            let eligible = Set(order[..<position].suffix(PhotoAnalyzer.neighbours))
+            var best: Int?
+            var bestDistance = Float.infinity
+            for (group, members) in groups.enumerated() {
+                guard members.allSatisfy(eligible.contains),
+                      dates[index]!.timeIntervalSince(dates[members[0]]!) <= PhotoAnalyzer.similarWindow else { continue }
+                let distances = members.compactMap { distance($0, index) }
+                if distances.count == members.count, let largest = distances.max(),
+                   largest < PhotoAnalyzer.similarDistance, largest < bestDistance {
+                    best = group
+                    bestDistance = largest
                 }
             }
+            if let best { groups[best].append(index) } else { groups.append([index]) }
         }
-
-        var groups: [Int: [Int]] = [:]
-        for index in order { groups[root(index), default: []].append(index) }
-        return groups.values.filter { $0.count > 1 }.sorted { $0[0] < $1[0] }
+        return groups.filter { $0.count > 1 }
     }
 }
 
@@ -286,9 +281,11 @@ struct FixtureTrash: TrashMoving {
 struct FakeAppCatalog: AppCataloging {
     var installed: Set<String> = []
     var known: Set<String> = []
+    var registered: [String: [URL]] = [:]
 
     func installedBundleIDs() -> Set<String> { installed }
     func isKnown(bundleID: String) -> Bool { known.contains(bundleID.lowercased()) }
+    func applicationURLs(bundleID: String) -> [URL] { registered[bundleID] ?? [] }
 }
 
 let fixedNow = ISO8601DateFormatter().date(from: "2026-11-05T12:00:00Z")!

@@ -4,6 +4,13 @@ import Foundation
 nonisolated enum PhotoLocation: Sendable, Hashable {
     case file(URL)
     case library(String)
+
+    var photoID: String {
+        switch self {
+        case .file(let url): "file:" + url.path
+        case .library(let identifier): "library:" + identifier
+        }
+    }
 }
 
 
@@ -38,6 +45,8 @@ nonisolated struct AnalyzedPhoto: Identifiable, Sendable, Hashable {
 nonisolated struct SimilarGroup: Identifiable, Sendable, Hashable {
     let id: String
     var photos: [AnalyzedPhoto]
+
+    var suggestedExtras: [AnalyzedPhoto] { photos.dropFirst().filter { !$0.isFavorite } }
 }
 
 
@@ -53,9 +62,9 @@ nonisolated struct PhotoScanResult: Sendable {
 
     var allPhotos: [AnalyzedPhoto] { similar.flatMap(\.photos) + issues.values.flatMap { $0 } }
 
-    /// Extra shots in similar groups plus every photo with an issue.
+    /// Shots eligible for bulk selection across all review tabs.
     var reviewCount: Int {
-        similar.reduce(0) { $0 + $1.photos.count - 1 } + issues.values.reduce(0) { $0 + $1.count }
+        similar.reduce(0) { $0 + $1.suggestedExtras.count } + issues.values.reduce(0) { $0 + $1.count }
     }
 
     /// Drops removed photos and groups left with a single shot.

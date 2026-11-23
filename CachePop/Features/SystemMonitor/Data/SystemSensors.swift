@@ -116,28 +116,6 @@ nonisolated enum DiskIOReader {
 }
 
 
-nonisolated enum NetworkReader {
-    /// Bytes received and sent on Wi-Fi and Ethernet since startup. `read` is received.
-    static func counters() -> ByteCounters {
-        var counters = ByteCounters()
-        var addresses: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&addresses) == 0, let first = addresses else { return counters }
-        defer { freeifaddrs(addresses) }
-        var pointer: UnsafeMutablePointer<ifaddrs>? = first
-        while let current = pointer {
-            let entry = current.pointee
-            if let address = entry.ifa_addr, address.pointee.sa_family == UInt8(AF_LINK),
-               String(cString: entry.ifa_name).hasPrefix("en"),
-               let data = entry.ifa_data?.assumingMemoryBound(to: if_data.self) {
-                counters.read += UInt64(data.pointee.ifi_ibytes)
-                counters.written += UInt64(data.pointee.ifi_obytes)
-            }
-            pointer = entry.ifa_next
-        }
-        return counters
-    }
-}
-
 // MARK: - Temperatures
 
 

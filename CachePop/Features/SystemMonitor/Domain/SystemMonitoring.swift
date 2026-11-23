@@ -7,6 +7,8 @@ nonisolated struct SystemSnapshot: Sendable, Equatable {
     var memory = MemorySample()
     var disk = Throughput()
     var network = Throughput()
+    var networkReading: NetworkReading?
+    var hasNetworkReadings = false
     var temperatures = TemperatureSample()
     var fans: [FanSample] = []
     var battery: BatterySample?

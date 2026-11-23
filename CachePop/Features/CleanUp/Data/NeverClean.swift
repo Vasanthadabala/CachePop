@@ -38,7 +38,7 @@ nonisolated extension NeverCleanList {
         var hidden = 0
 
         for item in group.items {
-            if itemIDs.contains(item.id) {
+            if itemIDs.contains(item.id) || item.parentID.map(itemIDs.contains) == true {
                 hidden += 1
                 continue
             }
@@ -71,14 +71,21 @@ nonisolated extension NeverCleanList {
         var excludedBytes: Int64 = 0
         var touched = false
         var actions: [CleanupAction] = []
+        // Companion files captured in one entry (for example a browser profile's SQLite
+        // databases) must stay together when any one of them is protected.
+        let protectedEntryPaths = Set(item.entries.flatMap { entry -> [URL] in
+            guard case .delete(let urls) = entry.operations[item.defaultAction.id], urls.count > 1,
+                  urls.contains(where: protects) else { return [] }
+            return urls
+        })
 
         for action in item.actions {
             var operation = action.operation
             switch action.operation {
             case .delete(let urls):
-                let kept = urls.filter { !protects($0) }
+                let kept = urls.filter { !protects($0) && !protectedEntryPaths.contains($0) }
                 if action.id == item.defaultAction.id {
-                    excludedBytes += DirectorySizer.size(ofAll: urls.filter(protects)).bytes
+                    excludedBytes += DirectorySizer.size(ofAll: urls.filter { !kept.contains($0) }).bytes
                     excludedBytes += kept.flatMap(protectedFolders(inside:)).reduce(0) { $0 + DirectorySizer.size(of: $1).bytes }
                 }
                 touched = touched || kept.count != urls.count || kept.contains { !protectedFolders(inside: $0).isEmpty }

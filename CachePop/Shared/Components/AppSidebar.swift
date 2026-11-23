@@ -52,9 +52,8 @@ struct AppSidebar: View {
                 .frame(width: 1)
                 .ignoresSafeArea()
         }
-        // A fixed width: the split view otherwise gives detail screens with wide content
-        // part of the sidebar, which cut off its labels.
-        .navigationSplitViewColumnWidth(min: 204, ideal: 204, max: 204)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("appSidebar")
     }
 
     // ⌘1–⌘5 live in the View menu (AppCommands), so they work from anywhere.

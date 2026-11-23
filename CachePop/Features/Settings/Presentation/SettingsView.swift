@@ -286,7 +286,20 @@ private struct MenuBarSettings: View {
             SettingsRow(title: "Battery") {
                 SettingsSwitch(title: "Show battery", isOn: $settings.menuBarShowsBattery)
             }
+            RowDivider(leadingInset: 10)
+            SettingsRow(title: "Sensors") {
+                SettingsSwitch(title: "Show sensors", isOn: $settings.menuBarShowsSensors)
+            }
+            RowDivider(leadingInset: 10)
+            SettingsRow(title: "Network") {
+                SettingsSwitch(title: "Show network traffic", isOn: $settings.menuBarShowsNetwork)
+            }
         }
+
+        Text("Hold ⌘ Command and drag a menu bar item to change its position.")
+            .font(AppTheme.Typography.caption)
+            .foregroundStyle(AppTheme.Colors.textSecondary)
+            .padding(.horizontal, 6)
     }
 }
 

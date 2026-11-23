@@ -41,7 +41,7 @@ nonisolated enum CleanupGroupKind: String, CaseIterable, Identifiable, Sendable 
     /// What the scanner looks at, in plain words — shown while scanning and on the start screen.
     var scanDescription: String {
         switch self {
-        case .xcode:           "Derived data, device support, device crash logs, Xcode caches and old archives"
+        case .xcode:           "Derived data, extra app builds, test runners, device support, Xcode caches and old archives"
         case .simulators:      "Simulators, test clones, runtimes and Android emulators"
         case .developerCaches: "npm, Gradle, SwiftPM, CocoaPods, Homebrew, Docker, local AI models and other tool caches. Never ticked for you"
         case .devices:         "Device backups and iOS update files"
@@ -145,9 +145,11 @@ nonisolated enum InUseCheck: Sendable, Equatable {
     case none
     /// A compiler or `xcodebuild` is running.
     case buildTools
+    /// An extra app build: check both build tools and this specific copy of the app.
+    case appBuild(bundleID: String, path: String)
     /// A Gradle daemon is running.
     case gradleDaemon
-    /// An app whose bundle identifier starts with one of these prefixes is open, or one of
+    /// An app whose bundle identifier equals a prefix or is its dot-separated child is open, or one of
     /// these command-line tools is running (the Codex app and the `codex` CLI).
     case runningApp(bundleIDPrefixes: [String], executableNames: [String] = [], name: String)
     /// This simulator is booted.
@@ -163,6 +165,20 @@ nonisolated enum InUseCheck: Sendable, Equatable {
 }
 
 // MARK: - Items
+
+/// One independently selectable part of a cleanup item, captured by the scan.
+/// Related files share an entry so a database, model or app cache stays consistent.
+nonisolated struct CleanupEntry: Identifiable, Sendable, Equatable {
+    let id: String
+    let title: String
+    var detail: String? = nil
+    /// Nil when the owning tool cannot measure this entry independently.
+    let sizeBytes: Int64?
+    /// Scoped versions of the parent item's actions, keyed by the same action IDs.
+    let operations: [String: CleanupOperation]
+    var location: URL? = nil
+    var inUseCheck: InUseCheck? = nil
+}
 
 /// One line in the review list.
 nonisolated struct CleanupItem: Identifiable, Sendable, Equatable {
@@ -189,12 +205,22 @@ nonisolated struct CleanupItem: Identifiable, Sendable, Equatable {
     /// Shown when blocked only because Full Disk Access is missing.
     var needsFullDiskAccess = false
     var inUseCheck: InUseCheck = .none
+    var entries: [CleanupEntry] = []
+    /// Retained on an individually selected tool operation for Never Clean checks.
+    var parentID: String? = nil
 
     var isBlocked: Bool { blockedReason != nil }
     var defaultAction: CleanupAction { actions[0] }
 
     func action(withID id: String?) -> CleanupAction {
         actions.first { $0.id == id } ?? defaultAction
+    }
+
+    /// Atomic items still have a useful details sheet and one selection control.
+    var inspectionEntries: [CleanupEntry] {
+        guard entries.isEmpty else { return entries }
+        return [CleanupEntry(id: id, title: title, detail: detail, sizeBytes: sizeBytes,
+                             operations: Dictionary(uniqueKeysWithValues: actions.map { ($0.id, $0.operation) }))]
     }
 }
 

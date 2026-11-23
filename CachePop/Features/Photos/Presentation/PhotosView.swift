@@ -221,7 +221,7 @@ private struct PhotosResultsView: View {
                 .frame(height: 170)
                 .card()
         } else {
-            InlineNote(text: "The best shot of each group is marked Keep and stays unless you tick it.")
+            InlineNote(text: "Keep marks the suggested shot. Favourites come first, and resolution breaks close focus scores.")
             LazyVStack(spacing: AppTheme.Spacing.m) {
                 ForEach(model.result.similar) { group in
                     VStack(spacing: 0) {
@@ -279,7 +279,7 @@ private struct PhotosResultsView: View {
 
     private func note(for issue: PhotoIssue) -> String {
         switch issue {
-        case .blurry:      "Nothing in these is sharp. Some may be blurred on purpose, so look before you tick."
+        case .blurry:      "These previews show little edge detail. Check soft backgrounds and intentional motion blur before selecting."
         case .dark:        "Almost nothing can be seen in these. Night shots can land here too."
         case .overexposed: "Most of the picture is white. Snow and bright skies can land here too."
         }
