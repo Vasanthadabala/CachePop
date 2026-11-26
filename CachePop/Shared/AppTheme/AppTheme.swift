@@ -85,6 +85,8 @@ enum AppTheme {
     enum Layout {
         /// A compact first-launch window; macOS may restore a size the user chose later.
         static let defaultWindowSize = CGSize(width: 1000, height: 680)
+        /// Space between the window's edges and a page's content, the same on every page.
+        static let pageGutter: CGFloat = 20
         /// Space left under scrolling content for the floating action bar.
         static let actionBarClearance: CGFloat = 68
         /// Icons and tiles at the start of list rows.

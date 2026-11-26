@@ -192,7 +192,7 @@ private struct LargeFilesResultsView: View {
         return [
             BreakdownSegment(id: "large", title: "Large files", color: AppTheme.Palette.blue.solid,
                              total: largeTotal, selected: largeSelected),
-            BreakdownSegment(id: "copies", title: "Extra copies", color: AppTheme.Palette.blue.solid,
+            BreakdownSegment(id: "copies", title: "Extra copies", color: AppTheme.Palette.violet.solid,
                              total: model.result.duplicateExtraBytes, selected: min(copiesSelected, model.result.duplicateExtraBytes))
         ]
     }

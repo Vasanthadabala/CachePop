@@ -408,16 +408,7 @@ struct FloatingActionBar<Actions: View>: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Content fades out under the bar instead of showing in a hard strip below it.
-            LinearGradient(
-                colors: [AppTheme.Colors.canvas.opacity(0), AppTheme.Colors.canvas.opacity(0.92)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 84)
-            .frame(maxWidth: .infinity)
-            .allowsHitTesting(false)
-
+            ActionBarScrim()
             bar
         }
     }
@@ -445,6 +436,57 @@ struct FloatingActionBar<Actions: View>: View {
         .card(radius: AppTheme.Radius.bar, raised: true)
         .padding(.horizontal, AppTheme.Spacing.xl)
         .padding(.bottom, AppTheme.Spacing.m)
+    }
+}
+
+/// Behind a floating bar: the list fades out as it reaches the bar and is covered from the
+/// bar's middle down, so no row shows through the gap under it.
+struct ActionBarScrim: View {
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: AppTheme.Colors.canvas.opacity(0), location: 0),
+                .init(color: AppTheme.Colors.canvas, location: 0.55),
+                .init(color: AppTheme.Colors.canvas, location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .frame(height: 84)
+        .frame(maxWidth: .infinity)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// A small spinning arc for "working on it", drawn in SwiftUI so it fades and moves with the
+/// rest of a row.
+struct Spinner: View {
+    var size: CGFloat = 12
+    var lineWidth: CGFloat = 1.6
+    var color: Color = AppTheme.Colors.textSecondary
+    @State private var isSpinning = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Circle()
+            .trim(from: 0.08, to: 0.78)
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            .frame(width: size, height: size)
+            .rotationEffect(.degrees(isSpinning ? 360 : 0))
+            .animation(reduceMotion ? nil : .linear(duration: 0.9).repeatForever(autoreverses: false), value: isSpinning)
+            .onAppear { isSpinning = true }
+            .accessibilityElement()
+            .accessibilityLabel("In progress")
+    }
+}
+
+/// For rows that act as buttons: they dim a little while pressed, so a click is felt.
+struct PressableRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.72 : 1)
+            .animation(AppTheme.Motion.quick, value: configuration.isPressed)
     }
 }
 

@@ -65,7 +65,7 @@ struct SystemMonitorView: View {
                     }.frame(maxWidth: .infinity).padding(.bottom, 12).id("monitorPageTop")
                 }.accessibilityIdentifier("monitorPageContent")
             }
-            .padding(.horizontal, 18).padding(.top, 12)
+            .padding(.horizontal, AppTheme.Layout.pageGutter).padding(.top, 12)
             .onChange(of: page) { old, new in
                 let wasProcesses = old == .cpu || old == .memory
                 let wantsProcesses = new == .cpu || new == .memory

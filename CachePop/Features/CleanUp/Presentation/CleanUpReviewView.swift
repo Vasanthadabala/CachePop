@@ -40,6 +40,7 @@ struct CleanUpReviewView: View {
                         .padding(.bottom, 76)
                     }
 
+                    ActionBarScrim()
                     CleanupSelectionBar(model: model)
                 }
             }
@@ -109,7 +110,7 @@ private struct ReviewSummary: View {
             }
         }
         .padding(AppTheme.Spacing.l)
-        .card(radius: 12)
+        .card()
         .animation(AppTheme.Motion.standard, value: model.selectedBytes)
     }
 
@@ -177,7 +178,7 @@ private struct CleanupSelectionBar: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .card(radius: 12, raised: true)
+        .card(radius: AppTheme.Radius.bar, raised: true)
         .padding(.horizontal, AppTheme.Spacing.xl)
         .padding(.bottom, AppTheme.Spacing.m)
         .animation(AppTheme.Motion.quick, value: model.selectedBytes)
@@ -220,8 +221,8 @@ private struct CleanupGroupSection: View {
                 }
             }
         }
-        .card(radius: 12)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .card()
+        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
     }
 
     private var header: some View {

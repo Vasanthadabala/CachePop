@@ -9,7 +9,7 @@ struct SettingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             SettingsTabBar(selection: $settings.selectedTab)
-                .padding(.horizontal, AppTheme.Spacing.m)
+                .padding(.horizontal, AppTheme.Layout.pageGutter)
                 .padding(.vertical, AppTheme.Spacing.m)
 
             ScrollView {
@@ -23,7 +23,7 @@ struct SettingsView: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.horizontal, AppTheme.Spacing.m)
+                .padding(.horizontal, AppTheme.Layout.pageGutter)
                 .padding(.bottom, AppTheme.Spacing.l)
             }
             .id(settings.selectedTab)
@@ -46,36 +46,49 @@ extension SettingsTab {
     }
 }
 
+/// The tabs across the top of Settings. The selected tab's plate slides to the tab you pick.
 private struct SettingsTabBar: View {
     @Binding var selection: SettingsTab
+    @Namespace private var plate
+    @State private var hovered: SettingsTab?
 
     var body: some View {
         HStack(spacing: 2) {
             ForEach(SettingsTab.allCases) { tab in
                 Button {
-                    selection = tab
+                    withAnimation(AppTheme.Motion.quick) { selection = tab }
                 } label: {
                     Text(tab.title)
                         .font(.system(size: 12, weight: selection == tab ? .semibold : .regular))
-                        .foregroundStyle(selection == tab ? AppTheme.Colors.textPrimary : AppTheme.Colors.textSecondary)
+                        .foregroundStyle(selection == tab || hovered == tab ? AppTheme.Colors.textPrimary : AppTheme.Colors.textSecondary)
                         .frame(maxWidth: .infinity)
                         .lineLimit(1)
                         .padding(.vertical, 6)
                         .background {
                             if selection == tab {
-                                RoundedRectangle(cornerRadius: 5)
+                                RoundedRectangle(cornerRadius: 7, style: .continuous)
                                     .fill(AppTheme.Colors.raised)
+                                    .shadow(color: AppTheme.Colors.raisedShadow, radius: 2, y: 1)
+                                    .matchedGeometryEffect(id: "plate", in: plate)
                             }
                         }
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .onHover { hovering in
+                    withAnimation(AppTheme.Motion.quick) { hovered = hovering ? tab : (hovered == tab ? nil : hovered) }
+                }
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
         }
         .padding(3)
-        .background(RoundedRectangle(cornerRadius: 7).fill(AppTheme.Colors.tile))
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(AppTheme.Colors.tile))
     }
+}
+
+/// Settings rows are short, so their cards take a tighter corner than a page's cards.
+private enum SettingsCardMetrics {
+    static let radius: CGFloat = 10
 }
 
 /// A plain section heading above a compact group of preference rows.
@@ -103,7 +116,7 @@ private struct SettingsCard<Content: View, Trailing: View>: View {
             .padding(.horizontal, 6)
 
             VStack(spacing: 0) { content }
-                .card(radius: 7)
+                .card(radius: SettingsCardMetrics.radius)
         }
     }
 }
