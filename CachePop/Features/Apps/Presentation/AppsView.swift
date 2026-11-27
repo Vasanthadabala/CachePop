@@ -237,8 +237,8 @@ private struct AppDetailPane: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(parts.number)
-                    .font(.system(size: 44, weight: .light))
-                    .tracking(-1.5)
+                    .font(.system(size: 40, weight: .semibold))
+                    .tracking(-1)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(libraryBytes(app) == nil ? "\(parts.unit) · measuring Library…" : "\(parts.unit) in total")

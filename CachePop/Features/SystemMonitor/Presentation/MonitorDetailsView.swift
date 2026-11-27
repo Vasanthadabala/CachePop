@@ -51,8 +51,8 @@ struct MonitorDetailsView: View {
                                         .foregroundStyle(AppTheme.Colors.textSecondary)
                                 }
                                 Spacer()
-                                ProgressView(value: min(max(sensor.celsius / 105, 0), 1))
-                                    .tint(sensor.celsius >= 90 ? AppTheme.Status.warning : sensor.group.hue.solid)
+                                UsageBar(fraction: min(max(sensor.celsius / 105, 0), 1),
+                                         color: sensor.celsius >= 90 ? AppTheme.Status.warning : sensor.group.hue.solid)
                                     .frame(width: 110)
                                 Text(SystemMonitorViewModel.temperature(sensor.celsius)).frame(width: 55, alignment: .trailing)
                                 Text(SystemMonitorViewModel.temperature(model.sensorMaximums[sensor.id] ?? sensor.celsius))

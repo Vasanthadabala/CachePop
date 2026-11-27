@@ -3,13 +3,16 @@
 # Developer ID, puts it in a disk image with an Applications shortcut, signs and notarizes the
 # disk image and staples the ticket to it. The DMG lands in build/.
 #
-# One-time setup:
-#   1. A "Developer ID Application" certificate in your keychain:
-#      Xcode › Settings › Accounts › Manage Certificates › + › Developer ID Application.
-#   2. Notary credentials in your keychain, under a profile name ("CachePop" by default):
+# Signing takes one of two routes:
+#   - A "Developer ID Application" certificate in this Mac's keychain, plus notary credentials
+#     saved under a profile name ("CachePop" by default):
 #        xcrun notarytool store-credentials CachePop --apple-id <your Apple ID> --team-id 4R2U97FG78
-#      It asks for an app-specific password (account.apple.com › Sign-In and Security).
-#   3. The Finder layout tool, installed once in an isolated build folder:
+#     The disk image is signed, notarized and stapled.
+#   - Without one: Xcode's cloud-managed Developer ID certificate, for an Apple ID in
+#     Xcode › Settings › Accounts that may use it. Xcode signs and notarizes the app and the
+#     ticket is stapled to it. The disk image stays unsigned: only a local certificate signs it.
+#
+# One-time setup: the Finder layout tool, installed once in an isolated build folder:
 #        python3 -m venv build/dmg-tools
 #        build/dmg-tools/bin/python -m pip install -r scripts/dmg-requirements.txt
 #
@@ -56,14 +59,18 @@ fail() { printf '\nerror: %s\n' "$*" >&2; exit 1; }
 
 # MARK: Checks that fail fast, before the long build
 
+IDENTITY=""
+SIGNING="local"
 if [ "$MODE" != "dev" ]; then
     IDENTITY="$(security find-identity -v -p codesigning \
         | grep -o "\"Developer ID Application: [^\"]*($TEAM_ID)\"" | head -n 1 | tr -d '"' || true)"
-    [ -n "$IDENTITY" ] || fail "No \"Developer ID Application\" certificate for team $TEAM_ID in your keychain.
-Create one in Xcode › Settings › Accounts › Manage Certificates, or run with --dev to try the DMG on this Mac."
+    if [ -z "$IDENTITY" ]; then
+        SIGNING="cloud"
+        echo "No Developer ID certificate in this Mac's keychain: Xcode's cloud-managed one signs the app."
+    fi
 fi
 
-if [ "$MODE" = "release" ]; then
+if [ "$MODE" = "release" ] && [ "$SIGNING" = "local" ]; then
     xcrun notarytool history --keychain-profile "$PROFILE" > /dev/null 2>&1 \
         || fail "No notary credentials in your keychain under the profile \"$PROFILE\". Save them once with:
   xcrun notarytool store-credentials $PROFILE --apple-id <your Apple ID> --team-id $TEAM_ID"
@@ -89,6 +96,13 @@ else
     rm -rf "$WORK"
     mkdir -p "$WORK"
 fi
+# Build intermediates are large: they go whether the run succeeds or stops partway. The archive
+# stays, with its debug symbols, to read crash reports from this build.
+trap 'rm -rf "$WORK/DerivedData" "$WORK/SwiftModuleCache"' EXIT
+
+SIGNING_HELP="Xcode couldn't sign the app. If Apple says the team's program membership isn't eligible,
+the Apple Developer Program membership for team $TEAM_ID needs renewing: see developer.apple.com/account."
+
 
 # MARK: Build
 
@@ -104,7 +118,10 @@ if [ "$REPACKAGE" = false ]; then
         mkdir -p "$WORK/export"
         ditto "$ARCHIVE/Products/Applications/$APP_NAME.app" "$APP"
     else
-        step "Exporting with your Developer ID"
+        # The cloud route uploads the app to Apple's notary service as part of the export.
+        DESTINATION="export"
+        [ "$SIGNING" = "cloud" ] && [ "$MODE" = "release" ] && DESTINATION="upload"
+        step "Exporting with your Developer ID ($SIGNING certificate)"
         cat > "$WORK/ExportOptions.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -116,11 +133,34 @@ if [ "$REPACKAGE" = false ]; then
     <string>$TEAM_ID</string>
     <key>signingStyle</key>
     <string>automatic</string>
+    <key>destination</key>
+    <string>$DESTINATION</string>
 </dict>
 </plist>
 EOF
-        xcodebuild -exportArchive -quiet -allowProvisioningUpdates \
-            -archivePath "$ARCHIVE" -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export"
+        if [ "$DESTINATION" = "upload" ]; then
+            xcodebuild -exportArchive -quiet -allowProvisioningUpdates \
+                -archivePath "$ARCHIVE" -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/upload" \
+                || fail "$SIGNING_HELP"
+
+            step "Waiting for Apple to notarize the app (usually a few minutes)"
+            STARTED=$SECONDS
+            until xcodebuild -exportNotarizedApp -allowProvisioningUpdates \
+                    -archivePath "$ARCHIVE" -exportPath "$WORK/export" > "$WORK/notarized-export.log" 2>&1; do
+                if grep -qiE "invalid|rejected" "$WORK/notarized-export.log"; then
+                    cat "$WORK/notarized-export.log" >&2
+                    fail "Apple didn't notarize the app. The log above says why."
+                fi
+                [ $((SECONDS - STARTED)) -lt 2400 ] \
+                    || fail "Notarization took over 40 minutes. Check Xcode's Organizer, then run with --repackage once the app is notarized."
+                echo "  still waiting ($(( (SECONDS - STARTED) / 60 )) min)…"
+                sleep 30
+            done
+        else
+            xcodebuild -exportArchive -quiet -allowProvisioningUpdates \
+                -archivePath "$ARCHIVE" -exportOptionsPlist "$WORK/ExportOptions.plist" -exportPath "$WORK/export" \
+                || fail "$SIGNING_HELP"
+        fi
     fi
 fi
 
@@ -154,6 +194,11 @@ if [ "$MODE" != "dev" ]; then
     done
 fi
 
+if [ "$MODE" = "release" ] && [ "$SIGNING" = "cloud" ]; then
+    xcrun stapler validate -q "$APP" || fail "The app has no notarization ticket stapled to it."
+    spctl --assess --type execute "$APP" || fail "Gatekeeper rejects the app."
+fi
+
 # MARK: Disk image
 
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$APP/Contents/Info.plist")"
@@ -173,13 +218,16 @@ hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$VERIFY_MOUNT" "$WOR
     > "$WORK/verify-mount.log"
 PACKAGED_APP_VALID=true
 codesign --verify --deep --strict "$VERIFY_MOUNT/$APP_NAME.app" || PACKAGED_APP_VALID=false
+if [ "$MODE" = "release" ] && [ "$SIGNING" = "cloud" ]; then
+    xcrun stapler validate -q "$VERIFY_MOUNT/$APP_NAME.app" || PACKAGED_APP_VALID=false
+fi
 hdiutil detach -quiet "$VERIFY_MOUNT"
 rmdir "$VERIFY_MOUNT"
 [ "$PACKAGED_APP_VALID" = true ] || fail "The packaged app's signature doesn't verify."
 hdiutil verify -quiet "$WORK/$APP_NAME-layout.dmg"
 mv -f "$WORK/$APP_NAME-layout.dmg" "$DMG"
 
-if [ "$MODE" != "dev" ]; then
+if [ "$SIGNING" = "local" ] && [ "$MODE" != "dev" ]; then
     step "Signing the disk image"
     codesign --sign "$IDENTITY" --timestamp "$DMG"
     codesign --verify "$DMG" || fail "The disk image's signature doesn't verify."
@@ -187,7 +235,7 @@ fi
 
 # MARK: Notarize
 
-if [ "$MODE" = "release" ]; then
+if [ "$MODE" = "release" ] && [ "$SIGNING" = "local" ]; then
     step "Notarizing (usually a few minutes)"
     RESULT="$WORK/notarization.json"
     xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait --output-format json > "$RESULT" || true
@@ -206,12 +254,14 @@ if [ "$MODE" = "release" ]; then
     spctl --assess --type execute "$APP" || fail "Gatekeeper rejects the app."
 fi
 
-# The archive stays, with its debug symbols, to read crash reports from this build.
-rm -rf "$WORK/DerivedData" "$WORK/SwiftModuleCache"
-
 step "Done: $DMG"
 case "$MODE" in
-    release) echo "Signed, notarized and stapled: ready to share." ;;
+    release)
+        if [ "$SIGNING" = "local" ]; then
+            echo "Signed, notarized and stapled: ready to share."
+        else
+            echo "The app inside is signed, notarized and stapled: ready to share. The disk image itself is unsigned."
+        fi ;;
     unnotarized) echo "Not notarized: other Macs refuse to open it. Leave out --skip-notarize to share it." ;;
     dev) echo "Signed with your development certificate: it opens on this Mac only. Don't share it." ;;
 esac

@@ -40,7 +40,7 @@ struct MountedVolumesView: View {
                         Spacer()
                         Text("\(ByteSize.string(volume.available)) available").monospacedDigit()
                     }
-                    ProgressView(value: volume.usedFraction).tint(volume.usedFraction > 0.9 ? AppTheme.Status.warning : AppTheme.Colors.accent)
+                    UsageBar(fraction: volume.usedFraction, color: volume.usedFraction > 0.9 ? AppTheme.Status.warning : AppTheme.Colors.accent)
                     HStack {
                         Text("\(volume.format) · \(ByteSize.string(volume.total))\(volume.isReadOnly ? " · Read-only" : "")")
                         Spacer()

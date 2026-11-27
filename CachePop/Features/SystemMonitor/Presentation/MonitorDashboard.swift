@@ -83,7 +83,7 @@ struct CPUOverview: View {
         MonitorSummary(title: model.chipName, value: MonitorFormat.percent(snapshot.cpu.total),
                        detail: "\(model.cores.efficiency) efficiency · \(model.cores.performance) performance cores · \(snapshot.temperatures.chip.map(SystemMonitorViewModel.temperature) ?? "—")", fraction: snapshot.cpu.total, ringSymbol: "cpu")
         MonitorGroup {
-            HStack {
+            HStack(spacing: AppTheme.Spacing.xl) {
                 StatRow(label: "Apps", value: MonitorFormat.percent(snapshot.cpu.user), color: Metric.cpu.solid)
                 StatRow(label: "System", value: MonitorFormat.percent(snapshot.cpu.system), color: Metric.cpuSystem.solid)
                 StatRow(label: "Idle", value: MonitorFormat.percent(max(1 - snapshot.cpu.total, 0)), color: Metric.idle.solid)
@@ -96,7 +96,7 @@ struct CPUOverview: View {
                     let color = Metric.core(model.coreTopology[index]).solid
                     VStack(spacing: 4) {
                         StatRow(label: CPUCoreTopology.label(index, topology: model.coreTopology), value: MonitorFormat.percent(load))
-                        ProgressView(value: load).tint(color).controlSize(.small)
+                        UsageBar(fraction: load, color: color)
                     }
                 }
             }
@@ -208,11 +208,11 @@ struct DriveOverview: View {
         DriveHistoryChart(title: activity == nil ? "Read / Write history · all drives" : "Read / Write history",
                           reads: reads, writes: writes)
         MonitorGroup(title: "Activity") {
-            HStack {
+            HStack(spacing: AppTheme.Spacing.xl) {
                 StatRow(label: "Read", value: ByteSize.rate(activity?.throughput.inPerSecond ?? snapshot.disk.inPerSecond), color: Metric.incoming.solid)
                 StatRow(label: "Write", value: ByteSize.rate(activity?.throughput.outPerSecond ?? snapshot.disk.outPerSecond), color: Metric.outgoing.solid)
             }
-            HStack { StatRow(label: "Read since boot", value: ByteSize.string(Int64(clamping: activity?.counters.read ?? snapshot.diskTotals.read))); StatRow(label: "Written since boot", value: ByteSize.string(Int64(clamping: activity?.counters.written ?? snapshot.diskTotals.written))) }
+            HStack(spacing: AppTheme.Spacing.xl) { StatRow(label: "Read since boot", value: ByteSize.string(Int64(clamping: activity?.counters.read ?? snapshot.diskTotals.read))); StatRow(label: "Written since boot", value: ByteSize.string(Int64(clamping: activity?.counters.written ?? snapshot.diskTotals.written))) }
             if let volume {
                 StatRow(label: "Filesystem", value: volume.format)
                 StatRow(label: "BSD name", value: volume.bsdName ?? "—")
@@ -283,7 +283,7 @@ struct SensorsOverview: View {
         MonitorGroup(title: "Fans") {
             if snapshot.fans.isEmpty { Text("Passive cooling · no fans").font(AppTheme.Typography.callout).foregroundStyle(AppTheme.Colors.textSecondary) }
             else {
-                ForEach(snapshot.fans) { fan in StatRow(label: "Fan \(fan.index + 1)", value: "\(Int(fan.rpm)) rpm"); ProgressView(value: fan.fraction).tint(Metric.fans.solid) }
+                ForEach(snapshot.fans) { fan in StatRow(label: "Fan \(fan.index + 1)", value: "\(Int(fan.rpm)) rpm"); UsageBar(fraction: fan.fraction, color: Metric.fans.solid) }
                 FanControlPanel(control: fanControl, fans: snapshot.fans)
             }
         }
@@ -361,12 +361,14 @@ struct ActivityColumnHeader: View {
     }
 }
 
+/// One process in a monitor table: a hairline above it and a wash under the pointer.
 struct ActivityProcessRow: View {
     let pid: Int32
     let name: String
     let value: String
     var showsQuitColumn = false
     var onQuit: (() -> Void)? = nil
+    @State private var isHovered = false
     var body: some View {
         HStack(spacing: 12) {
             Text(name).lineLimit(1).truncationMode(.middle)
@@ -381,7 +383,7 @@ struct ActivityProcessRow: View {
                         Button(action: onQuit) {
                             Image(systemName: "xmark.circle").frame(width: 28, height: 18).contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain).foregroundStyle(AppTheme.Colors.textTertiary)
+                        .buttonStyle(.plain).foregroundStyle(isHovered ? AppTheme.Colors.textSecondary : AppTheme.Colors.textTertiary)
                         .accessibilityLabel("Quit \(name)")
                     } else {
                         Color.clear.frame(width: 28, height: 18).accessibilityHidden(true)
@@ -389,5 +391,17 @@ struct ActivityProcessRow: View {
                 }.frame(width: 28, height: 18)
             }
         }.font(AppTheme.Typography.callout).monospacedDigit().padding(.vertical, 2)
+            // The table's rows sit 10 pt apart: the wash fills that gap and the hairline halves it.
+            .background {
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovered ? AppTheme.Colors.hover : .clear)
+                    .padding(.horizontal, -6).padding(.vertical, -4)
+            }
+            .overlay(alignment: .top) {
+                Rectangle().fill(AppTheme.Colors.separator).frame(height: 1).offset(y: -5.5)
+                    .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+            .onHover { hovering in withAnimation(AppTheme.Motion.quick) { isHovered = hovering } }
     }
 }

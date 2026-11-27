@@ -3,6 +3,8 @@ import SwiftUI
 /// Feature navigation, with live scan status and a persistent disk summary.
 struct AppSidebar: View {
     @Bindable var model: AppModel
+    /// The selection highlight is one shape that slides from row to row.
+    @Namespace private var selection
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -58,7 +60,7 @@ struct AppSidebar: View {
 
     // ⌘1–⌘5 live in the View menu (AppCommands), so they work from anywhere.
     private func row(_ section: AppSection) -> some View {
-        SidebarSectionRow(model: model, section: section)
+        SidebarSectionRow(model: model, section: section, selection: selection)
     }
 }
 
@@ -68,12 +70,14 @@ struct AppSidebar: View {
 private struct SidebarSectionRow: View {
     let model: AppModel
     let section: AppSection
+    let selection: Namespace.ID
 
     var body: some View {
         SidebarRow(
             section: section,
             status: model.sidebarStatus(for: section),
-            isSelected: (model.section ?? .cleanUp) == section
+            isSelected: (model.section ?? .cleanUp) == section,
+            selection: selection
         ) {
             withAnimation(AppTheme.Motion.standard) { model.section = section }
         }
@@ -125,6 +129,7 @@ private struct SidebarRow: View {
     let section: AppSection
     let status: SidebarStatus
     let isSelected: Bool
+    let selection: Namespace.ID
     let action: () -> Void
 
     @State private var isHovered = false
@@ -145,21 +150,30 @@ private struct SidebarRow: View {
 
                 Spacer(minLength: 4)
 
-                if status.isBusy {
-                    ProgressView()
-                        .controlSize(.mini)
-                        .tint(AppTheme.Colors.textSecondary)
-                } else if let badge = status.badge {
-                    Text(badge)
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .fixedSize()
-                        .foregroundStyle(AppTheme.Colors.textSecondary)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(AppTheme.Colors.tile))
-                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                // One trailing slot, so an empty spinner or badge adds no gap of its own.
+                HStack(spacing: 0) {
+                    // The spinner comes and goes at once. Faded, a job that finished in the
+                    // same instant it started left its spinner behind.
+                    ZStack {
+                        if status.isBusy {
+                            Spinner(size: 11)
+                                .padding(.trailing, 4)
+                        }
+                    }
+                    .transaction { $0.animation = nil }
+
+                    if !status.isBusy, let badge = status.badge {
+                        Text(badge)
+                            .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .fixedSize()
+                            .foregroundStyle(AppTheme.Colors.textSecondary)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(Capsule().fill(AppTheme.Colors.tile))
+                            .transition(.scale(scale: 0.8).combined(with: .opacity))
+                    }
                 }
             }
             .padding(.horizontal, 7)
@@ -167,7 +181,7 @@ private struct SidebarRow: View {
             .background { background }
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableRowStyle())
         .onHover { hovering in
             withAnimation(AppTheme.Motion.quick) { isHovered = hovering }
         }
@@ -182,6 +196,7 @@ private struct SidebarRow: View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         if isSelected {
             shape.fill(AppTheme.Colors.sidebarSelection)
+                .matchedGeometryEffect(id: "selection", in: selection)
         } else if isHovered {
             shape.fill(AppTheme.Colors.hover)
         }
@@ -249,7 +264,7 @@ private struct FooterButton<Label: View>: View {
         Button(action: action) {
             FooterRowLabel(content: label)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressableRowStyle())
         .help(help)
     }
 }
